@@ -1,0 +1,3 @@
+[submodule "simple-fi-aave/submodules/protocol-v2"]
+	path = simple-fi-aave/submodules/protocol-v2
+	url = git@github.com:aave/protocol-v2.git
