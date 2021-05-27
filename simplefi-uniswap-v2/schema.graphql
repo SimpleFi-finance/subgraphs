@@ -1,0 +1,197 @@
+# Common entities for all protocols
+
+enum Blockchain {
+  ETHEREUM
+  BSC
+  XDAI
+  POLYGON
+  OPTIMISM
+  AVALANCHE
+  NEAR
+}
+
+enum AccountType {
+  EOA
+  CONTRACT
+}
+
+enum TokenStandard {
+  ERC20
+  ERC721
+  ERC1155
+}
+
+enum ProtocolName {
+  UNISWAP_V2
+}
+
+enum ProtocolType {
+  STAKING
+  LENDING
+  EXCHANGE
+  INSURANCE
+  STABLECOIN
+  DERIVATIVE
+  SYNTHETIC_TOKEN
+  TOKEN_MANAGEMENT  # Meta LP vaults
+  PREDICTION_MARKET
+}
+
+enum PositionType {
+  INVESTMENT
+  DEBT
+}
+
+type Block @entity {
+  id: ID! # {blockHash}
+  number: BigInt!
+  timestamp: BigInt!
+}
+
+type Account @entity {
+  id: ID! # {accountAddress}
+  type: AccountType!
+  positions: [Position!]! @derivedFrom(field: "account")
+}
+
+type Token @entity {
+  id: ID! # {tokenAddress}
+  tokenStandard: TokenStandard!
+  name: String
+  symbol: String
+  decimals: Int!
+  createdAtBlock: Block # could be block at which we got first event on this token
+}
+
+type Market @entity {
+  id: ID! # {protocol pair/pool/vault address}
+  account: Account!
+  protocolName: ProtocolName!
+  protocolType: ProtocolType!
+  # Generally protocols accept one or multiple tokens and mint tokens to the depositor to track ownership
+  # Some protocols reward DAO tokens or other incentivisation tokens to holders of LP tokens
+  # Some protocols don't mint any tokens to track ownership, in that case outputToken is null 
+  # and inputToken balances are used to calculate returns
+  inputTokens: [Token!]!   # Tokens that need to be deposited to take a position in protocol
+  outputToken: Token       # Token that is minted to track ownership of position in protocol
+  rewardTokens: [Token!]   # Aditional tokens that are given as reward for position in a protocol
+  canBeReinvestedInTo: [Account!]!
+  createdAtBlock: Block!
+}
+
+type Transaction @entity {
+  id: ID! # {transactionHash}
+  market: Market!
+  # A transaction.from is always transaction origin because outside EVM transaction.origin and msg.sender are same
+  from: Account!
+  to: Account
+  gasUsed: BigInt!
+  gasPrice: BigInt!
+  createdAtBlock: Block!
+  transactionIndexInBlock: BigInt!
+}
+
+# String format for a TokenBalance
+# tokenAddress|accountAddress|tokenAmountBigInt|tokenAmountInWei
+
+# It is required because we want to keep track of closed positions as well
+# We can not use same ID for a user's new position after existing one has been closed
+# To be able to fetch current open position for a user + market + position type we need
+# ID to be dependent on only these three things. There three things will be same for all positions
+# of a specific user in specfic market therefore we need this AccountPosition entity
+type AccountPosition @entity {
+  id: ID! # {userAddress}{marketAddress}{positionType}
+  positions: [Position!]! @derivedFrom(field: "accountPosition")
+}
+
+# We can not keep balances and roi updated all the time. 
+# We can update these only when the account of the position makes some changes in the position
+# at others time when market variables are changing because of other's actions then we won't update these
+type Position @entity {
+  id: ID! # {accountPositionId}{autoIncrement}
+  accountPosition: AccountPosition!
+  account: Account!
+  market: Market!
+  positionType: PositionType!
+  investmentAmounts: [String!]!     # TokenBalance string format
+  outputTokenBalance: BigInt!
+  outputTokenBalanceInETH: BigInt!  # in Wei
+  inputTokenBalances: [String!]!    # TokenBalance string format
+  rewardTokenBalances: [String!]!   # TokenBalance string format
+  reinvestments: [String!]!         # TokenBalance string format
+  roiInEth: BigInt!
+  roiPercentageInEth: BigDecimal!
+  xirrInEth: BigDecimal!
+  closed: Boolean!
+  createdAtBlock: Block!
+  updatedAtBlock: Block!
+  history: [PositionSnapshot!]! @derivedFrom(field: "position")
+}
+
+# Created before every update (transaction) to Position
+type PositionSnapshot @entity {
+  id: ID! # {positionId}{autoIncrement}
+  position: Position!
+  transaction: Transaction!
+  investmentAmounts: [String!]!     # TokenBalance string format
+  outputTokenBalance: BigInt!
+  outputTokenBalanceInETH: BigInt!
+  inputTokenBalances: [String!]!    # TokenBalance string format
+  rewardTokenBalances: [String!]!   # TokenBalance string format
+  reinvestments: [String!]!         # TokenBalance string format
+  roiInEth: BigInt!
+  roiPercentageInEth: BigDecimal!
+  xirrInEth: BigDecimal!
+}
+
+# END - Common entities for all protocols
+
+# UniswapV2 protocol entities
+
+# Created on PairCreated event on UniswapV2Factory.sol
+# feeTo is not part of Pair contract. We need to fetch it from factory contract
+type Pair @entity {
+  id: ID! # {pairAddress}
+  factory: Account!
+  token0: Token!
+  token1: Token!
+  feeTo: Account!
+  createdAtBlock: Block!
+  history: [PairSnapshot!]! @derivedFrom(field: "pair")
+}
+
+type PairSnapshot @entity {
+  id: ID! # {trasactionHash}{logIndex}
+  pair: Pair!
+  reserve0: BigInt!
+  reserve1: BigInt!
+  feeTo: Account!
+  createdAtBlock: Block!
+  transactionHash: String!
+  transactionIndexInBlock: BigInt!
+  logIndex: BigInt!
+}
+
+type Mint @entity {
+  id: ID! # {trasactionHash}
+  pair: Pair
+  to: Account
+  liquityAmount: BigInt
+  amount0: BigInt
+  amount1: BigInt
+  transferEventApplied: Boolean!
+  mintEventApplied: Boolean!
+}
+
+type Burn @entity {
+  id: ID! # {trasactionHash}
+  pair: Pair
+  to: Account
+  liquityAmount: BigInt
+  amount0: BigInt
+  amount1: BigInt
+  transferEventApplied: Boolean!
+  burnEventApplied: Boolean!
+}
+
+# END - UniswapV2 protocol entities
