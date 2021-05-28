@@ -59,7 +59,7 @@ type Token @entity {
   tokenStandard: TokenStandard!
   name: String
   symbol: String
-  decimals: Int!
+  decimals: Int
   createdAtBlock: Block # could be block at which we got first event on this token
 }
 
@@ -75,7 +75,7 @@ type Market @entity {
   inputTokens: [Token!]!   # Tokens that need to be deposited to take a position in protocol
   outputToken: Token       # Token that is minted to track ownership of position in protocol
   rewardTokens: [Token!]   # Aditional tokens that are given as reward for position in a protocol
-  canBeReinvestedInTo: [Account!]!
+  canBeReinvestedInTo: [String!]!
   createdAtBlock: Block!
 }
 
@@ -113,7 +113,6 @@ type Position @entity {
   account: Account!
   market: Market!
   positionType: PositionType!
-  investmentAmounts: [String!]!     # TokenBalance string format
   outputTokenBalance: BigInt!
   outputTokenBalanceInETH: BigInt!  # in Wei
   inputTokenBalances: [String!]!    # TokenBalance string format
@@ -133,7 +132,6 @@ type PositionSnapshot @entity {
   id: ID! # {positionId}{autoIncrement}
   position: Position!
   transaction: Transaction!
-  investmentAmounts: [String!]!     # TokenBalance string format
   outputTokenBalance: BigInt!
   outputTokenBalanceInETH: BigInt!
   inputTokenBalances: [String!]!    # TokenBalance string format
@@ -155,7 +153,8 @@ type Pair @entity {
   factory: Account!
   token0: Token!
   token1: Token!
-  feeTo: Account!
+  reserve0: BigInt!
+  reserve1: BigInt!
   createdAtBlock: Block!
   history: [PairSnapshot!]! @derivedFrom(field: "pair")
 }
@@ -165,7 +164,6 @@ type PairSnapshot @entity {
   pair: Pair!
   reserve0: BigInt!
   reserve1: BigInt!
-  feeTo: Account!
   createdAtBlock: Block!
   transactionHash: String!
   transactionIndexInBlock: BigInt!

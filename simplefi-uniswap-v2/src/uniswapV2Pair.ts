@@ -7,7 +7,6 @@ import {
     PairSnapshot as PairSnapshotEntity
 } from "../generated/schema"
 import { ERC20 } from "../generated/templates/UniswapV2Pair/ERC20"
-import { UniswapV2Factory } from "../generated/templates/UniswapV2Pair/UniswapV2Factory"
 import {
     Burn,
     Mint,
@@ -19,11 +18,11 @@ import {
     ADDRESS_ZERO,
     createOrUpdatePosition,
     encodeToTokenBalance,
-    getAccountType,
+
     getOrCreateAccount,
     getOrCreateBlock
 } from "./common"
-import { AccountType, PositionType } from "./constants"
+import { PositionType } from "./constants"
 
 
 function getOrCreateMint(event: ethereum.Event, pair: PairEntity): MintEntity {
@@ -81,10 +80,8 @@ function createOrUpdatePositionOnEvent(
     inputTokenBalances.push(encodeToTokenBalance(pair.token0, accountAddress.toHexString(), amount0))
     inputTokenBalances.push(encodeToTokenBalance(pair.token1, accountAddress.toHexString(), amount1))
 
-    // isTransfer == true && transferTo is contract address then it's reinvestment
-    let isReinvestment = isTransfer && (getAccountType(transferTo) == AccountType.CONTRACT)
     let reinvestments: string[] = []
-    if (isReinvestment) {
+    if (isTransfer) {
         reinvestments.push(encodeToTokenBalance(pair.id, transferTo.toHexString(), liquityAmount))
     }
 
@@ -108,13 +105,20 @@ function createOrUpdatePositionOnEvent(
 }
 
 export function handleTransfer(event: Transfer): void {
-    let pair = PairEntity.load(event.address.toHexString()) as PairEntity
-
-    // Check if transfer it's a mint or burn or transfer transaction
+    let pairAddressHex = event.address.toHexString()
     let fromHex = event.params.from.toHexString()
     let toHex = event.params.to.toHexString()
+
+    let pair = PairEntity.load(pairAddressHex) as PairEntity
+
+    // Skip it's emitted from internal _burn method
+    if (fromHex == pairAddressHex && toHex == ADDRESS_ZERO) {
+        return
+    }
+
+    // Check if transfer it's a mint or burn or transfer transaction
     if (fromHex == ADDRESS_ZERO) {
-        if (toHex != ADDRESS_ZERO && toHex != pair.feeTo) {
+        if (toHex != ADDRESS_ZERO) {
             let mint = getOrCreateMint(event, pair)
             mint.transferEventApplied = true
             mint.to = getOrCreateAccount(event.params.to).id
@@ -124,7 +128,7 @@ export function handleTransfer(event: Transfer): void {
                 createOrUpdatePositionOnEvent(event, event.params.to, pair, event.params.value, false, event.params.to)
             }
         }
-    } else if (toHex == event.address.toHexString()) {
+    } else if (toHex == pairAddressHex) {
         let burn = getOrCreateBurn(event, pair)
         burn.transferEventApplied = true
         burn.liquityAmount = event.params.value
@@ -174,19 +178,17 @@ export function handleSync(event: Sync): void {
 
     let pair = PairEntity.load(event.address.toHexString()) as PairEntity
 
-    let factoryAddress = Address.fromString(pair.factory)
-    let factoryInstance = UniswapV2Factory.bind(factoryAddress)
-    let feeTo = factoryInstance.feeTo()
-    let feeToAccount = getOrCreateAccount(feeTo)
-
     pairSnapshot = new PairSnapshotEntity(id)
     pairSnapshot.pair = pair.id
-    pairSnapshot.reserve0 = event.params.reserve0
-    pairSnapshot.reserve1 = event.params.reserve1
-    pairSnapshot.feeTo = feeToAccount.id
+    pairSnapshot.reserve0 = pair.reserve0
+    pairSnapshot.reserve1 = pair.reserve1
     pairSnapshot.createdAtBlock = getOrCreateBlock(event.block).id
     pairSnapshot.transactionHash = event.transaction.hash.toHexString()
     pairSnapshot.transactionIndexInBlock = event.transaction.index
     pairSnapshot.logIndex = event.logIndex
     pairSnapshot.save()
+
+    pair.reserve0 = event.params.reserve0
+    pair.reserve1 = event.params.reserve1
+    pair.save()
 }

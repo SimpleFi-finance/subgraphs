@@ -1,8 +1,8 @@
+import { BigInt } from "@graphprotocol/graph-ts"
 import { Pair as PairEntity } from "../generated/schema"
 import { UniswapV2Pair } from "../generated/templates"
 import {
-    PairCreated,
-    UniswapV2Factory
+    PairCreated
 } from "../generated/UniswapV2Factory/UniswapV2Factory"
 import {
     getOrCreateAccount,
@@ -30,18 +30,13 @@ export function handlePairCreated(event: PairCreated): void {
         block
     )
 
-    // create account for factory and fee to
-    let factoryAccount = getOrCreateAccount(event.address)
-    let factoryInstance = UniswapV2Factory.bind(event.address)
-    let feeTo = factoryInstance.feeTo()
-    let feeToAccount = getOrCreateAccount(feeTo)
-
     // Create pair
     let pair = new PairEntity(event.params.pair.toHexString())
-    pair.factory = factoryAccount.id
-    pair.feeTo = feeToAccount.id
+    pair.factory = getOrCreateAccount(event.address).id
     pair.token0 = token0.id
     pair.token1 = token1.id
+    pair.reserve0 = BigInt.fromI32(0)
+    pair.reserve1 = BigInt.fromI32(0)
     pair.createdAtBlock = block.id
     pair.save()
 

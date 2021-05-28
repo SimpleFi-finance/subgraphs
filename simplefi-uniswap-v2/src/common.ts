@@ -70,7 +70,10 @@ export function getOrCreateERC20Token(address: Address, block: Block): Token {
     if (!trySymbol.reverted) {
         token.symbol = trySymbol.value
     }
-    token.decimals = tokenInstance.decimals()
+    let tryDecimals = tokenInstance.try_decimals()
+    if (!tryDecimals.reverted) {
+        token.decimals = tryDecimals.value
+    }
     token.createdAtBlock = block.id
     token.save()
     return token as Token
@@ -133,7 +136,6 @@ export function getOrCreateOpenPosition(
         position.account = account.id
         position.market = market.id
         position.positionType = positionType
-        position.investmentAmounts = []
         position.outputTokenBalance = BigInt.fromI32(0)
         position.outputTokenBalanceInETH = BigInt.fromI32(0)
         position.inputTokenBalances = []
@@ -226,7 +228,6 @@ function createPostionSnapshot(position: Position, transaction: Transaction): Po
     let newSnapshot = new PositionSnapshot(position.id.concat("-").concat(newCounter.toString()))
     newSnapshot.position = position.id
     newSnapshot.transaction = transaction.id
-    newSnapshot.investmentAmounts = position.investmentAmounts
     newSnapshot.outputTokenBalance = position.outputTokenBalance
     newSnapshot.outputTokenBalanceInETH = position.outputTokenBalanceInETH
     newSnapshot.inputTokenBalances = position.inputTokenBalances
@@ -266,21 +267,17 @@ export function createOrUpdatePosition(
     let position = getOrCreateOpenPosition(account, market, positionType, block)
     let postionSnapshot = createPostionSnapshot(position, transaction)
 
-    // Update investment, input, output, reward and reinvestment token balances for the position
-    if (position.investmentAmounts.length == 0) {
-        position.investmentAmounts = inputTokenBalances
-    }
-
+    // Update input, output, reward and reinvestment token balances for the position
     position.inputTokenBalances = inputTokenBalances
     position.outputTokenBalance = outputTokenBalance
     position.rewardTokenBalances = rewardTokenBalances
 
     if (reinvestments.length > 0) {
         position.reinvestments = addTokenBalances(position.reinvestments, reinvestments)
-        // Update canBeReinvestedTo array for Market entity
-
+        let reinvestmentsTo = reinvestments.map<TokenBalance>(r => new TokenBalance(r)).map<string>(r => r.accountAddress)
+        market.canBeReinvestedInTo = market.canBeReinvestedInTo.concat(reinvestmentsTo)
+        market.save()
     }
-
 
     // Compute new return values for the position
     // roiInEth: BigInt!
