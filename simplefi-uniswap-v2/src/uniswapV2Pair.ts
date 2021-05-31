@@ -150,8 +150,8 @@ export function handleMint(event: Mint): void {
     mint.amount0 = event.params.amount0
     mint.amount1 = event.params.amount1
     mint.save()
-    let accountAddress = Address.fromString(mint.to)
     if (mint.transferEventApplied) {
+        let accountAddress = Address.fromString(mint.to)
         createOrUpdatePositionOnEvent(event, accountAddress, pair, mint.liquityAmount as BigInt, false, accountAddress)
     }
 }
