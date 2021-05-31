@@ -1,12 +1,12 @@
 import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts"
 import {
+    Account as AccountEntity,
     Burn as BurnEntity,
     Market as MarketEntity,
     Mint as MintEntity,
     Pair as PairEntity,
     PairSnapshot as PairSnapshotEntity
 } from "../generated/schema"
-import { ERC20 } from "../generated/templates/UniswapV2Pair/ERC20"
 import {
     Burn,
     Mint,
@@ -16,13 +16,11 @@ import {
 } from "../generated/templates/UniswapV2Pair/UniswapV2Pair"
 import {
     ADDRESS_ZERO,
-    createOrUpdatePosition,
-    encodeToTokenBalance,
-
     getOrCreateAccount,
-    getOrCreateBlock
+    investInMarket,
+    redeemFromMarket,
+    TokenBalance
 } from "./common"
-import { PositionType } from "./constants"
 
 
 function getOrCreateMint(event: ethereum.Event, pair: PairEntity): MintEntity {
@@ -34,6 +32,7 @@ function getOrCreateMint(event: ethereum.Event, pair: PairEntity): MintEntity {
     mint = new MintEntity(event.transaction.hash.toHexString())
     mint.pair = pair.id
     mint.transferEventApplied = false
+    mint.syncEventApplied = false
     mint.mintEventApplied = false
     mint.save()
     return mint as MintEntity
@@ -47,60 +46,132 @@ function getOrCreateBurn(event: ethereum.Event, pair: PairEntity): BurnEntity {
 
     burn = new BurnEntity(event.transaction.hash.toHexString())
     burn.transferEventApplied = false
+    burn.syncEventApplied = false
     burn.burnEventApplied = false
     burn.pair = pair.id
     burn.save()
     return burn as BurnEntity
 }
 
-function createOrUpdatePositionOnEvent(
-    event: ethereum.Event,
-    accountAddress: Address,
-    pair: PairEntity,
-    liquityAmount: BigInt,
-    isTransfer: boolean,
-    transferTo: Address
-): void {
-    let pairAddress = Address.fromString(pair.id)
-    let pairInstance = UniswapV2Pair.bind(pairAddress)
-    let token0Instance = ERC20.bind(Address.fromString(pair.token0))
-    let token1Instance = ERC20.bind(Address.fromString(pair.token1))
-
-    // Get LP token balance
-    let lpBalance = pairInstance.balanceOf(accountAddress)
-    let totalSupply = pairInstance.totalSupply()
-
-    // Get token0 and token1 balance than can be redeemed for current LP token balance
-    let balance0 = token0Instance.balanceOf(pairAddress)
-    let balance1 = token1Instance.balanceOf(pairAddress)
-    let amount0 = lpBalance.times(balance0).div(totalSupply)
-    let amount1 = lpBalance.times(balance1).div(totalSupply)
-
-    let inputTokenBalances: string[] = []
-    inputTokenBalances.push(encodeToTokenBalance(pair.token0, accountAddress.toHexString(), amount0))
-    inputTokenBalances.push(encodeToTokenBalance(pair.token1, accountAddress.toHexString(), amount1))
-
-    let reinvestments: string[] = []
-    if (isTransfer) {
-        reinvestments.push(encodeToTokenBalance(pair.id, transferTo.toHexString(), liquityAmount))
+function createOrUpdatePositionOnMint(event: ethereum.Event, pair: PairEntity, mint: MintEntity): void {
+    let isComplete = mint.transferEventApplied && mint.syncEventApplied && mint.mintEventApplied
+    if (!isComplete) {
+        return
     }
 
-    // Create block and account entities
-    let block = getOrCreateBlock(event.block)
-    let account = getOrCreateAccount(accountAddress)
-    let market = MarketEntity.load(pair.id) as MarketEntity
+    let accountAddress = Address.fromString(mint.to)
+    let pairAddress = Address.fromString(mint.pair)
+    let pairInstance = UniswapV2Pair.bind(pairAddress)
 
-    // Call common position function
-    let position = createOrUpdatePosition(
+    let account = new AccountEntity(mint.to)
+    let market = new MarketEntity(mint.pair)
+
+    let outputTokenAmount = mint.liquityAmount as BigInt
+    let inputTokenAmounts: TokenBalance[] = []
+    inputTokenAmounts.push(new TokenBalance(pair.token0, mint.to, mint.amount0 as BigInt))
+    inputTokenAmounts.push(new TokenBalance(pair.token1, mint.to, mint.amount1 as BigInt))
+
+    let outputTokenBalance = pairInstance.balanceOf(accountAddress)
+    let token0Balance = outputTokenBalance.times(pair.reserve0).div(pair.totalSupply)
+    let token1Balance = outputTokenBalance.times(pair.reserve1).div(pair.totalSupply)
+    let inputTokenBalances: TokenBalance[] = []
+    inputTokenBalances.push(new TokenBalance(pair.token0, mint.to, token0Balance))
+    inputTokenBalances.push(new TokenBalance(pair.token1, mint.to, token1Balance))
+
+    investInMarket(
         event,
         account,
         market,
-        PositionType.INVESTMENT,
-        lpBalance,
-        inputTokenBalances,
+        outputTokenAmount,
+        inputTokenAmounts,
         [],
-        reinvestments,
-        block
+        outputTokenBalance,
+        inputTokenBalances,
+        []
+    )
+}
+
+function createOrUpdatePositionOnBurn(event: ethereum.Event, pair: PairEntity, burn: BurnEntity): void {
+    let isComplete = burn.transferEventApplied && burn.syncEventApplied && burn.burnEventApplied
+    if (!isComplete) {
+        return
+    }
+
+    let accountAddress = Address.fromString(burn.to)
+    let pairAddress = Address.fromString(burn.pair)
+    let pairInstance = UniswapV2Pair.bind(pairAddress)
+
+    let account = new AccountEntity(burn.to)
+    let market = new MarketEntity(burn.pair)
+
+    let outputTokenAmount = burn.liquityAmount as BigInt
+    let inputTokenAmounts: TokenBalance[] = []
+    inputTokenAmounts.push(new TokenBalance(pair.token0, burn.to, burn.amount0 as BigInt))
+    inputTokenAmounts.push(new TokenBalance(pair.token1, burn.to, burn.amount1 as BigInt))
+
+    let outputTokenBalance = pairInstance.balanceOf(accountAddress)
+    let token0Balance = outputTokenBalance.times(pair.reserve0).div(pair.totalSupply)
+    let token1Balance = outputTokenBalance.times(pair.reserve1).div(pair.totalSupply)
+    let inputTokenBalances: TokenBalance[] = []
+    inputTokenBalances.push(new TokenBalance(pair.token0, burn.to, token0Balance))
+    inputTokenBalances.push(new TokenBalance(pair.token1, burn.to, token1Balance))
+
+    redeemFromMarket(
+        event,
+        account,
+        market,
+        outputTokenAmount,
+        inputTokenAmounts,
+        [],
+        outputTokenBalance,
+        inputTokenBalances,
+        []
+    )
+}
+
+function transferLPToken(event: ethereum.Event, pair: PairEntity, from: Address, to: Address, amount: BigInt): void {
+    let pairAddress = Address.fromString(pair.id)
+    let pairInstance = UniswapV2Pair.bind(pairAddress)
+    let market = new MarketEntity(pair.id)
+
+    let fromAccount = getOrCreateAccount(from)
+    let fromOutputTokenBalance = pairInstance.balanceOf(from)
+    let fromInputTokenBalances: TokenBalance[] = []
+    let fromToken0Balance = fromOutputTokenBalance.times(pair.reserve0).div(pair.totalSupply)
+    let fromToken1Balance = fromOutputTokenBalance.times(pair.reserve1).div(pair.totalSupply)
+    fromInputTokenBalances.push(new TokenBalance(pair.token0, fromAccount.id, fromToken0Balance))
+    fromInputTokenBalances.push(new TokenBalance(pair.token1, fromAccount.id, fromToken1Balance))
+
+    redeemFromMarket(
+        event,
+        fromAccount,
+        market,
+        amount,
+        [],
+        [],
+        fromOutputTokenBalance,
+        fromInputTokenBalances,
+        []
+    )
+
+    let toAccount = getOrCreateAccount(to)
+    let toOutputTokenBalance = pairInstance.balanceOf(to)
+    let toInputTokenBalances: TokenBalance[] = []
+    let toToken0Balance = toOutputTokenBalance.times(pair.reserve0).div(pair.totalSupply)
+    let toToken1Balance = toOutputTokenBalance.times(pair.reserve1).div(pair.totalSupply)
+    toInputTokenBalances.push(new TokenBalance(pair.token0, toAccount.id, toToken0Balance))
+    toInputTokenBalances.push(new TokenBalance(pair.token1, toAccount.id, toToken1Balance))
+
+    investInMarket(
+        event,
+        toAccount,
+        market,
+        amount,
+        [],
+        [],
+        toOutputTokenBalance,
+        toInputTokenBalances,
+        []
     )
 }
 
@@ -111,35 +182,34 @@ export function handleTransfer(event: Transfer): void {
 
     let pair = PairEntity.load(pairAddressHex) as PairEntity
 
-    // Skip it's emitted from internal _burn method
-    if (fromHex == pairAddressHex && toHex == ADDRESS_ZERO) {
-        return
-    }
-
     // Check if transfer it's a mint or burn or transfer transaction
     if (fromHex == ADDRESS_ZERO) {
-        if (toHex != ADDRESS_ZERO) {
-            let mint = getOrCreateMint(event, pair)
-            mint.transferEventApplied = true
-            mint.to = getOrCreateAccount(event.params.to).id
-            mint.liquityAmount = event.params.value
-            mint.save()
-            if (mint.mintEventApplied) {
-                createOrUpdatePositionOnEvent(event, event.params.to, pair, event.params.value, false, event.params.to)
-            }
+        pair.totalSupply = pair.totalSupply.plus(event.params.value)
+        pair.save()
+
+        let mint = getOrCreateMint(event, pair)
+        mint.transferEventApplied = true
+        mint.to = getOrCreateAccount(event.params.to).id
+        mint.liquityAmount = event.params.value
+        mint.save()
+        createOrUpdatePositionOnMint(event, pair, mint)
+    }
+
+    if (toHex == ADDRESS_ZERO) {
+        if (fromHex == pairAddressHex) {
+            pair.totalSupply = pair.totalSupply.minus(event.params.value)
+            pair.save()
         }
-    } else if (toHex == pairAddressHex) {
+
         let burn = getOrCreateBurn(event, pair)
         burn.transferEventApplied = true
         burn.liquityAmount = event.params.value
         burn.save()
-        if (burn.burnEventApplied) {
-            createOrUpdatePositionOnEvent(event, Address.fromString(burn.to), pair, event.params.value, false, event.params.to)
-        }
-    } else {
-        // Handle Transfer from one account to another
-        createOrUpdatePositionOnEvent(event, event.params.from, pair, event.params.value, true, event.params.to)
-        createOrUpdatePositionOnEvent(event, event.params.to, pair, event.params.value, false, event.params.to)
+        createOrUpdatePositionOnBurn(event, pair, burn)
+    }
+
+    if (fromHex != ADDRESS_ZERO && fromHex != pairAddressHex && toHex != ADDRESS_ZERO && toHex != pairAddressHex) {
+        transferLPToken(event, pair, event.params.from, event.params.to, event.params.value)
     }
 }
 
@@ -150,10 +220,7 @@ export function handleMint(event: Mint): void {
     mint.amount0 = event.params.amount0
     mint.amount1 = event.params.amount1
     mint.save()
-    if (mint.transferEventApplied) {
-        let accountAddress = Address.fromString(mint.to)
-        createOrUpdatePositionOnEvent(event, accountAddress, pair, mint.liquityAmount as BigInt, false, accountAddress)
-    }
+    createOrUpdatePositionOnMint(event, pair, mint)
 }
 
 export function handleBurn(event: Burn): void {
@@ -164,13 +231,12 @@ export function handleBurn(event: Burn): void {
     burn.amount0 = event.params.amount0
     burn.amount1 = event.params.amount1
     burn.save()
-    if (burn.transferEventApplied) {
-        createOrUpdatePositionOnEvent(event, event.params.to, pair, burn.liquityAmount as BigInt, false, Address.fromString(pair.id))
-    }
+    createOrUpdatePositionOnBurn(event, pair, burn)
 }
 
 export function handleSync(event: Sync): void {
-    let id = event.transaction.hash.toHexString().concat("-").concat(event.logIndex.toHexString())
+    let transactionHash = event.transaction.hash.toHexString()
+    let id = transactionHash.concat("-").concat(event.logIndex.toHexString())
     let pairSnapshot = PairSnapshotEntity.load(id)
     if (pairSnapshot != null) {
         return
@@ -182,7 +248,9 @@ export function handleSync(event: Sync): void {
     pairSnapshot.pair = pair.id
     pairSnapshot.reserve0 = pair.reserve0
     pairSnapshot.reserve1 = pair.reserve1
-    pairSnapshot.createdAtBlock = getOrCreateBlock(event.block).id
+    pairSnapshot.totalSupply = pair.totalSupply
+    pairSnapshot.blockNumber = event.block.number
+    pairSnapshot.timestamp = event.block.timestamp
     pairSnapshot.transactionHash = event.transaction.hash.toHexString()
     pairSnapshot.transactionIndexInBlock = event.transaction.index
     pairSnapshot.logIndex = event.logIndex
@@ -191,4 +259,20 @@ export function handleSync(event: Sync): void {
     pair.reserve0 = event.params.reserve0
     pair.reserve1 = event.params.reserve1
     pair.save()
+
+    let possibleMint = MintEntity.load(transactionHash)
+    if (possibleMint != null) {
+        let mint = possibleMint as MintEntity
+        mint.syncEventApplied = true
+        mint.save()
+        createOrUpdatePositionOnMint(event, pair, mint)
+    }
+
+    let possibleBurn = BurnEntity.load(transactionHash)
+    if (possibleBurn != null) {
+        let burn = possibleBurn as BurnEntity
+        burn.syncEventApplied = true
+        burn.save()
+        createOrUpdatePositionOnBurn(event, pair, burn)
+    }
 }

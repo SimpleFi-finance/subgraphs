@@ -10,11 +10,6 @@ enum Blockchain {
   NEAR
 }
 
-enum AccountType {
-  EOA
-  CONTRACT
-}
-
 enum TokenStandard {
   ERC20
   ERC721
@@ -42,15 +37,15 @@ enum PositionType {
   DEBT
 }
 
-type Block @entity {
-  id: ID! # {blockHash}
-  number: BigInt!
-  timestamp: BigInt!
+enum TransactionType {
+  INVEST
+  REDEEM
+  BORROW
+  REPAY
 }
 
 type Account @entity {
   id: ID! # {accountAddress}
-  type: AccountType!
   positions: [Position!]! @derivedFrom(field: "account")
 }
 
@@ -60,7 +55,9 @@ type Token @entity {
   name: String
   symbol: String
   decimals: Int
-  createdAtBlock: Block # could be block at which we got first event on this token
+  mintedByMarket: Market
+  blockNumber: BigInt! # could be block at which we got first event on this token
+  timestamp: BigInt!
 }
 
 type Market @entity {
@@ -76,7 +73,9 @@ type Market @entity {
   outputToken: Token       # Token that is minted to track ownership of position in protocol
   rewardTokens: [Token!]   # Aditional tokens that are given as reward for position in a protocol
   canBeReinvestedInTo: [String!]!
-  createdAtBlock: Block!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  positions: [Position!]! @derivedFrom(field: "market")
 }
 
 type Transaction @entity {
@@ -85,14 +84,20 @@ type Transaction @entity {
   # A transaction.from is always transaction origin because outside EVM transaction.origin and msg.sender are same
   from: Account!
   to: Account
+  # token amounts will always be positive here, Their credit or debit status will change based on transaction type
+  transactionType: TransactionType!
+  inputTokenAmounts: [String!]!
+  outputTokenAmount: BigInt!
+  rewardTokenAmounts: [String!]!
   gasUsed: BigInt!
   gasPrice: BigInt!
-  createdAtBlock: Block!
+  blockNumber: BigInt!
+  timestamp: BigInt!
   transactionIndexInBlock: BigInt!
 }
 
 # String format for a TokenBalance
-# tokenAddress|accountAddress|tokenAmountBigInt|tokenAmountInWei
+# tokenAddress|accountAddress|tokenAmountBigInt
 
 # It is required because we want to keep track of closed positions as well
 # We can not use same ID for a user's new position after existing one has been closed
@@ -112,19 +117,18 @@ type Position @entity {
   id: ID! # {accountPositionId}{autoIncrement}
   accountPosition: AccountPosition!
   account: Account!
+  accountAddress: String!
   market: Market!
+  marketAddress: String!
   positionType: PositionType!
+  investmentAmounts: [String!]!
   outputTokenBalance: BigInt!
-  outputTokenBalanceInETH: BigInt!  # in Wei
   inputTokenBalances: [String!]!    # TokenBalance string format
   rewardTokenBalances: [String!]!   # TokenBalance string format
   reinvestments: [String!]!         # TokenBalance string format
-  roiInEth: BigInt!
-  roiPercentageInEth: BigDecimal!
-  xirrInEth: BigDecimal!
   closed: Boolean!
-  createdAtBlock: Block!
-  updatedAtBlock: Block!
+  blockNumber: BigInt!
+  timestamp: BigInt!
   historyCounter: BigInt!
   history: [PositionSnapshot!]! @derivedFrom(field: "position")
 }
@@ -134,14 +138,11 @@ type PositionSnapshot @entity {
   id: ID! # {positionId}{autoIncrement}
   position: Position!
   transaction: Transaction!
+  investmentAmounts: [String!]!
   outputTokenBalance: BigInt!
-  outputTokenBalanceInETH: BigInt!
   inputTokenBalances: [String!]!    # TokenBalance string format
   rewardTokenBalances: [String!]!   # TokenBalance string format
   reinvestments: [String!]!         # TokenBalance string format
-  roiInEth: BigInt!
-  roiPercentageInEth: BigDecimal!
-  xirrInEth: BigDecimal!
 }
 
 # END - Common entities for all protocols
@@ -157,7 +158,9 @@ type Pair @entity {
   token1: Token!
   reserve0: BigInt!
   reserve1: BigInt!
-  createdAtBlock: Block!
+  totalSupply: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
   history: [PairSnapshot!]! @derivedFrom(field: "pair")
 }
 
@@ -166,7 +169,9 @@ type PairSnapshot @entity {
   pair: Pair!
   reserve0: BigInt!
   reserve1: BigInt!
-  createdAtBlock: Block!
+  totalSupply: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
   transactionHash: String!
   transactionIndexInBlock: BigInt!
   logIndex: BigInt!
@@ -180,6 +185,7 @@ type Mint @entity {
   amount0: BigInt
   amount1: BigInt
   transferEventApplied: Boolean!
+  syncEventApplied: Boolean!
   mintEventApplied: Boolean!
 }
 
@@ -191,6 +197,7 @@ type Burn @entity {
   amount0: BigInt
   amount1: BigInt
   transferEventApplied: Boolean!
+  syncEventApplied: Boolean!
   burnEventApplied: Boolean!
 }
 

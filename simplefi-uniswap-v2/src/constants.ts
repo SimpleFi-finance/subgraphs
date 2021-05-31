@@ -8,11 +8,6 @@ export namespace Blockchain {
     export const NEAR = "NEAR"
 }
 
-export namespace AccountType {
-    export const EOA = "EOA"
-    export const CONTRACT = "CONTRACT"
-}
-
 export namespace TokenStandard {
     export const ERC20 = "ERC20"
     export const ERC721 = "ERC721"
@@ -38,4 +33,11 @@ export namespace ProtocolType {
 export namespace PositionType {
     export const INVESTMENT = "INVESTMENT"
     export const DEBT = "DEBT"
+}
+
+export namespace TransactionType {
+    export const INVEST = "INVEST"
+    export const REDEEM = "REDEEM"
+    export const BORROW = "BORROW"
+    export const REPAY = "REPAY"
 }
