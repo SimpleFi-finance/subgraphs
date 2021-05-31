@@ -117,19 +117,15 @@ export function getOrCreateOpenPosition(
     let accountPosition = AccountPosition.load(id)
     if (accountPosition == null) {
         accountPosition = new AccountPosition(id)
+        accountPosition.positionCounter = BigInt.fromI32(0)
         accountPosition.save()
     }
 
-    let positionLength = 0
-    if (accountPosition.get("positions") != null) {
-        positionLength = accountPosition.positions.length
-    }
-
-    let pid = accountPosition.id.concat("-").concat((positionLength).toString())
+    let pid = accountPosition.id.concat("-").concat((accountPosition.positionCounter).toString())
     let lastPosition = Position.load(pid)
 
     if (lastPosition === null || lastPosition.closed) {
-        let newCounter = positionLength + 1
+        let newCounter = accountPosition.positionCounter.plus(BigInt.fromI32(1))
         let newPositionId = id.concat("-").concat(newCounter.toString())
         let position = new Position(newPositionId)
         position.accountPosition = accountPosition.id
@@ -147,7 +143,12 @@ export function getOrCreateOpenPosition(
         position.closed = false
         position.createdAtBlock = block.id
         position.updatedAtBlock = block.id
+        position.historyCounter = BigInt.fromI32(0)
         position.save()
+
+        accountPosition.positionCounter = newCounter
+        accountPosition.save()
+
         return position
     }
 
@@ -219,12 +220,7 @@ function addTokenBalances(a: string[], b: string[]): string[] {
 }
 
 function createPostionSnapshot(position: Position, transaction: Transaction): PositionSnapshot {
-    let historyLength = 0
-    if (position.get("history") != null) {
-        historyLength = position.history.length
-    }
-
-    let newCounter = historyLength + 1
+    let newCounter = position.historyCounter.plus(BigInt.fromI32(1))
     let newSnapshot = new PositionSnapshot(position.id.concat("-").concat(newCounter.toString()))
     newSnapshot.position = position.id
     newSnapshot.transaction = transaction.id
@@ -237,6 +233,10 @@ function createPostionSnapshot(position: Position, transaction: Transaction): Po
     newSnapshot.roiPercentageInEth = position.roiPercentageInEth
     newSnapshot.xirrInEth = position.xirrInEth
     newSnapshot.save()
+
+    position.historyCounter = newCounter
+    position.save()
+
     return newSnapshot
 }
 

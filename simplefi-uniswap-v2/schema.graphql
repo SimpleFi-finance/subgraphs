@@ -101,6 +101,7 @@ type Transaction @entity {
 # of a specific user in specfic market therefore we need this AccountPosition entity
 type AccountPosition @entity {
   id: ID! # {userAddress}{marketAddress}{positionType}
+  positionCounter: BigInt!
   positions: [Position!]! @derivedFrom(field: "accountPosition")
 }
 
@@ -124,6 +125,7 @@ type Position @entity {
   closed: Boolean!
   createdAtBlock: Block!
   updatedAtBlock: Block!
+  historyCounter: BigInt!
   history: [PositionSnapshot!]! @derivedFrom(field: "position")
 }
 
