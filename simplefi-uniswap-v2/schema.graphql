@@ -72,7 +72,6 @@ type Market @entity {
   inputTokens: [Token!]!   # Tokens that need to be deposited to take a position in protocol
   outputToken: Token       # Token that is minted to track ownership of position in protocol
   rewardTokens: [Token!]   # Aditional tokens that are given as reward for position in a protocol
-  canBeReinvestedInTo: [String!]!
   blockNumber: BigInt!
   timestamp: BigInt!
   positions: [Position!]! @derivedFrom(field: "market")
@@ -121,11 +120,10 @@ type Position @entity {
   market: Market!
   marketAddress: String!
   positionType: PositionType!
-  investmentAmounts: [String!]!
   outputTokenBalance: BigInt!
   inputTokenBalances: [String!]!    # TokenBalance string format
   rewardTokenBalances: [String!]!   # TokenBalance string format
-  reinvestments: [String!]!         # TokenBalance string format
+  transferredTo: [String!]!
   closed: Boolean!
   blockNumber: BigInt!
   timestamp: BigInt!
@@ -138,11 +136,10 @@ type PositionSnapshot @entity {
   id: ID! # {positionId}{autoIncrement}
   position: Position!
   transaction: Transaction!
-  investmentAmounts: [String!]!
   outputTokenBalance: BigInt!
   inputTokenBalances: [String!]!    # TokenBalance string format
   rewardTokenBalances: [String!]!   # TokenBalance string format
-  reinvestments: [String!]!         # TokenBalance string format
+  transferredTo: [String!]!         # TokenBalance string format
 }
 
 # END - Common entities for all protocols

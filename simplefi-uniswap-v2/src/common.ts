@@ -76,7 +76,6 @@ export function getOrCreateMarket(
     market.inputTokens = inputTokens.map<string>(t => t.id)
     market.outputToken = outputToken.id
     market.rewardTokens = rewardTokens.map<string>(t => t.id)
-    market.canBeReinvestedInTo = []
     market.blockNumber = event.block.number
     market.timestamp = event.block.timestamp
     market.save()
@@ -110,11 +109,10 @@ export function getOrCreateOpenPosition(
         position.market = market.id
         position.marketAddress = market.id
         position.positionType = positionType
-        position.investmentAmounts = []
         position.outputTokenBalance = BigInt.fromI32(0)
         position.inputTokenBalances = []
         position.rewardTokenBalances = []
-        position.reinvestments = []
+        position.transferredTo = []
         position.closed = false
         position.blockNumber = event.block.number
         position.timestamp = event.block.timestamp
@@ -141,9 +139,12 @@ export class TokenBalance {
         this.balance = balance
     }
 
-    add(b: TokenBalance): void {
+    // Does not modify this or b TokenBalance, return new TokenBalance
+    add(b: TokenBalance): TokenBalance {
         if (this.tokenAddress == b.tokenAddress) {
-            this.balance = this.balance.plus(b.balance)
+            return new TokenBalance(this.tokenAddress, this.accountAddress, this.balance.plus(b.balance))
+        } else {
+            return this
         }
     }
 
@@ -172,19 +173,24 @@ function addTokenBalances(atbs: TokenBalance[], btbs: TokenBalance[]): TokenBala
     let atbsLength = atbs.length
     let btbsLength = btbs.length
 
+    let sum: TokenBalance[] = []
+
     for (let i = 0; i < btbsLength; i = i + 1) {
         let bv = btbs[i]
+        let found = false
         for (let j = 0; j < atbsLength; j = j + 1) {
             let av = atbs[j]
             if (av.tokenAddress == bv.tokenAddress) {
-                av.add(bv)
-            } else {
-                atbs.push(bv)
+                found = true
+                sum.push(av.add(bv))
             }
+        }
+        if (!found) {
+            sum.push(bv)
         }
     }
 
-    return atbs
+    return sum
 }
 
 function createPostionSnapshot(position: Position, transaction: Transaction): PositionSnapshot {
@@ -192,11 +198,10 @@ function createPostionSnapshot(position: Position, transaction: Transaction): Po
     let newSnapshot = new PositionSnapshot(position.id.concat("-").concat(newCounter.toString()))
     newSnapshot.position = position.id
     newSnapshot.transaction = transaction.id
-    newSnapshot.investmentAmounts = position.investmentAmounts
     newSnapshot.outputTokenBalance = position.outputTokenBalance
     newSnapshot.inputTokenBalances = position.inputTokenBalances
     newSnapshot.rewardTokenBalances = position.rewardTokenBalances
-    newSnapshot.reinvestments = position.reinvestments
+    newSnapshot.transferredTo = position.transferredTo
     position.blockNumber = transaction.blockNumber
     position.timestamp = transaction.timestamp
     newSnapshot.save()
@@ -241,9 +246,6 @@ export function investInMarket(
     let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT)
     let postionSnapshot = createPostionSnapshot(position, transaction)
 
-    let investmentAmounts = position.investmentAmounts.map<TokenBalance>(tbs => TokenBalance.fromString(tbs))
-    let newInvestmentAmounts = addTokenBalances(investmentAmounts, inputTokenAmounts)
-    position.investmentAmounts = newInvestmentAmounts.map<string>(tb => tb.toString())
     position.inputTokenBalances = inputTokenBalances.map<string>(tb => tb.toString())
     position.outputTokenBalance = outputTokenBalance
     position.rewardTokenBalances = rewardTokenBalances.map<string>(tb => tb.toString())
@@ -267,7 +269,8 @@ export function redeemFromMarket(
     rewardTokenAmounts: TokenBalance[],
     outputTokenBalance: BigInt,
     inputTokenBalances: TokenBalance[],
-    rewardTokenBalances: TokenBalance[]
+    rewardTokenBalances: TokenBalance[],
+    transferredTo: string | null
 ): Position {
     // Create transaction for given event
     let transaction = new Transaction(event.transaction.hash.toHexString())
@@ -294,6 +297,16 @@ export function redeemFromMarket(
     position.inputTokenBalances = inputTokenBalances.map<string>(tb => tb.toString())
     position.outputTokenBalance = outputTokenBalance
     position.rewardTokenBalances = rewardTokenBalances.map<string>(tb => tb.toString())
+
+    // Check if it is transferred to some other account
+    if (transferredTo != null) {
+        let exists = position.transferredTo.includes(transferredTo)
+        if (!exists) {
+            let newTransferredTo = position.transferredTo
+            newTransferredTo.push(transferredTo)
+            position.transferredTo = newTransferredTo
+        }
+    }
 
     // Check if postion is closed
     if (position.outputTokenBalance == BigInt.fromI32(0)) {
@@ -337,10 +350,6 @@ export function borrowFromMarket(
     let position = getOrCreateOpenPosition(event, account, market, PositionType.DEBT)
     let postionSnapshot = createPostionSnapshot(position, transaction)
 
-    // Loan amount is stored as investmentAmount
-    let investmentAmounts = position.investmentAmounts.map<TokenBalance>(tbs => TokenBalance.fromString(tbs))
-    let newInvestmentAmounts = addTokenBalances(investmentAmounts, inputTokenAmounts)
-    position.investmentAmounts = newInvestmentAmounts.map<string>(tb => tb.toString())
     position.inputTokenBalances = inputTokenBalances.map<string>(tb => tb.toString())
     position.outputTokenBalance = outputTokenBalance
     position.rewardTokenBalances = rewardTokenBalances.map<string>(tb => tb.toString())

@@ -125,7 +125,8 @@ function createOrUpdatePositionOnBurn(event: ethereum.Event, pair: PairEntity, b
         [],
         outputTokenBalance,
         inputTokenBalances,
-        []
+        [],
+        null
     )
 }
 
@@ -151,7 +152,8 @@ function transferLPToken(event: ethereum.Event, pair: PairEntity, from: Address,
         [],
         fromOutputTokenBalance,
         fromInputTokenBalances,
-        []
+        [],
+        to.toHexString()
     )
 
     let toAccount = getOrCreateAccount(to)
