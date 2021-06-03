@@ -226,10 +226,8 @@ export function investInMarket(
     rewardTokenBalances: TokenBalance[],
     transferredFrom: string | null
 ): Position {
-    let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT)
-
     // Create transaction for given event
-    let transactionId = position.id.concat("-").concat(event.transaction.hash.toHexString())
+    let transactionId = account.id.concat("-").concat(event.transaction.hash.toHexString()).concat("-").concat(event.logIndex.toHexString())
     let transaction = new Transaction(transactionId)
     transaction.transactionHash = event.transaction.hash
     transaction.market = market.id
@@ -253,6 +251,7 @@ export function investInMarket(
     transaction.transactionIndexInBlock = event.transaction.index
     transaction.save()
 
+    let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT)
     let postionSnapshot = createPostionSnapshot(position, transaction)
 
     position.inputTokenBalances = inputTokenBalances.map<string>(tb => tb.toString())
@@ -281,10 +280,8 @@ export function redeemFromMarket(
     rewardTokenBalances: TokenBalance[],
     transferredTo: string | null
 ): Position {
-    let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT)
-
     // Create transaction for given event
-    let transactionId = position.id.concat("-").concat(event.transaction.hash.toHexString())
+    let transactionId = account.id.concat("-").concat(event.transaction.hash.toHexString()).concat("-").concat(event.logIndex.toHexString())
     let transaction = new Transaction(transactionId)
     transaction.transactionHash = event.transaction.hash
     transaction.market = market.id
@@ -308,6 +305,7 @@ export function redeemFromMarket(
     transaction.transactionIndexInBlock = event.transaction.index
     transaction.save()
 
+    let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT)
     let postionSnapshot = createPostionSnapshot(position, transaction)
 
     // No change in investment amount as no new investment has been made
@@ -347,7 +345,9 @@ export function borrowFromMarket(
     rewardTokenBalances: TokenBalance[]
 ): Position {
     // Create transaction for given event
-    let transaction = new Transaction(event.transaction.hash.toHexString())
+    let transactionId = account.id.concat("-").concat(event.transaction.hash.toHexString()).concat("-").concat(event.logIndex.toHexString())
+    let transaction = new Transaction(transactionId)
+    transaction.transactionHash = event.transaction.hash
     transaction.market = market.id
     transaction.from = getOrCreateAccount(event.transaction.from).id
     if (event.transaction.to) {
@@ -393,7 +393,9 @@ export function repayToMarket(
     rewardTokenBalances: TokenBalance[]
 ): Position {
     // Create transaction for given event
-    let transaction = new Transaction(event.transaction.hash.toHexString())
+    let transactionId = account.id.concat("-").concat(event.transaction.hash.toHexString()).concat("-").concat(event.logIndex.toHexString())
+    let transaction = new Transaction(transactionId)
+    transaction.transactionHash = event.transaction.hash
     transaction.market = market.id
     transaction.from = getOrCreateAccount(event.transaction.from).id
     if (event.transaction.to) {

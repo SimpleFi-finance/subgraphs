@@ -80,7 +80,7 @@ type Market @entity {
 }
 
 type Transaction @entity {
-  id: ID! # {positionId}{transactionHash}
+  id: ID! # {account}{transactionHash}{logIndex}
   transactionHash: Bytes!
   market: Market!
   # A transaction.from is always transaction origin because outside EVM transaction.origin and msg.sender are same
