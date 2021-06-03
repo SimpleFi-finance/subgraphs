@@ -42,6 +42,8 @@ enum TransactionType {
   REDEEM
   BORROW
   REPAY
+  TRANSFER_IN
+  TRANSFER_OUT
 }
 
 type Account @entity {
@@ -88,6 +90,8 @@ type Transaction @entity {
   inputTokenAmounts: [String!]!
   outputTokenAmount: BigInt!
   rewardTokenAmounts: [String!]!
+  transferredFrom: String
+  transferredTo: String
   gasUsed: BigInt!
   gasPrice: BigInt!
   blockNumber: BigInt!
@@ -159,6 +163,7 @@ type Pair @entity {
   blockNumber: BigInt!
   timestamp: BigInt!
   history: [PairSnapshot!]! @derivedFrom(field: "pair")
+  lastIncompleteBurn: Burn
 }
 
 type PairSnapshot @entity {
@@ -193,7 +198,8 @@ type Burn @entity {
   liquityAmount: BigInt
   amount0: BigInt
   amount1: BigInt
-  transferEventApplied: Boolean!
+  transferToPairEventApplied: Boolean!
+  transferToZeroEventApplied: Boolean!
   syncEventApplied: Boolean!
   burnEventApplied: Boolean!
 }

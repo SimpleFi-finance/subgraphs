@@ -40,4 +40,6 @@ export namespace TransactionType {
     export const REDEEM = "REDEEM"
     export const BORROW = "BORROW"
     export const REPAY = "REPAY"
+    export const TRANSFER_IN = "TRANSFER_IN"
+    export const TRANSFER_OUT = "TRANSFER_OUT"
 }

@@ -45,11 +45,15 @@ function getOrCreateBurn(event: ethereum.Event, pair: PairEntity): BurnEntity {
     }
 
     burn = new BurnEntity(event.transaction.hash.toHexString())
-    burn.transferEventApplied = false
+    burn.transferToPairEventApplied = false
+    burn.transferToZeroEventApplied = false
     burn.syncEventApplied = false
     burn.burnEventApplied = false
     burn.pair = pair.id
     burn.save()
+
+    pair.lastIncompleteBurn = burn.id
+    pair.save()
     return burn as BurnEntity
 }
 
@@ -87,15 +91,18 @@ function createOrUpdatePositionOnMint(event: ethereum.Event, pair: PairEntity, m
         [],
         outputTokenBalance,
         inputTokenBalances,
-        []
+        [],
+        null
     )
 }
 
 function createOrUpdatePositionOnBurn(event: ethereum.Event, pair: PairEntity, burn: BurnEntity): void {
-    let isComplete = burn.transferEventApplied && burn.syncEventApplied && burn.burnEventApplied
+    let isComplete = burn.transferToPairEventApplied && burn.transferToZeroEventApplied && burn.syncEventApplied && burn.burnEventApplied
     if (!isComplete) {
         return
     }
+    pair.lastIncompleteBurn = null
+    pair.save()
 
     let accountAddress = Address.fromString(burn.to)
     let pairAddress = Address.fromString(burn.pair)
@@ -173,11 +180,37 @@ function transferLPToken(event: ethereum.Event, pair: PairEntity, from: Address,
         [],
         toOutputTokenBalance,
         toInputTokenBalances,
-        []
+        [],
+        from.toHexString()
     )
 }
 
+function checkIncompleteBurnFromLastTransaction(event: ethereum.Event, pair: PairEntity): void {
+    // Check if pair has an incomplete burn
+    if (pair.lastIncompleteBurn == null) {
+        return
+    }
+
+    // Same transaction events being processed
+    if (pair.lastIncompleteBurn == event.transaction.hash.toHexString()) {
+        return
+    }
+
+    // New transaction processing has started without completing burn event
+    let burn = BurnEntity.load(pair.lastIncompleteBurn)
+    // Check if transfer to pair happened as an incomplete burn
+    if (burn != null && burn.to != null && burn.liquityAmount != null && burn.transferToPairEventApplied) {
+        let from = burn.to as string
+        let amount = burn.liquityAmount as BigInt
+        transferLPToken(event, pair, Address.fromString(from), event.address, amount)
+    }
+}
+
 export function handleTransfer(event: Transfer): void {
+    if (event.params.value == BigInt.fromI32(0)) {
+        return
+    }
+
     let pairAddressHex = event.address.toHexString()
     let fromHex = event.params.from.toHexString()
     let toHex = event.params.to.toHexString()
@@ -185,6 +218,7 @@ export function handleTransfer(event: Transfer): void {
     let pair = PairEntity.load(pairAddressHex) as PairEntity
 
     // Check if transfer it's a mint or burn or transfer transaction
+    // minting new LP tokens
     if (fromHex == ADDRESS_ZERO) {
         pair.totalSupply = pair.totalSupply.plus(event.params.value)
         pair.save()
@@ -197,22 +231,34 @@ export function handleTransfer(event: Transfer): void {
         createOrUpdatePositionOnMint(event, pair, mint)
     }
 
-    if (toHex == ADDRESS_ZERO) {
-        if (fromHex == pairAddressHex) {
-            pair.totalSupply = pair.totalSupply.minus(event.params.value)
-            pair.save()
-        }
-
+    // send to pair contract before burn method call
+    if (fromHex != ADDRESS_ZERO && toHex == pairAddressHex) {
         let burn = getOrCreateBurn(event, pair)
-        burn.transferEventApplied = true
+        burn.transferToPairEventApplied = true
+        burn.to = getOrCreateAccount(event.params.from).id
         burn.liquityAmount = event.params.value
         burn.save()
         createOrUpdatePositionOnBurn(event, pair, burn)
     }
 
-    if (fromHex != ADDRESS_ZERO && fromHex != pairAddressHex && toHex != ADDRESS_ZERO && toHex != pairAddressHex) {
+    // internal _burn method call
+    if (fromHex == pairAddressHex && toHex == ADDRESS_ZERO) {
+        pair.totalSupply = pair.totalSupply.minus(event.params.value)
+        pair.save()
+
+        let burn = getOrCreateBurn(event, pair)
+        burn.transferToZeroEventApplied = true
+        burn.liquityAmount = event.params.value
+        burn.save()
+        createOrUpdatePositionOnBurn(event, pair, burn)
+    }
+
+    // everything else
+    if (fromHex != ADDRESS_ZERO && toHex != pairAddressHex) {
         transferLPToken(event, pair, event.params.from, event.params.to, event.params.value)
     }
+
+    checkIncompleteBurnFromLastTransaction(event, pair)
 }
 
 export function handleMint(event: Mint): void {
@@ -223,6 +269,7 @@ export function handleMint(event: Mint): void {
     mint.amount1 = event.params.amount1
     mint.save()
     createOrUpdatePositionOnMint(event, pair, mint)
+    checkIncompleteBurnFromLastTransaction(event, pair)
 }
 
 export function handleBurn(event: Burn): void {
@@ -234,6 +281,7 @@ export function handleBurn(event: Burn): void {
     burn.amount1 = event.params.amount1
     burn.save()
     createOrUpdatePositionOnBurn(event, pair, burn)
+    checkIncompleteBurnFromLastTransaction(event, pair)
 }
 
 export function handleSync(event: Sync): void {
@@ -277,4 +325,6 @@ export function handleSync(event: Sync): void {
         burn.save()
         createOrUpdatePositionOnBurn(event, pair, burn)
     }
+
+    checkIncompleteBurnFromLastTransaction(event, pair)
 }

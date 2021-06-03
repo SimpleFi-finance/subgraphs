@@ -19,14 +19,15 @@ In uniswap returns of an account's positions also change when other accounts do 
 Ordering of events in calls -
 
 * Mint call - 
-    * Transfer with from = zero, to = feeTo - ignore
+    * Transfer with from = zero, to = feeTo - changes total supply
+    * Transfer with from = zero, to != feeTo - start MintTransaction - changes total supply
     * Sync - updates reserves
-    * Transfer with from = zero, to != feeTo - start MintTransaction
     * Mint with sender, amount0, amount1 transferred to pool - Complete MintTransaction
 
 * Burn call -
     * Transfer with from = any, to = pair - start BurnTransaction
     * Transfer with from = zero, to = feeTo - ignore
+    * Transfer with from = pair, to = zero - changes total supply
     * Sync - updates reserves
     * Burn with sender, amount0, amount1, to - complete BurnTransaction
 

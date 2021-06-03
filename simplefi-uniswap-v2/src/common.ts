@@ -223,16 +223,25 @@ export function investInMarket(
     rewardTokenAmounts: TokenBalance[],
     outputTokenBalance: BigInt,
     inputTokenBalances: TokenBalance[],
-    rewardTokenBalances: TokenBalance[]
+    rewardTokenBalances: TokenBalance[],
+    transferredFrom: string | null
 ): Position {
+    let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT)
+
     // Create transaction for given event
-    let transaction = new Transaction(event.transaction.hash.toHexString())
+    let transactionId = position.id.concat("-").concat(event.transaction.hash.toHexString())
+    let transaction = new Transaction(transactionId)
     transaction.market = market.id
     transaction.from = getOrCreateAccount(event.transaction.from).id
     if (event.transaction.to) {
         transaction.to = getOrCreateAccount(event.transaction.to as Address).id
     }
-    transaction.transactionType = TransactionType.INVEST
+    if (transferredFrom == null) {
+        transaction.transactionType = TransactionType.INVEST
+    } else {
+        transaction.transactionType = TransactionType.TRANSFER_IN
+    }
+    transaction.transferredFrom = null
     transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
     transaction.outputTokenAmount = outputTokenAmount
     transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
@@ -243,7 +252,6 @@ export function investInMarket(
     transaction.transactionIndexInBlock = event.transaction.index
     transaction.save()
 
-    let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT)
     let postionSnapshot = createPostionSnapshot(position, transaction)
 
     position.inputTokenBalances = inputTokenBalances.map<string>(tb => tb.toString())
@@ -272,14 +280,22 @@ export function redeemFromMarket(
     rewardTokenBalances: TokenBalance[],
     transferredTo: string | null
 ): Position {
+    let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT)
+
     // Create transaction for given event
-    let transaction = new Transaction(event.transaction.hash.toHexString())
+    let transactionId = position.id.concat("-").concat(event.transaction.hash.toHexString())
+    let transaction = new Transaction(transactionId)
     transaction.market = market.id
     transaction.from = getOrCreateAccount(event.transaction.from).id
     if (event.transaction.to) {
         transaction.to = getOrCreateAccount(event.transaction.to as Address).id
     }
-    transaction.transactionType = TransactionType.REDEEM
+    if (transferredTo == null) {
+        transaction.transactionType = TransactionType.REDEEM
+    } else {
+        transaction.transactionType = TransactionType.TRANSFER_OUT
+    }
+    transaction.transferredTo = transferredTo
     transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
     transaction.outputTokenAmount = outputTokenAmount
     transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
@@ -290,7 +306,6 @@ export function redeemFromMarket(
     transaction.transactionIndexInBlock = event.transaction.index
     transaction.save()
 
-    let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT)
     let postionSnapshot = createPostionSnapshot(position, transaction)
 
     // No change in investment amount as no new investment has been made
