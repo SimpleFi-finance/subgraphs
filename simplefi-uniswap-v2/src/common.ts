@@ -99,7 +99,7 @@ export function getOrCreateOpenPosition(
     let pid = accountPosition.id.concat("-").concat((accountPosition.positionCounter).toString())
     let lastPosition = Position.load(pid)
 
-    if (lastPosition === null || lastPosition.closed) {
+    if (lastPosition == null || lastPosition.closed) {
         let newCounter = accountPosition.positionCounter.plus(BigInt.fromI32(1))
         let newPositionId = id.concat("-").concat(newCounter.toString())
         let position = new Position(newPositionId)
@@ -231,6 +231,7 @@ export function investInMarket(
     // Create transaction for given event
     let transactionId = position.id.concat("-").concat(event.transaction.hash.toHexString())
     let transaction = new Transaction(transactionId)
+    transaction.transactionHash = event.transaction.hash
     transaction.market = market.id
     transaction.from = getOrCreateAccount(event.transaction.from).id
     if (event.transaction.to) {
@@ -241,7 +242,7 @@ export function investInMarket(
     } else {
         transaction.transactionType = TransactionType.TRANSFER_IN
     }
-    transaction.transferredFrom = null
+    transaction.transferredFrom = transferredFrom
     transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
     transaction.outputTokenAmount = outputTokenAmount
     transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
@@ -285,6 +286,7 @@ export function redeemFromMarket(
     // Create transaction for given event
     let transactionId = position.id.concat("-").concat(event.transaction.hash.toHexString())
     let transaction = new Transaction(transactionId)
+    transaction.transactionHash = event.transaction.hash
     transaction.market = market.id
     transaction.from = getOrCreateAccount(event.transaction.from).id
     if (event.transaction.to) {

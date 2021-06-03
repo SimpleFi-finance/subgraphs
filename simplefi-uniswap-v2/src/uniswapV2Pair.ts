@@ -1,6 +1,7 @@
 import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts"
 import {
     Account as AccountEntity,
+    AccountLiquidity as AccountLiquidityEntity, 
     Burn as BurnEntity,
     Market as MarketEntity,
     Mint as MintEntity,
@@ -11,8 +12,7 @@ import {
     Burn,
     Mint,
     Sync,
-    Transfer,
-    UniswapV2Pair
+    Transfer
 } from "../generated/templates/UniswapV2Pair/UniswapV2Pair"
 import {
     ADDRESS_ZERO,
@@ -57,6 +57,20 @@ function getOrCreateBurn(event: ethereum.Event, pair: PairEntity): BurnEntity {
     return burn as BurnEntity
 }
 
+function getOrCreateLiquidity(pair: PairEntity, accountAddress: Address): AccountLiquidityEntity {
+    let id = pair.id.concat("-").concat(accountAddress.toHexString())
+    let liqudity = AccountLiquidityEntity.load(id)
+    if (liqudity != null) {
+        return liqudity as AccountLiquidityEntity
+    }
+    liqudity = new AccountLiquidityEntity(id)
+    liqudity.pair = pair.id
+    liqudity.account = getOrCreateAccount(accountAddress).id
+    liqudity.balance = BigInt.fromI32(0)
+    liqudity.save()
+    return liqudity as AccountLiquidityEntity
+}
+
 function createOrUpdatePositionOnMint(event: ethereum.Event, pair: PairEntity, mint: MintEntity): void {
     let isComplete = mint.transferEventApplied && mint.syncEventApplied && mint.mintEventApplied
     if (!isComplete) {
@@ -64,18 +78,19 @@ function createOrUpdatePositionOnMint(event: ethereum.Event, pair: PairEntity, m
     }
 
     let accountAddress = Address.fromString(mint.to)
-    let pairAddress = Address.fromString(mint.pair)
-    let pairInstance = UniswapV2Pair.bind(pairAddress)
+    //let pairAddress = Address.fromString(mint.pair)
+    //let pairInstance = UniswapV2Pair.bind(pairAddress)
 
     let account = new AccountEntity(mint.to)
     let market = new MarketEntity(mint.pair)
+    let accountLiquidity = getOrCreateLiquidity(pair, accountAddress)
 
     let outputTokenAmount = mint.liquityAmount as BigInt
     let inputTokenAmounts: TokenBalance[] = []
     inputTokenAmounts.push(new TokenBalance(pair.token0, mint.to, mint.amount0 as BigInt))
     inputTokenAmounts.push(new TokenBalance(pair.token1, mint.to, mint.amount1 as BigInt))
 
-    let outputTokenBalance = pairInstance.balanceOf(accountAddress)
+    let outputTokenBalance = accountLiquidity.balance
     let token0Balance = outputTokenBalance.times(pair.reserve0).div(pair.totalSupply)
     let token1Balance = outputTokenBalance.times(pair.reserve1).div(pair.totalSupply)
     let inputTokenBalances: TokenBalance[] = []
@@ -105,18 +120,19 @@ function createOrUpdatePositionOnBurn(event: ethereum.Event, pair: PairEntity, b
     pair.save()
 
     let accountAddress = Address.fromString(burn.to)
-    let pairAddress = Address.fromString(burn.pair)
-    let pairInstance = UniswapV2Pair.bind(pairAddress)
+    //let pairAddress = Address.fromString(burn.pair)
+    //let pairInstance = UniswapV2Pair.bind(pairAddress)
 
     let account = new AccountEntity(burn.to)
     let market = new MarketEntity(burn.pair)
+    let accountLiquidity = getOrCreateLiquidity(pair, accountAddress)
 
     let outputTokenAmount = burn.liquityAmount as BigInt
     let inputTokenAmounts: TokenBalance[] = []
     inputTokenAmounts.push(new TokenBalance(pair.token0, burn.to, burn.amount0 as BigInt))
     inputTokenAmounts.push(new TokenBalance(pair.token1, burn.to, burn.amount1 as BigInt))
 
-    let outputTokenBalance = pairInstance.balanceOf(accountAddress)
+    let outputTokenBalance = accountLiquidity.balance
     let token0Balance = outputTokenBalance.times(pair.reserve0).div(pair.totalSupply)
     let token1Balance = outputTokenBalance.times(pair.reserve1).div(pair.totalSupply)
     let inputTokenBalances: TokenBalance[] = []
@@ -138,12 +154,13 @@ function createOrUpdatePositionOnBurn(event: ethereum.Event, pair: PairEntity, b
 }
 
 function transferLPToken(event: ethereum.Event, pair: PairEntity, from: Address, to: Address, amount: BigInt): void {
-    let pairAddress = Address.fromString(pair.id)
-    let pairInstance = UniswapV2Pair.bind(pairAddress)
+    //let pairAddress = Address.fromString(pair.id)
+    //let pairInstance = UniswapV2Pair.bind(pairAddress)
     let market = new MarketEntity(pair.id)
 
     let fromAccount = getOrCreateAccount(from)
-    let fromOutputTokenBalance = pairInstance.balanceOf(from)
+    let accountLiquidityFrom = getOrCreateLiquidity(pair, from)
+    let fromOutputTokenBalance = accountLiquidityFrom.balance
     let fromInputTokenBalances: TokenBalance[] = []
     let fromToken0Balance = fromOutputTokenBalance.times(pair.reserve0).div(pair.totalSupply)
     let fromToken1Balance = fromOutputTokenBalance.times(pair.reserve1).div(pair.totalSupply)
@@ -164,7 +181,8 @@ function transferLPToken(event: ethereum.Event, pair: PairEntity, from: Address,
     )
 
     let toAccount = getOrCreateAccount(to)
-    let toOutputTokenBalance = pairInstance.balanceOf(to)
+    let accountLiquidityTo = getOrCreateLiquidity(pair, to)
+    let toOutputTokenBalance = accountLiquidityTo.balance
     let toInputTokenBalances: TokenBalance[] = []
     let toToken0Balance = toOutputTokenBalance.times(pair.reserve0).div(pair.totalSupply)
     let toToken1Balance = toOutputTokenBalance.times(pair.reserve1).div(pair.totalSupply)
@@ -204,6 +222,10 @@ function checkIncompleteBurnFromLastTransaction(event: ethereum.Event, pair: Pai
         let amount = burn.liquityAmount as BigInt
         transferLPToken(event, pair, Address.fromString(from), event.address, amount)
     }
+
+    // reset lastIncompleteBurn
+    pair.lastIncompleteBurn = null
+    pair.save()
 }
 
 export function handleTransfer(event: Transfer): void {
@@ -216,6 +238,19 @@ export function handleTransfer(event: Transfer): void {
     let toHex = event.params.to.toHexString()
 
     let pair = PairEntity.load(pairAddressHex) as PairEntity
+
+    // update account balances
+    if (fromHex != ADDRESS_ZERO) {
+        let accountLiquidityFrom = getOrCreateLiquidity(pair, event.params.from)
+        accountLiquidityFrom.balance = accountLiquidityFrom.balance.minus(event.params.value)
+        accountLiquidityFrom.save()
+    }
+
+    if (fromHex != pairAddressHex) {
+        let accountLiquidityTo = getOrCreateLiquidity(pair, event.params.to)
+        accountLiquidityTo.balance = accountLiquidityTo.balance.plus(event.params.value)
+        accountLiquidityTo.save()
+    }
 
     // Check if transfer it's a mint or burn or transfer transaction
     // minting new LP tokens
@@ -254,7 +289,7 @@ export function handleTransfer(event: Transfer): void {
     }
 
     // everything else
-    if (fromHex != ADDRESS_ZERO && toHex != pairAddressHex) {
+    if (fromHex != ADDRESS_ZERO && fromHex != pairAddressHex && toHex != pairAddressHex) {
         transferLPToken(event, pair, event.params.from, event.params.to, event.params.value)
     }
 

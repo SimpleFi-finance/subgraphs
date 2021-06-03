@@ -80,7 +80,8 @@ type Market @entity {
 }
 
 type Transaction @entity {
-  id: ID! # {transactionHash}
+  id: ID! # {positionId}{transactionHash}
+  transactionHash: Bytes!
   market: Market!
   # A transaction.from is always transaction origin because outside EVM transaction.origin and msg.sender are same
   from: Account!
@@ -177,6 +178,13 @@ type PairSnapshot @entity {
   transactionHash: String!
   transactionIndexInBlock: BigInt!
   logIndex: BigInt!
+}
+
+type AccountLiquidity @entity {
+  id: ID! # {pairAddress}{accoutnAddress}
+  pair: Pair!
+  account: Account!
+  balance: BigInt!
 }
 
 type Mint @entity {
