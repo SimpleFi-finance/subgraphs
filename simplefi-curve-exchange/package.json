@@ -1,0 +1,16 @@
+{
+  "name": "simplefi-curve-exchange",
+  "license": "UNLICENSED",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ tarunbhm/simplefi-curve-exchange",
+    "create-local": "graph create --node http://localhost:8020/ tarunbhm/simplefi-curve-exchange",
+    "remove-local": "graph remove --node http://localhost:8020/ tarunbhm/simplefi-curve-exchange",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 tarunbhm/simplefi-curve-exchange"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.20.0",
+    "@graphprotocol/graph-ts": "0.20.0"
+  }
+}
