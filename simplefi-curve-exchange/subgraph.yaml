@@ -7,7 +7,7 @@ dataSources:
     network: mainnet
     source:
       address: "0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"
-      startBlock: 10809472
+      startBlock: 10809473
       abi: StableSwapPlain3
     mapping:
       kind: ethereum/events
@@ -37,12 +37,10 @@ dataSources:
           handler: handleAddLiquidity
         - event: RemoveLiquidity(indexed address,uint256[3],uint256[3],uint256)
           handler: handleRemoveLiquidity
-        - event: RemoveLiquidityOne(indexed address,uint256,uint256)
-          handler: handleRemoveLiquidityOne
         - event: RemoveLiquidityImbalance(indexed address,uint256[3],uint256[3],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256)
+          handler: handleRemoveLiquidityOne
         - event: NewFee(uint256,uint256)
           handler: handleNewFee
-      blockHandlers:
-        - handler: handleBlock
       file: ./src/triPool.ts

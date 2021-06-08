@@ -182,7 +182,7 @@ type PoolSnapshot @entity {
 }
 
 type AccountLiquidity @entity {
-  id: ID! # {poolAddress}{accoutnAddress}
+  id: ID! # {accoutnAddress}{poolAddress}
   pool: Pool!
   account: Account!
   balance: BigInt!

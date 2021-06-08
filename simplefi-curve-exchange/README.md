@@ -53,8 +53,8 @@ The following versions of Curve pool LP tokens exist:
 
 - Transfer(to, zero, value)
 - RemoveLiquidity(provider: indexed(address), token_amounts: uint256[N_COINS], fees: uint256[N_COINS], token_supply: uint256)
-- RemoveLiquidityOne(provider: indexed(address), token_amount: uint256, coin_amount: uint256, token_supply: uint256)
 - RemoveLiquidityImbalance(provider: indexed(address), token_amounts: uint256[N_COINS], fees: uint256[N_COINS], invariant: uint256, token_supply: uint256)
+- RemoveLiquidityOne(provider: indexed(address), token_amount: uint256, coin_amount: uint256, token_supply: uint256)
 
 ### Exchange
 
