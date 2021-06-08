@@ -8,7 +8,7 @@ import {
     Token,
     Transaction
 } from "../generated/schema"
-import { ERC20 } from "../generated/CurveFakeFactory/ERC20"
+import { ERC20 } from "../generated/TriPool/ERC20"
 import { PositionType, TokenStandard, TransactionType } from "./constants"
 
 

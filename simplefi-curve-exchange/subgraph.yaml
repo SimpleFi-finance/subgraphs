@@ -3,36 +3,12 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum/contract
-    name: CurveFakeFactory
+    name: TriPool
     network: mainnet
     source:
       address: "0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"
-      abi: StableSwap
       startBlock: 10809472
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.4
-      language: wasm/assemblyscript
-      entities:
-        - Block
-        - Account
-        - Token
-        - Market
-        - Pool
-      abis:
-        - name: ERC20
-          file: ./abis/IERC20.json
-        - name: StableSwap
-          file: ./abis/StableSwap.json
-      blockHandlers:
-        - handler: handleBlock
-      file: ./src/fakeFactory.ts
-templates:
-  - kind: ethereum/contract
-    name: CurvePool
-    network: mainnet
-    source:
-      abi: StableSwap
+      abi: StableSwapPlain3
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
@@ -48,23 +24,25 @@ templates:
         - Pool
         - PoolSnapshot
       abis:
-        - name: StableSwap
-          file: ./abis/StableSwap.json
+        - name: StableSwapPlain3
+          file: ./abis/StableSwapPlain3.json
+        - name: StableSwapLending3
+          file: ./abis/StableSwapLending3.json
+        - name: ERC20
+          file: ./abis/IERC20.json
       eventHandlers:
         - event: TokenExchange(indexed address,int128,uint256,int128,uint256)
           handler: handleTokenExchange
-        - event: TokenExchangeUnderlying(indexed address,int128,uint256,int128,uint256)
-          handler: handleTokenExchangeUnderlying
-        - event: AddLiquidity(indexed address,uint256[2],uint256[2],uint256,uint256)
+        - event: AddLiquidity(indexed address,uint256[3],uint256[3],uint256,uint256)
           handler: handleAddLiquidity
-        - event: RemoveLiquidity(indexed address,uint256[2],uint256[2],uint256)
+        - event: RemoveLiquidity(indexed address,uint256[3],uint256[3],uint256)
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityOne(indexed address,uint256,uint256)
           handler: handleRemoveLiquidityOne
-        - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
+        - event: RemoveLiquidityImbalance(indexed address,uint256[3],uint256[3],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
         - event: NewFee(uint256,uint256)
           handler: handleNewFee
-        - event: NewParameters(uint256,uint256,uint256)
-          handler: handleNewParameters
-      file: ./src/stableSwap.ts
+      blockHandlers:
+        - handler: handleBlock
+      file: ./src/triPool.ts
