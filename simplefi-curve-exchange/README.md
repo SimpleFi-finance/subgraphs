@@ -54,7 +54,7 @@ The following versions of Curve pool LP tokens exist:
 - Transfer(to, zero, value)
 - RemoveLiquidity(provider: indexed(address), token_amounts: uint256[N_COINS], fees: uint256[N_COINS], token_supply: uint256)
 - RemoveLiquidityImbalance(provider: indexed(address), token_amounts: uint256[N_COINS], fees: uint256[N_COINS], invariant: uint256, token_supply: uint256)
-- RemoveLiquidityOne(provider: indexed(address), token_amount: uint256, coin_amount: uint256, token_supply: uint256)
+- RemoveLiquidityOne(provider: indexed(address), token_amount: uint256, coin_amount: uint256)
 
 ### Exchange
 
@@ -66,11 +66,3 @@ We need to track fee so that we can track balances
 
 - NewFee(fee: uint256, admin_fee: uint256)
 - NewParameters(A: uint256, fee: uint256, admin_fee: uint256)
-
-## Tracking logic
-
-- How to get LP token when creating pool entity
-- How to track liquidity amount and balance without relying on LP token contract
-- How to track balances
-
-First attempt with relying on trigger order on multiple contracts

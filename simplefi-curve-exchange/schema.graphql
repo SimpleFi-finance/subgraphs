@@ -162,6 +162,10 @@ type Pool @entity {
   adminFee: BigInt!
   totalSupply: BigInt!
   lpToken: Bytes!
+  initialA: BigInt!
+  initialATime: BigInt!
+  futureA: BigInt!
+  futureATime: BigInt!
   blockNumber: BigInt!
   timestamp: BigInt!
   history: [PoolSnapshot!]! @derivedFrom(field: "pool")
@@ -174,6 +178,10 @@ type PoolSnapshot @entity {
   fee: BigInt!
   adminFee: BigInt!
   totalSupply: BigInt!
+  initialA: BigInt!
+  initialATime: BigInt!
+  futureA: BigInt!
+  futureATime: BigInt!
   blockNumber: BigInt!
   timestamp: BigInt!
   transactionHash: String!
@@ -186,6 +194,17 @@ type AccountLiquidity @entity {
   pool: Pool!
   account: Account!
   balance: BigInt!
+}
+
+type RemoveLiqudityOneEvent @entity {
+  id: ID! # {transactionHash}{poolAddress}
+  pool: Pool!
+  account: Account
+  tokenAmount: BigInt
+  dy: BigInt
+  i: Int
+  eventApplied: Boolean!
+  callApplied: Boolean!
 }
 
 # END - Curve protocol entities

@@ -43,4 +43,11 @@ dataSources:
           handler: handleRemoveLiquidityOne
         - event: NewFee(uint256,uint256)
           handler: handleNewFee
+        - event: RampA(uint256,uint256,uint256,uint256)
+          handler: handleRampA
+        - event: StopRampA(uint256,uint256)
+          handler: handleStopRampA
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/triPool.ts

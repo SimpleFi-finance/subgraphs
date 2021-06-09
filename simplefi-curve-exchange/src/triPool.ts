@@ -1,34 +1,55 @@
-import { Address, BigInt, Bytes, ethereum, log } from "@graphprotocol/graph-ts";
-import { Market as MarketEntity, Pool as PoolEntity } from "../generated/schema";
+import { Address, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
+import {
+    Market as MarketEntity,
+    Pool as PoolEntity,
+    RemoveLiqudityOneEvent as RemoveLiqudityOneEventEntity
+} from "../generated/schema";
 import {
     AddLiquidity,
     NewFee,
+    RampA,
     RemoveLiquidity,
     RemoveLiquidityImbalance,
     RemoveLiquidityOne,
+    Remove_liquidity_one_coinCall,
+    StopRampA,
     TokenExchange
 } from "../generated/TriPool/StableSwapPlain3";
 import { getOrCreateAccount, investInMarket, redeemFromMarket, TokenBalance } from "./common";
-import { createPoolSnaptshot, CurvePoolType, getOrCreatePool, getOtCreateAccountLiquidity } from "./curveCommon";
+import { createPoolSnaptshot, getOrCreatePool, getOtCreateAccountLiquidity } from "./curveCommon";
+import { CurvePoolType, getDYFeeOnOneCoinWithdrawal, PoolConstants } from './stableSwapLib';
 
 
 const coinCount = 3
 let feeDenominator = BigInt.fromI32(10).pow(10)
 let precision = BigInt.fromI32(10).pow(18)
+let lendingPrecision = BigInt.fromI32(10).pow(18)
 let rates: BigInt[] = []
 rates.push(BigInt.fromI32(10).pow(18))
 rates.push(BigInt.fromI32(10).pow(30))
 rates.push(BigInt.fromI32(10).pow(30))
 let lpTokenAddress = Address.fromString("0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490")
 let poolAddress = Address.fromString("0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7")
+let poolType = CurvePoolType.PLAIN
 
-let event = new ethereum.Event()
-let block = new ethereum.Block()
-block.number = BigInt.fromString("10809473")
-block.timestamp = BigInt.fromString("1599414978")
-block.hash = Bytes.fromHexString("0x2d76f2a7c4f083b9f889611734104cfb1efa0cfef8e52b753d9c719870a49b98") as Bytes
-event.block = block
-getOrCreatePool(event, poolAddress, lpTokenAddress, [], CurvePoolType.PLAIN, 3)
+let poolConstants: PoolConstants = {
+    coinCount,
+    feeDenominator,
+    precision,
+    lendingPrecision,
+    rates,
+    lpTokenAddress,
+    poolAddress,
+    poolType
+}
+
+let fakeEvent = new ethereum.Event()
+let fakeBlock = new ethereum.Block()
+fakeBlock.number = BigInt.fromString("10809473")
+fakeBlock.timestamp = BigInt.fromString("1599414978")
+fakeBlock.hash = Bytes.fromHexString("0x2d76f2a7c4f083b9f889611734104cfb1efa0cfef8e52b753d9c719870a49b98") as Bytes
+fakeEvent.block = fakeBlock
+getOrCreatePool(fakeEvent, poolAddress, lpTokenAddress, [], CurvePoolType.PLAIN, 3)
 
 function calculateBalanceFromDi(pool: PoolEntity, di: BigInt, i: i32): BigInt {
     let dip = di.times(rates[i]).div(precision)
@@ -118,12 +139,12 @@ export function handleAddLiquidity(event: AddLiquidity): void {
 
 function handleRemoveLiquidityCommon(
     event: ethereum.Event,
+    pool: PoolEntity,
     provider: Address,
     token_amounts: BigInt[],
     fees: BigInt[],
     token_supply: BigInt
 ): void {
-    let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.PLAIN, coinCount)
     createPoolSnaptshot(event, pool)
     let oldTotalSupply = pool.totalSupply
     let oldBalances = pool.balances
@@ -180,8 +201,10 @@ function handleRemoveLiquidityCommon(
 }
 
 export function handleRemoveLiquidity(event: RemoveLiquidity): void {
+    let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.PLAIN, coinCount)
     handleRemoveLiquidityCommon(
         event,
+        pool,
         event.params.provider,
         event.params.token_amounts,
         event.params.fees,
@@ -190,8 +213,10 @@ export function handleRemoveLiquidity(event: RemoveLiquidity): void {
 }
 
 export function handleRemoveLiquidityImbalance(event: RemoveLiquidityImbalance): void {
+    let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.PLAIN, coinCount)
     handleRemoveLiquidityCommon(
         event,
+        pool,
         event.params.provider,
         event.params.token_amounts,
         event.params.fees,
@@ -199,15 +224,120 @@ export function handleRemoveLiquidityImbalance(event: RemoveLiquidityImbalance):
     )
 }
 
+function getOrCreateRemoveLiquidityOneEvent(id: string, pool: PoolEntity): RemoveLiqudityOneEventEntity {
+    let removeLiquidityEvent = RemoveLiqudityOneEventEntity.load(id)
+    if (removeLiquidityEvent != null) {
+        return removeLiquidityEvent as RemoveLiqudityOneEventEntity
+    }
+    removeLiquidityEvent = new RemoveLiqudityOneEventEntity(id)
+    removeLiquidityEvent.pool = pool.id
+    removeLiquidityEvent.eventApplied = false
+    removeLiquidityEvent.callApplied = false
+    removeLiquidityEvent.save()
+
+    return removeLiquidityEvent as RemoveLiqudityOneEventEntity
+}
+
+function handleRLOEEntityUpdate(event: ethereum.Event, entity: RemoveLiqudityOneEventEntity, pool: PoolEntity): void {
+    if (!entity.eventApplied || !entity.callApplied) {
+        return
+    }
+
+    let tokenAmount = entity.tokenAmount as BigInt
+    let i = entity.i as i32
+    let dy = entity.dy as BigInt
+
+    let provider = Address.fromString(entity.account)
+    let tokenAmounts: BigInt[] = []
+    let fees: BigInt[] = []
+
+    // Calculate fee for i coin
+    let feeI = getDYFeeOnOneCoinWithdrawal(
+        event.block,
+        pool,
+        poolConstants,
+        tokenAmount,
+        i,
+        dy
+    )
+
+    for (let j = 0; j < coinCount; j++) {
+        if (j == i) {
+            tokenAmounts[j] = dy
+            fees[j] = feeI
+        } else {
+            tokenAmounts[j] = BigInt.fromI32(0)
+            fees[j] = BigInt.fromI32(0)
+        }
+    }
+
+    let totalSupply = pool.totalSupply.minus(tokenAmount)
+
+    handleRemoveLiquidityCommon(
+        event,
+        pool,
+        provider,
+        tokenAmounts,
+        fees,
+        totalSupply
+    )
+}
+
 export function handleRemoveLiquidityOne(event: RemoveLiquidityOne): void {
     let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.PLAIN, coinCount)
-    log.info("TODO HANDLING EVENT {}", ["RemoveLiquidityOne"])
+
+    let id = event.transaction.hash.toHexString().concat("-").concat(pool.id)
+    let entity = getOrCreateRemoveLiquidityOneEvent(id, pool)
+    entity.eventApplied = true
+    entity.account = getOrCreateAccount(event.params.provider).id
+    entity.tokenAmount = event.params.token_amount
+    entity.dy = event.params.coin_amount
+    entity.save()
+
+    handleRLOEEntityUpdate(event, entity, pool)
+}
+
+export function handleRemoveLiquidityOneCall(call: Remove_liquidity_one_coinCall): void {
+    let pool = PoolEntity.load(call.to.toHexString()) as PoolEntity
+
+    let id = call.transaction.hash.toHexString().concat("-").concat(pool.id)
+    let entity = getOrCreateRemoveLiquidityOneEvent(id, pool)
+    entity.i = call.inputs.i.toI32()
+    entity.save()
+
+    let event = new ethereum.Event()
+    event.block = call.block
+    event.transaction = call.transaction
+    handleRLOEEntityUpdate(event, entity, pool)
 }
 
 export function handleNewFee(event: NewFee): void {
     let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.PLAIN, coinCount)
     createPoolSnaptshot(event, pool)
+
     pool.fee = event.params.fee
     pool.adminFee = event.params.admin_fee
+    pool.save()
+}
+
+export function handleRampA(event: RampA): void {
+    let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.PLAIN, coinCount)
+    createPoolSnaptshot(event, pool)
+
+    pool.initialA = event.params.old_A
+    pool.initialATime = event.params.initial_time
+    pool.futureA = event.params.new_A
+    pool.futureATime = event.params.future_time
+    pool.save()
+}
+
+export function handleStopRampA(event: StopRampA): void {
+    let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.PLAIN, coinCount)
+    createPoolSnaptshot(event, pool)
+
+    pool.initialA = event.params.A
+    pool.initialATime = event.params.t
+    pool.futureA = event.params.A
+    pool.futureATime = event.params.t
     pool.save()
 }
