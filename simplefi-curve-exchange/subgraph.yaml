@@ -51,3 +51,31 @@ dataSources:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
       file: ./src/triPool.ts
+templates:
+  - kind: ethereum/contract
+    name: CurveLPToken
+    network: mainnet
+    source:
+      abi: ERC20
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Pool
+        - PoolSnapshot
+      abis:
+        - name: ERC20
+          file: ./abis/IERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/triPool.ts

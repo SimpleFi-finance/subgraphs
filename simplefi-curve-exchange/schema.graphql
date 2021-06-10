@@ -207,4 +207,10 @@ type RemoveLiqudityOneEvent @entity {
   callApplied: Boolean!
 }
 
+type LPToken @entity {
+  id: ID! # {tokenAddress}
+  token: Token!
+  pool: Pool!
+}
+
 # END - Curve protocol entities

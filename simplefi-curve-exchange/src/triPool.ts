@@ -1,9 +1,12 @@
 import { Address, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
 import {
+    LPToken as LPTokenEntity,
     Market as MarketEntity,
     Pool as PoolEntity,
     RemoveLiqudityOneEvent as RemoveLiqudityOneEventEntity
 } from "../generated/schema";
+import { CurveLPToken } from '../generated/templates';
+import { Transfer } from "../generated/TriPool/ERC20";
 import {
     AddLiquidity,
     NewFee,
@@ -15,10 +18,9 @@ import {
     StopRampA,
     TokenExchange
 } from "../generated/TriPool/StableSwapPlain3";
-import { getOrCreateAccount, investInMarket, redeemFromMarket, TokenBalance } from "./common";
+import { ADDRESS_ZERO, getOrCreateAccount, investInMarket, redeemFromMarket, TokenBalance } from "./common";
 import { createPoolSnaptshot, getOrCreatePool, getOtCreateAccountLiquidity } from "./curveCommon";
 import { CurvePoolType, getDYFeeOnOneCoinWithdrawal, PoolConstants } from './stableSwapLib';
-
 
 const coinCount = 3
 let feeDenominator = BigInt.fromI32(10).pow(10)
@@ -78,6 +80,11 @@ export function handleTokenExchange(event: TokenExchange): void {
 
 export function handleAddLiquidity(event: AddLiquidity): void {
     let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.PLAIN, coinCount)
+    // Listen on LPToken transfer events
+    if (pool.totalSupply == BigInt.fromI32(0)) {
+        CurveLPToken.create(pool.lpToken as Address)
+    }
+
     createPoolSnaptshot(event, pool)
     let oldTotalSupply = pool.totalSupply
     let oldBalances = pool.balances
@@ -340,4 +347,74 @@ export function handleStopRampA(event: StopRampA): void {
     pool.futureA = event.params.A
     pool.futureATime = event.params.t
     pool.save()
+}
+
+export function handleTransfer(event: Transfer): void {
+    if (event.params.value == BigInt.fromI32(0) || event.params.from.toHexString() == ADDRESS_ZERO) {
+        return
+    }
+
+    let lpToken = LPTokenEntity.load(event.address.toHexString()) as LPTokenEntity
+    let pool = getOrCreatePool(event, Address.fromString(lpToken.pool), lpTokenAddress, [], CurvePoolType.PLAIN, coinCount)
+    let market = MarketEntity.load(pool.id) as MarketEntity
+    let coins = pool.coins
+    let balances = pool.balances
+
+    // Redeem from transfer.from account
+    let fromAccount = getOrCreateAccount(event.params.from)
+    let fromOutputTokenAmount = event.params.value
+
+    let fromAccountLiquidity = getOtCreateAccountLiquidity(fromAccount, pool)
+    fromAccountLiquidity.balance = fromAccountLiquidity.balance.minus(fromOutputTokenAmount)
+    fromAccountLiquidity.save()
+
+    let fromOutputTokenBalance = fromAccountLiquidity.balance
+    let fromInputTokenBalances: TokenBalance[] = []
+    for (let i = 0; i < coinCount; i++) {
+        let token = coins[i]
+        let inputBalance = balances[i].times(fromAccountLiquidity.balance).div(pool.totalSupply)
+        fromInputTokenBalances.push(new TokenBalance(token, fromAccount.id, inputBalance))
+    }
+
+    redeemFromMarket(
+        event,
+        fromAccount,
+        market,
+        fromOutputTokenAmount,
+        [],
+        [],
+        fromOutputTokenBalance,
+        fromInputTokenBalances,
+        [],
+        event.params.to.toHexString()
+    )
+
+    // Invest from transfer.to account
+    let toAccount = getOrCreateAccount(event.params.to)
+    let toOutputTokenAmount = event.params.value
+
+    let toAccountLiquidity = getOtCreateAccountLiquidity(toAccount, pool)
+    toAccountLiquidity.balance = toAccountLiquidity.balance.minus(toOutputTokenAmount)
+    toAccountLiquidity.save()
+
+    let toOutputTokenBalance = toAccountLiquidity.balance
+    let toInputTokenBalances: TokenBalance[] = []
+    for (let i = 0; i < coinCount; i++) {
+        let token = coins[i]
+        let inputBalance = balances[i].times(toAccountLiquidity.balance).div(pool.totalSupply)
+        toInputTokenBalances.push(new TokenBalance(token, toAccount.id, inputBalance))
+    }
+
+    investInMarket(
+        event,
+        toAccount,
+        market,
+        toOutputTokenAmount,
+        [],
+        [],
+        toOutputTokenBalance,
+        toInputTokenBalances,
+        [],
+        event.params.from.toHexString()
+    )
 }

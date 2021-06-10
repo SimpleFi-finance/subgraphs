@@ -2,6 +2,7 @@ import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import {
     Account as AccountEntity,
     AccountLiquidity as AccountLiquidityEntity,
+    LPToken as LPTokenEntity,
     Pool as PoolEntity,
     PoolSnapshot as PoolSnapshotEntity,
     Token as TokenEntity
@@ -79,6 +80,13 @@ export function getOrCreatePool(
             let token = getOrCreateERC20Token(event, coin)
             poolRewardTokens.push(token)
         }
+
+        // Create LPToken entity
+        let curveLPToken = new LPTokenEntity(lpTokenAddress.toHexString())
+        curveLPToken.pool = pool.id
+        curveLPToken.token = lpToken.id
+        curveLPToken.save()
+
         // Create Market entity
         getOrCreateMarket(
             event,
