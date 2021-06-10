@@ -267,7 +267,7 @@ function checkPendingTransferTozero(event: ethereum.Event, pool: PoolEntity): vo
 
     // New transaction processing has started without burn event
     // its a manual transfer to zero address
-    let transferTozero = LPTokenTransferToZeroEntity.load(event.transaction.hash.toHexString())
+    let transferTozero = LPTokenTransferToZeroEntity.load(event.transaction.hash.toHexString()) as LPTokenTransferToZeroEntity
     transferLPToken(event, pool, transferTozero.from as Address, transferTozero.to as Address, transferTozero.value)
 
     pool.lastTransferToZero = null
@@ -392,6 +392,7 @@ export function handleRemoveLiquidityOne(event: RemoveLiquidityOne): void {
     entity.account = getOrCreateAccount(event.params.provider).id
     entity.tokenAmount = event.params.token_amount
     entity.dy = event.params.coin_amount
+    entity.logIndex = event.logIndex
     entity.save()
 
     handleRLOEEntityUpdate(event, entity, pool)
@@ -403,11 +404,13 @@ export function handleRemoveLiquidityOneCall(call: Remove_liquidity_one_coinCall
     let id = call.transaction.hash.toHexString().concat("-").concat(pool.id)
     let entity = getOrCreateRemoveLiquidityOneEvent(id, pool)
     entity.i = call.inputs.i.toI32()
+    entity.callApplied = true
     entity.save()
 
     let event = new ethereum.Event()
     event.block = call.block
     event.transaction = call.transaction
+    event.logIndex = entity.logIndex as BigInt
     handleRLOEEntityUpdate(event, entity, pool)
 }
 

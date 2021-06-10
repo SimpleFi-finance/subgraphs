@@ -206,6 +206,7 @@ type RemoveLiqudityOneEvent @entity {
   i: Int
   eventApplied: Boolean!
   callApplied: Boolean!
+  logIndex: BigInt
 }
 
 type LPToken @entity {
