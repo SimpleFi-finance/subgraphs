@@ -11,16 +11,17 @@ import { StableSwapLending3 } from '../generated/TriPool/StableSwapLending3'
 import { StableSwapPlain3 } from '../generated/TriPool/StableSwapPlain3'
 import { ADDRESS_ZERO, getOrCreateERC20Token, getOrCreateMarket } from './common'
 import { ProtocolName, ProtocolType } from './constants'
-import { CurvePoolType } from './stableSwapLib'
 
+export namespace CurvePoolType {
+    export const PLAIN = "PLAIN"
+    export const LENDING = "LENDING"
+    export const META = "META"
+}
 
 class PoolInfo {
     coins: Address[]
     underlyingCoins: Address[]
     balances: BigInt[]
-    fee: BigInt
-    adminFee: BigInt
-    a: BigInt
 }
 
 export function getOrCreatePool(
@@ -38,6 +39,8 @@ export function getOrCreatePool(
 
         if (poolType == CurvePoolType.PLAIN) {
             info = getPlainPoolInfo(address, coinCount)
+        } else if (poolType == CurvePoolType.LENDING) {
+            info = getLendingPoolInfo(address, coinCount)
         }
 
         pool = new PoolEntity(address.toHexString())
@@ -60,15 +63,9 @@ export function getOrCreatePool(
         pool.underlyingCoins = poolUnderlyingCoins.map<string>(t => t.id)
 
         pool.balances = info.balances
-        pool.fee = info.fee
-        pool.adminFee = info.adminFee
         pool.totalSupply = BigInt.fromI32(0)
         let lpToken = getOrCreateERC20Token(event, lpTokenAddress)
         pool.lpToken = lpTokenAddress
-        pool.initialA = info.a
-        pool.initialATime = BigInt.fromI32(0)
-        pool.futureA = info.a
-        pool.futureATime = BigInt.fromI32(0)
 
         pool.blockNumber = event.block.number
         pool.timestamp = event.block.timestamp
@@ -113,13 +110,7 @@ export function createPoolSnaptshot(event: ethereum.Event, pool: PoolEntity): Po
     poolSnapshot = new PoolSnapshotEntity(id)
     poolSnapshot.pool = pool.id
     poolSnapshot.balances = pool.balances
-    poolSnapshot.fee = pool.fee
-    poolSnapshot.adminFee = pool.adminFee
     poolSnapshot.totalSupply = pool.totalSupply
-    poolSnapshot.initialA = pool.initialA
-    poolSnapshot.initialATime = pool.initialATime
-    poolSnapshot.futureA = pool.futureA
-    poolSnapshot.futureATime = pool.futureATime
     poolSnapshot.blockNumber = event.block.number
     poolSnapshot.timestamp = event.block.timestamp
     poolSnapshot.transactionHash = transactionHash
@@ -134,49 +125,39 @@ export function getPlainPoolInfo(pool: Address, coinCount: i32): PoolInfo {
     let swapContract = StableSwapPlain3.bind(pool)
 
     let coins: Address[] = []
-    let underlyingCoins: Address[] = []
     let balances: BigInt[] = []
-    let a: BigInt
 
     let c: ethereum.CallResult<Address>
     let b: ethereum.CallResult<BigInt>
-    let at: ethereum.CallResult<BigInt>
 
     for (let i = 0; i < coinCount; i++) {
         let ib = BigInt.fromI32(i)
         c = swapContract.try_coins(ib)
         b = swapContract.try_balances(ib)
-        at = swapContract.try_initial_A()
 
-        if (!c.reverted && c.value.toHexString() != ADDRESS_ZERO && !b.reverted && !at.reverted) {
+        if (!c.reverted && c.value.toHexString() != ADDRESS_ZERO && !b.reverted) {
             coins.push(c.value)
             balances.push(b.value)
-            a = at.value
         }
     }
 
     return {
         coins,
-        underlyingCoins,
-        balances,
-        fee: swapContract.fee(),
-        adminFee: swapContract.admin_fee(),
-        a
+        underlyingCoins: [],
+        balances
     }
 }
 
-export function getPlainLendingInfo(pool: Address, coinCount: i32): PoolInfo {
+export function getLendingPoolInfo(pool: Address, coinCount: i32): PoolInfo {
     let swapContract = StableSwapLending3.bind(pool)
 
     let coins: Address[] = []
     let underlyingCoins: Address[] = []
     let balances: BigInt[] = []
-    let a: BigInt
 
     let c: ethereum.CallResult<Address>
     let u: ethereum.CallResult<Address>
     let b: ethereum.CallResult<BigInt>
-    let at: ethereum.CallResult<BigInt>
 
     for (let i = 0; i < coinCount; i++) {
         let ib = BigInt.fromI32(i)
@@ -184,20 +165,17 @@ export function getPlainLendingInfo(pool: Address, coinCount: i32): PoolInfo {
         u = swapContract.try_underlying_coins(ib)
         b = swapContract.try_balances(ib)
 
-        if (!c.reverted && c.value.toHexString() != ADDRESS_ZERO && !b.reverted && !at.reverted) {
+        if (!c.reverted && c.value.toHexString() != ADDRESS_ZERO && !b.reverted && !u.reverted) {
             coins.push(c.value)
+            underlyingCoins.push(u.value)
             balances.push(b.value)
-            a = at.value
         }
     }
 
     return {
         coins,
         underlyingCoins,
-        balances,
-        fee: swapContract.fee(),
-        adminFee: swapContract.admin_fee(),
-        a
+        balances
     }
 }
 
@@ -213,4 +191,20 @@ export function getOtCreateAccountLiquidity(account: AccountEntity, pool: PoolEn
     liquidity.balance = BigInt.fromI32(0)
     liquidity.save()
     return liquidity as AccountLiquidityEntity
+}
+
+export function getPoolBalances(pool: PoolEntity): BigInt[] {
+    let swapContract = StableSwapPlain3.bind(Address.fromString(pool.id))
+    let balances: BigInt[] = []
+    let b: ethereum.CallResult<BigInt>
+
+    for (let i = 0; i < pool.coinCount; i++) {
+        let ib = BigInt.fromI32(i)
+        b = swapContract.try_balances(ib)
+        if (!b.reverted) {
+            balances.push(b.value)
+        }
+    }
+
+    return balances
 }

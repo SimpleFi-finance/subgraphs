@@ -13,6 +13,7 @@ export class PoolConstants {
     feeDenominator: BigInt
     precision: BigInt
     lendingPrecision: BigInt
+    precisionMul: BigInt[]
     rates: BigInt[]
     lpTokenAddress: Address
     poolAddress: Address

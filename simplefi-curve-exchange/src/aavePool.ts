@@ -1,13 +1,5 @@
 import { Address, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts"
-import {
-    LPToken as LPTokenEntity,
-    LPTokenTransferToZero as LPTokenTransferToZeroEntity,
-    Market as MarketEntity,
-    Pool as PoolEntity,
-    RemoveLiqudityOneEvent as RemoveLiqudityOneEventEntity
-} from "../generated/schema"
-import { TriPoolLPToken } from "../generated/templates"
-import { Transfer } from "../generated/TriPool/ERC20"
+import { Transfer } from "../generated/AaveLendingPool/ERC20"
 import {
     AddLiquidity,
     RemoveLiquidity,
@@ -15,7 +7,15 @@ import {
     RemoveLiquidityOne,
     Remove_liquidity_one_coinCall,
     TokenExchange
-} from "../generated/TriPool/StableSwapPlain3"
+} from "../generated/AaveLendingPool/StableSwapLending3"
+import {
+    LPToken as LPTokenEntity,
+    LPTokenTransferToZero as LPTokenTransferToZeroEntity,
+    Market as MarketEntity,
+    Pool as PoolEntity,
+    RemoveLiqudityOneEvent as RemoveLiqudityOneEventEntity
+} from "../generated/schema"
+import { AavePoolLPToken } from "../generated/templates"
 import {
     ADDRESS_ZERO,
     getOrCreateAccount,
@@ -32,16 +32,16 @@ import {
 } from "./curveUtil"
 
 const coinCount = 3
-let lpTokenAddress = Address.fromString("0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490")
-let poolAddress = Address.fromString("0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7")
+let lpTokenAddress = Address.fromString("0xFd2a8fA60Abd58Efe3EeE34dd494cD491dC14900")
+let poolAddress = Address.fromString("0xDeBF20617708857ebe4F679508E7b7863a8A8EeE")
 
 let fakeEvent = new ethereum.Event()
 let fakeBlock = new ethereum.Block()
-fakeBlock.number = BigInt.fromString("10809473")
-fakeBlock.timestamp = BigInt.fromString("1599414978")
-fakeBlock.hash = Bytes.fromHexString("0x2d76f2a7c4f083b9f889611734104cfb1efa0cfef8e52b753d9c719870a49b98") as Bytes
+fakeBlock.number = BigInt.fromString("11497106")
+fakeBlock.timestamp = BigInt.fromString("1608558210")
+fakeBlock.hash = Bytes.fromHexString("0xb48e5df8c39e1093e04ce2ccf24e1c7aed27df1ac051ef4093df7113e43e640f") as Bytes
 fakeEvent.block = fakeBlock
-getOrCreatePool(fakeEvent, poolAddress, lpTokenAddress, [], CurvePoolType.PLAIN, 3)
+getOrCreatePool(fakeEvent, poolAddress, lpTokenAddress, [], CurvePoolType.LENDING, 3)
 
 function handleRemoveLiquidityCommon(
     event: ethereum.Event,
@@ -226,7 +226,7 @@ function checkPendingTransferTozero(event: ethereum.Event, pool: PoolEntity): vo
 }
 
 export function handleTokenExchange(event: TokenExchange): void {
-    let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.PLAIN, coinCount)
+    let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.LENDING, coinCount)
     checkPendingTransferTozero(event, pool)
     createPoolSnaptshot(event, pool)
     let newBalances = getPoolBalances(pool)
@@ -235,11 +235,11 @@ export function handleTokenExchange(event: TokenExchange): void {
 }
 
 export function handleAddLiquidity(event: AddLiquidity): void {
-    let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.PLAIN, coinCount)
-    
+    let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.LENDING, coinCount)
+
     // Listen on LPToken transfer events
     if (pool.totalSupply == BigInt.fromI32(0)) {
-        TriPoolLPToken.create(pool.lpToken as Address)
+        AavePoolLPToken.create(pool.lpToken as Address)
     }
 
     checkPendingTransferTozero(event, pool)
@@ -290,7 +290,7 @@ export function handleAddLiquidity(event: AddLiquidity): void {
 }
 
 export function handleRemoveLiquidity(event: RemoveLiquidity): void {
-    let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.PLAIN, coinCount)
+    let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.LENDING, coinCount)
     checkPendingTransferTozero(event, pool)
 
     handleRemoveLiquidityCommon(
@@ -303,7 +303,7 @@ export function handleRemoveLiquidity(event: RemoveLiquidity): void {
 }
 
 export function handleRemoveLiquidityImbalance(event: RemoveLiquidityImbalance): void {
-    let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.PLAIN, coinCount)
+    let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.LENDING, coinCount)
     checkPendingTransferTozero(event, pool)
 
     handleRemoveLiquidityCommon(
@@ -316,7 +316,7 @@ export function handleRemoveLiquidityImbalance(event: RemoveLiquidityImbalance):
 }
 
 export function handleRemoveLiquidityOne(event: RemoveLiquidityOne): void {
-    let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.PLAIN, coinCount)
+    let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.LENDING, coinCount)
     checkPendingTransferTozero(event, pool)
 
     let id = event.transaction.hash.toHexString().concat("-").concat(pool.id)
@@ -353,7 +353,7 @@ export function handleTransfer(event: Transfer): void {
     }
 
     let lpToken = LPTokenEntity.load(event.address.toHexString()) as LPTokenEntity
-    let pool = getOrCreatePool(event, Address.fromString(lpToken.pool), lpTokenAddress, [], CurvePoolType.PLAIN, coinCount)
+    let pool = getOrCreatePool(event, Address.fromString(lpToken.pool), lpTokenAddress, [], CurvePoolType.LENDING, coinCount)
 
     if (event.params.to.toHexString() == ADDRESS_ZERO) {
         let transferTozero = new LPTokenTransferToZeroEntity(event.transaction.hash.toHexString())

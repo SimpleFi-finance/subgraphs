@@ -158,14 +158,8 @@ type Pool @entity {
   coins: [Token!]!
   underlyingCoins: [Token!]!
   balances: [BigInt!]!
-  fee: BigInt!
-  adminFee: BigInt!
   totalSupply: BigInt!
   lpToken: Bytes!
-  initialA: BigInt!
-  initialATime: BigInt!
-  futureA: BigInt!
-  futureATime: BigInt!
   blockNumber: BigInt!
   timestamp: BigInt!
   lastTransferToZero: LPTokenTransferToZero 
@@ -176,13 +170,7 @@ type PoolSnapshot @entity {
   id: ID! # {trasactionHash}{logIndex}
   pool: Pool!
   balances: [BigInt!]!
-  fee: BigInt!
-  adminFee: BigInt!
   totalSupply: BigInt!
-  initialA: BigInt!
-  initialATime: BigInt!
-  futureA: BigInt!
-  futureATime: BigInt!
   blockNumber: BigInt!
   timestamp: BigInt!
   transactionHash: String!
