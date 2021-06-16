@@ -135,7 +135,7 @@ function transferLPToken(event: ethereum.Event, pool: PoolEntity, from: Address,
     let toOutputTokenAmount = value
 
     let toAccountLiquidity = getOtCreateAccountLiquidity(toAccount, pool)
-    toAccountLiquidity.balance = toAccountLiquidity.balance.minus(toOutputTokenAmount)
+    toAccountLiquidity.balance = toAccountLiquidity.balance.plus(toOutputTokenAmount)
     toAccountLiquidity.save()
 
     let toOutputTokenBalance = toAccountLiquidity.balance
