@@ -245,7 +245,7 @@ export function handleAddLiquidity(event: AddLiquidity): void {
 
     // Update balances and totalSupply
     let newBalances = getPoolBalances(pool)
-    pool = updatePool(event, pool, newBalances, pool.totalSupply)
+    pool = updatePool(event, pool, newBalances, event.params.token_supply)
 
     // Update AccountLiquidity to track account LPToken balance
     let account = getOrCreateAccount(event.params.provider)
