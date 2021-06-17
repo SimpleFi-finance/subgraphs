@@ -3,6 +3,7 @@ import {
     Account,
     AccountPosition,
     Market,
+    MarketSnapshot,
     Position,
     PositionSnapshot,
     Token,
@@ -69,6 +70,12 @@ export function getOrCreateMarket(
         return market as Market
     }
 
+    let inputTokenBalances: TokenBalance[] = []
+    for (let i = 0; i < inputTokens.length; i++) {
+        let token = inputTokens[i]
+        inputTokenBalances.push(new TokenBalance(token.id, addressHex, BigInt.fromI32(0)))
+    }
+
     market = new Market(addressHex)
     market.account = getOrCreateAccount(address).id
     market.protocolName = protocolName
@@ -76,10 +83,43 @@ export function getOrCreateMarket(
     market.inputTokens = inputTokens.map<string>(t => t.id)
     market.outputToken = outputToken.id
     market.rewardTokens = rewardTokens.map<string>(t => t.id)
+    market.inputTokenTotalBalances = inputTokenBalances.map<string>(tb => tb.toString())
+    market.outputTokenTotalSupply = BigInt.fromI32(0)
     market.blockNumber = event.block.number
     market.timestamp = event.block.timestamp
     market.save()
     return market as Market
+}
+
+export function updateMarket(
+    event: ethereum.Event,
+    market: Market,
+    inputTokenBalances: TokenBalance[],
+    outputTokenTotalSupply: BigInt
+): MarketSnapshot {
+    let transactionHash = event.transaction.hash.toHexString()
+    let id = transactionHash.concat("-").concat(event.logIndex.toHexString())
+    let marketSnapshot = MarketSnapshot.load(id)
+    if (marketSnapshot != null) {
+        return marketSnapshot as MarketSnapshot
+    }
+
+    marketSnapshot = new MarketSnapshot(id)
+    marketSnapshot.market = market.id
+    marketSnapshot.inputTokenBalances = market.inputTokenTotalBalances
+    marketSnapshot.outputTokenTotalSupply = market.outputTokenTotalSupply
+    marketSnapshot.blockNumber = event.block.number
+    marketSnapshot.timestamp = event.block.timestamp
+    marketSnapshot.transactionHash = transactionHash
+    marketSnapshot.transactionIndexInBlock = event.transaction.index
+    marketSnapshot.logIndex = event.logIndex
+    marketSnapshot.save()
+
+    market.inputTokenTotalBalances = inputTokenBalances.map<string>(tb => tb.toString())
+    market.outputTokenTotalSupply = outputTokenTotalSupply
+    market.save()
+
+    return marketSnapshot as MarketSnapshot
 }
 
 export function getOrCreateOpenPosition(

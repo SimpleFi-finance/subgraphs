@@ -3,13 +3,14 @@ import {
     Account as AccountEntity,
     AccountLiquidity as AccountLiquidityEntity,
     LPToken as LPTokenEntity,
+    Market as MarketEntity,
     Pool as PoolEntity,
     PoolSnapshot as PoolSnapshotEntity,
     Token as TokenEntity
 } from '../generated/schema'
 import { StableSwapLending3 } from '../generated/TriPool/StableSwapLending3'
 import { StableSwapPlain3 } from '../generated/TriPool/StableSwapPlain3'
-import { ADDRESS_ZERO, getOrCreateERC20Token, getOrCreateMarket } from './common'
+import { ADDRESS_ZERO, getOrCreateERC20Token, getOrCreateMarket, TokenBalance, updateMarket } from './common'
 import { ProtocolName, ProtocolType } from './constants'
 
 export namespace CurvePoolType {
@@ -119,6 +120,30 @@ export function createPoolSnaptshot(event: ethereum.Event, pool: PoolEntity): Po
     poolSnapshot.save()
 
     return poolSnapshot as PoolSnapshotEntity
+}
+
+export function updatePool(
+    event: ethereum.Event,
+    pool: PoolEntity,
+    balances: BigInt[],
+    totalSupply: BigInt
+): PoolEntity {
+    createPoolSnaptshot(event, pool)
+
+    pool.balances = balances
+    pool.totalSupply = totalSupply
+    pool.save()
+
+    let market = MarketEntity.load(pool.id) as MarketEntity
+
+    let coins = pool.coins
+    let inputTokenBalances: TokenBalance[] = []
+    for (let i = 0; i < pool.coinCount; i++) {
+        inputTokenBalances.push(new TokenBalance(coins[i], pool.id, balances[i]))
+    }
+    updateMarket(event, market, inputTokenBalances, pool.totalSupply)
+
+    return pool
 }
 
 export function getPlainPoolInfo(pool: Address, coinCount: i32): PoolInfo {

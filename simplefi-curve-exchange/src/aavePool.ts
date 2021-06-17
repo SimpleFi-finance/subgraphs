@@ -24,11 +24,11 @@ import {
     TokenBalance
 } from "./common"
 import {
-    createPoolSnaptshot,
     CurvePoolType,
     getOrCreatePool,
     getOtCreateAccountLiquidity,
-    getPoolBalances
+    getPoolBalances,
+    updatePool
 } from "./curveUtil"
 
 const coinCount = 3
@@ -41,7 +41,7 @@ fakeBlock.number = BigInt.fromString("11497106")
 fakeBlock.timestamp = BigInt.fromString("1608558210")
 fakeBlock.hash = Bytes.fromHexString("0xb48e5df8c39e1093e04ce2ccf24e1c7aed27df1ac051ef4093df7113e43e640f") as Bytes
 fakeEvent.block = fakeBlock
-getOrCreatePool(fakeEvent, poolAddress, lpTokenAddress, [], CurvePoolType.LENDING, 3)
+getOrCreatePool(fakeEvent, poolAddress, lpTokenAddress, [], CurvePoolType.LENDING, coinCount)
 
 function handleRemoveLiquidityCommon(
     event: ethereum.Event,
@@ -50,13 +50,11 @@ function handleRemoveLiquidityCommon(
     token_amounts: BigInt[],
     token_supply: BigInt
 ): void {
-    createPoolSnaptshot(event, pool)
     let oldTotalSupply = pool.totalSupply
 
     // Update balances and totalSupply
     let newBalances = getPoolBalances(pool)
-    pool.balances = newBalances
-    pool.totalSupply = token_supply
+    pool = updatePool(event, pool, newBalances, token_supply)
     pool.lastTransferToZero = null
     pool.save()
 
@@ -218,7 +216,7 @@ function checkPendingTransferTozero(event: ethereum.Event, pool: PoolEntity): vo
 
     // New transaction processing has started without burn event
     // its a manual transfer to zero address
-    let transferTozero = LPTokenTransferToZeroEntity.load(event.transaction.hash.toHexString()) as LPTokenTransferToZeroEntity
+    let transferTozero = LPTokenTransferToZeroEntity.load(pool.lastTransferToZero) as LPTokenTransferToZeroEntity
     transferLPToken(event, pool, transferTozero.from as Address, transferTozero.to as Address, transferTozero.value)
 
     pool.lastTransferToZero = null
@@ -228,10 +226,8 @@ function checkPendingTransferTozero(event: ethereum.Event, pool: PoolEntity): vo
 export function handleTokenExchange(event: TokenExchange): void {
     let pool = getOrCreatePool(event, event.address, lpTokenAddress, [], CurvePoolType.LENDING, coinCount)
     checkPendingTransferTozero(event, pool)
-    createPoolSnaptshot(event, pool)
     let newBalances = getPoolBalances(pool)
-    pool.balances = newBalances
-    pool.save()
+    updatePool(event, pool, newBalances, pool.totalSupply)
 }
 
 export function handleAddLiquidity(event: AddLiquidity): void {
@@ -244,15 +240,12 @@ export function handleAddLiquidity(event: AddLiquidity): void {
 
     checkPendingTransferTozero(event, pool)
 
-    createPoolSnaptshot(event, pool)
     let oldTotalSupply = pool.totalSupply
     let token_amounts = event.params.token_amounts
 
     // Update balances and totalSupply
     let newBalances = getPoolBalances(pool)
-    pool.balances = newBalances
-    pool.totalSupply = event.params.token_supply
-    pool.save()
+    pool = updatePool(event, pool, newBalances, pool.totalSupply)
 
     // Update AccountLiquidity to track account LPToken balance
     let account = getOrCreateAccount(event.params.provider)
