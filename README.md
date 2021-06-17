@@ -89,8 +89,24 @@ As described above this entity is used to store smart contracts that allow users
 - inputTokens : List of tokens that can be deposited in this market as investment. Please note that any one of the deposited tokens can be borrowed from the market therefore we are not storing it in a different property
 - outputToken : Token that is minted by the market to track position of a user in the market
 - rewardTokens : Some markets also provide some tokens as rewards to investors as an additional benefit. This property is used to store list of all such tokens
+- inputTokenBalances : Total balance of this market contract of all input tokens
+- outputTokenTotalSupply : Total supply of output token
 - blockNumber : Block number of the block in which this market smart contract was deployed
 - timestamp : Timestamo of the above block number
+
+### MarketSnapshot
+
+This entity is used to store values of `Market` entity **before** every update to it. It has following properties -
+
+- id : Combination of transaction hash and log index
+- market : Id of the market for which this snapshot is created
+- inputTokenBalances : Value of `inputTokenBalances` of `Market` entity
+- outputTokenTotalSupply : same as above
+- blockNumber : Number of the block in which this transaction was executed
+- timestamp : Timestamp of above block
+- transactionIndexInBlock : Index of transaction in the block. It can be used to debug subgraphs
+- logIndex : Log index of the event being processed
+
 
 ### Position
 
@@ -147,7 +163,7 @@ This entity is used to track parameters of interaction that changes a position. 
 - gasPrice : Price of per unit of a gas in `gwei` while executing this transaction
 - blockNumber : Number of the block in which this transaction was executed
 - timestamp : Timestamp of above block
-- transactionIndexInBlock : Index of transaction the block. It can be used to debug subgraphs
+- transactionIndexInBlock : Index of transaction in the block. It can be used to debug subgraphs
 
 ### PositionSnapshot
 

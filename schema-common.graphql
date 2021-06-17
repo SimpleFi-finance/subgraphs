@@ -73,9 +73,23 @@ type Market @entity {
   inputTokens: [Token!]!   # Tokens that need to be deposited to take a position in protocol
   outputToken: Token       # Token that is minted to track ownership of position in protocol
   rewardTokens: [Token!]   # Aditional tokens that are given as reward for position in a protocol
+  inputTokenTotalBalances: [String!]!   # Total balance of this market contract of all input tokens in TokenBalance string format
+  outputTokenTotalSupply: BigInt!       # Total supply of output token
   blockNumber: BigInt!
   timestamp: BigInt!
   positions: [Position!]! @derivedFrom(field: "market")
+}
+
+type MarketSnapshot @entity {
+  id: ID! # {trasactionHash}{logIndex}
+  market: Market!
+  inputTokenBalances: [String!]!  # TokenBalance string format
+  outputTokenTotalSupply: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: String!
+  transactionIndexInBlock: BigInt!
+  logIndex: BigInt!
 }
 
 type Transaction @entity {
