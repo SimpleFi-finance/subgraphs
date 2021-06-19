@@ -1,6 +1,14 @@
-# Subgraph Entities Description
+# SimpleFi's data indexing
 
-Purpose of all the subgraphs is to index user investment and debt positions in all the protocols in DeFi. We want to create a standard data structure for indexing all investment and debts in all protocols so that anyone can build application on this data without dealing with complexity of individual protocols.
+SimpleFi is supported by theGraph foundation to lead the way to an open source DeFi access point. The use of subgraphs (theGraph's method to ingest data) allows our platform to open source the development of adaptors for new and upcoming protocols by any developer with graphQL and smart contracts knowledge.
+
+We developed a generalised graphing schema that makes the connection of any protocol to the SimpleFi ecosystem effortless, without the need to wait for the team to implement it. Moreover, having a defined data structure across all protocols allows developers to build applications without dealing with additional complexities in data transformation.
+
+This schema uses a set of common entities to ingest the required data and make it readily available to the dApp with minimial transformation.
+
+The use of the subgraph is particularly aimed at indexing the user invesment/debt positions in any DeFi protocol.
+
+# Subgraph Entities Description
 
 We have created a graphql schema to represent this data structure so that it can be used in subgraph implementations. Below we describe all the entities and their attributes in this schema.
 
@@ -28,7 +36,7 @@ This is used to define Token standard of a Token entity. This is useful when we 
 
 ### Enum ProtocolName
 
-This is used in Market entity to store UI friendly name of a protocol.
+This is used in Market entity to store a UI-friendly name of the protocol.
 
 ### Enum ProtocolType
 
@@ -50,7 +58,7 @@ In case it's redemption we update the existing Position with type `INVESTMENT`. 
 
 ### Enum TransactionType
 
-This is used in Transaction entity. When evenr we update a position we store current values of position in PositionSnapshot entity. In this PositionSnapshot entity we store a Transaction entity which stores information of the interaction by user that changes the position. Possible values for TransactionType are -
+This is used in Transaction entity. Whenever we update a position we store current values of position in PositionSnapshot entity. In this PositionSnapshot entity we store a Transaction entity which stores information of the interaction by user that changes the position. Possible values for TransactionType are -
 
 - INVEST : When a user invests funds in a market
 - REDEEM : when a user redeems his earlier investments from a market
@@ -120,8 +128,8 @@ This is the main entity which stores a position of a user in a market. Every tim
 - marketAddress : Smart contract address of the market. This can be used to filter positions based on market addresses
 - positionType : One of the values of `PositionType` enum
 - outputTokenBalance : Latest balance of user of the `outputToken` of the market
-- inputTokenBalances : Balances of the input tokens that can be redeemed by depositing `outputTokenBalance` to the market. Because of limitations of the contracts call in mapping code of subgraph values of input token balance are based on market smart contract state at the block (after all the transaction in the block have been executed to update the smart contract address). This can cause an inaccurate value of inputTokenBalances for specific transaction which are followed other transaction in same block. We are working on making this more accurate
-- rewardTokenBalances : Balances of reward tokens that are credited by the market as an additional benefit. These values are also subject same limitation as `inputTokenBalances`
+- inputTokenBalances : Balances of the input tokens that can be redeemed by depositing `outputTokenBalance` to the market. Because of limitations of the contracts call in mapping code of subgraph values of input token balance are based on market smart contract state at the block (after all the transaction in the block have been executed to update the smart contract address). This can cause an inaccurate value of inputTokenBalances for specific transaction which are followed by other transaction in same block. We are working on making this more accurate
+- rewardTokenBalances : Balances of reward tokens that are credited by the market as an additional benefit. These values are also subject to the same limitation as `inputTokenBalances`
 - transferredTo : List of addresses to which the user has part/full balance of outputToken. This can be used to connect movement of funds from market to another while processing this data
 - closed : Status of the position. More on it in below
 - blockNumber : Number of the block at which this position was created
@@ -139,7 +147,7 @@ In case a user again deposits funds to the market then we create a new `Position
 
 ### AccountPosition
 
-This entity is used to keep track of all historical position of a user in a market. We can not use same ID for a user's new position after existing one has been closed. To be able to fetch current open position for a user + market + position type we need the ID to be dependent on only these three things. These three things will be same for all positions of a specific user in specfic market therefore we need this AccountPosition entity. In this entity we keep a counter which keeps increasing as new positions are created by same user on same market of same type. It has following properties -
+This entity is used to keep track of all historical position of a user in a market. We can not use same ID for a user's new position after existing one has been closed. To be able to fetch current open position for a user + market + position type we need the ID to be dependent on only these three things. These three things will be same for all positions of a specific user in specfic market therefore we need this AccountPosition entity. In this entity we keep a counter which keeps increasing as new positions are created by same user on same market of same type. It has the following properties -
 
 - id : Combination of user address, market address and position type
 - positionCounter : Increamenting counter used as suffix to create id for `Position` entity
@@ -177,13 +185,13 @@ As described above this entity is used to store values of `Position` entity **be
 - rewardTokenBalances : Same as above
 - transferredTo : same as above
 
-## How to create subgraph for a protocol?
+## How to create a subgraph for a protocol?
 
-Please create a fork of this repository. Then follow steps below -
+Please create a fork of this repository. Then follow the steps below -
 
 - Create a new branch with the name of the protocol
 - Create a folder/directory with the name of the protocol
-- Initialise the subgraph using subgraph cli
+- Initialise the subgraph using theGraph's subgraph cli
 - Copy contents of `schema-cmmon.graphql` in `schema.graphql` in protocl directory
 - Add more entity definitions as requried to implement the subgraph
 - Implement mapping code
