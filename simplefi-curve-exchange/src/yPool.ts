@@ -55,8 +55,6 @@ export function handleAddLiquidity(event: AddLiquidity): void {
   let oldTotalSupply = pool.totalSupply;
   let newPoolBalances = getLendingPoolBalances(pool);
   pool = updatePool(event, pool, newPoolBalances, event.params.token_supply);
-  pool.lastTransferToZero = null;
-  pool.save();
 
   // Update AccountLiquidity to track LPToken balance of account
   let account = getOrCreateAccount(event.params.provider);
@@ -216,8 +214,8 @@ function handleRemoveLiquidityCommon(
   let oldTotalSupply = pool.totalSupply;
   let newBalances = getLendingPoolBalances(pool);
   pool = updatePool(event, pool, newBalances, lpTokenSupply);
-  // pool.lastTransferToZero = null; // is it needed?
-  // pool.save(); // already saved?
+  pool.lastTransferToZero = null;
+  pool.save();
 
   // Update AccountLiquidity to track LPToken balance of account
   let account = getOrCreateAccount(provider);
