@@ -168,8 +168,8 @@ type PositionSnapshot @entity {
 
 type InvestmentToken @entity {
   id: ID! # {vault address}
-  vault: Vault! @derivedFrom(field: "token")
-  strategy: Strategy! @derivedFrom(field: "token")
+  vault: [Vault!]! @derivedFrom(field: "token")
+  strategy: [Strategy!]! @derivedFrom(field: "token")
 }
 
 type Vault @entity {
