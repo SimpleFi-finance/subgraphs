@@ -1,0 +1,35 @@
+specVersion: 0.0.2
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: Controller
+    network: mainnet
+    source:
+      address: "0x29D3782825432255041Db2EAfCB7174f5273f08A"
+      startBlock: 11692632
+      abi: Controller
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Token
+        - InvestmentToken
+        - Vault
+        - Strategy
+      abis:
+        - name: Controller
+          file: ./abis/Controller.json
+        - name: Vault
+          file: ./abis/Vault.json
+        - name: Strategy
+          file: ./abis/Strategy.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+      callHandlers:
+        - function: setVault(address,address)
+          handler: handleSetVault
+        - function: setStrategy(address,address)
+          handler: handleSetStrategy
+      file: ./src/controller.ts
