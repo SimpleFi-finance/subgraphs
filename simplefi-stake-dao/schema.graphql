@@ -19,6 +19,7 @@ enum TokenStandard {
 enum ProtocolName {
   UNISWAP_V2
   CURVE_POOL
+  STAKE_DAO
 }
 
 enum ProtocolType {
@@ -166,25 +167,44 @@ type PositionSnapshot @entity {
 
 # Stake DAO protocol entities
 
-type InvestmentToken @entity {
-  id: ID! # {vault address}
-  vault: [Vault!]! @derivedFrom(field: "token")
-  strategy: [Strategy!]! @derivedFrom(field: "token")
-}
-
 type Vault @entity {
   id: ID! # {vault address}
-  token: InvestmentToken!
+  token: Token!
+  controller: String!
+  balance: BigInt!
+  totalSupply: BigInt!
+}
+
+type VaultInputToken @entity {
+  id: ID! # {token address}
+  vault: Vault!
+}
+
+type AccountLiquidity @entity {
+  id: ID! # {pairAddress}{accoutnAddress}
+  vault: Vault!
+  account: Account!
   balance: BigInt!
 }
 
-type Strategy @entity {
-  id: ID! # {strategy address}
-  token: InvestmentToken!
-  name: String!
-  earned: BigInt!
-  balanceOfWant: BigInt!
-  balanceOfPool: BigInt!
+type Deposit @entity {
+  id: ID! # {transaction hash}
+  vault: Vault!
+  account: Account!
+  inputTokenAmount: BigInt
+  lpTokenAmount: BigInt
+  inputTokenTransferEventApplied: Boolean!
+  lpTokenTransferEventApplied: Boolean!
+}
+
+type Withdraw @entity {
+  id: ID! # {transaction hash}
+  vault: Vault!
+  account: Account!
+  inputTokenAmount: BigInt
+  lpTokenAmount: BigInt
+  inputTokenTransferEventApplied: Boolean!
+  lpTokenTransferEventApplied: Boolean!
 }
 
 # END - Stake DAO protocol entities
