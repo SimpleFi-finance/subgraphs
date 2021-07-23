@@ -1,6 +1,5 @@
 import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 import {
-  Account as AccountEntity,
   AccountLiquidity as AccountLiquidityEntity,
   Deposit as DepositEntity,
   Market as MarketEntity,
@@ -9,7 +8,11 @@ import {
   Withdraw as WithdrawEntity
 } from "../generated/schema";
 import { Transfer as InputTokenTransfer } from "../generated/templates/StakeDAOVault/ERC20";
-import { SetControllerCall, StakeDAOVault, Transfer as LPTokenTransfer } from "../generated/templates/StakeDAOVault/StakeDAOVault";
+import {
+  SetControllerCall,
+  StakeDAOVault,
+  Transfer as LPTokenTransfer
+} from "../generated/templates/StakeDAOVault/StakeDAOVault";
 import {
   ADDRESS_ZERO,
   getOrCreateAccount,
@@ -32,7 +35,7 @@ export function handleTransfer(event: LPTokenTransfer): void {
 
   // mint
   if (fromHex == ADDRESS_ZERO) {
-    let deposit = getOrCreateDeposit(event, vault, fromHex)
+    let deposit = getOrCreateDeposit(event, vault, toHex)
     deposit.lpTokenAmount = event.params.value
     deposit.lpTokenTransferEventApplied = true
     deposit.save()
@@ -42,7 +45,7 @@ export function handleTransfer(event: LPTokenTransfer): void {
 
   // burn
   if (toHex == ADDRESS_ZERO) {
-    let withdraw = getOrCreateWithdraw(event, vault, toHex)
+    let withdraw = getOrCreateWithdraw(event, vault, fromHex)
     withdraw.lpTokenAmount = event.params.value
     withdraw.lpTokenTransferEventApplied = true
     withdraw.save()
@@ -130,17 +133,17 @@ function handleDeposit(event: ethereum.Event, deposit: DepositEntity): void {
 
   let market = MarketEntity.load(deposit.vault) as MarketEntity
   updateMarket(
-    event, 
+    event,
     market,
-    [new TokenBalance(vault.token, deposit.account, vault.balance)],
+    [new TokenBalance(vault.token, vault.id, vault.balance)],
     vault.totalSupply
   )
-  
+
   let account = getOrCreateAccount(Address.fromString(deposit.account))
   let accountLiquidity = getOrCreateLiquidity(vault, Address.fromString(deposit.account))
   accountLiquidity.balance = accountLiquidity.balance.plus(deposit.lpTokenAmount as BigInt)
   accountLiquidity.save()
-  
+
   let inputTokenAmounts: TokenBalance[] = []
   let inputTokenBalances: TokenBalance[] = []
   inputTokenAmounts.push(new TokenBalance(vault.token, deposit.account, deposit.inputTokenAmount as BigInt))
@@ -174,15 +177,15 @@ function handleWithdraw(event: ethereum.Event, withdraw: WithdrawEntity): void {
   updateMarket(
     event,
     market,
-    [new TokenBalance(vault.token, withdraw.account, vault.balance)],
+    [new TokenBalance(vault.token, vault.id, vault.balance)],
     vault.totalSupply
   )
-  
+
   let account = getOrCreateAccount(Address.fromString(withdraw.account))
   let accountLiquidity = getOrCreateLiquidity(vault, Address.fromString(withdraw.account))
   accountLiquidity.balance = accountLiquidity.balance.minus(withdraw.lpTokenAmount as BigInt)
   accountLiquidity.save()
-  
+
   let inputTokenAmounts: TokenBalance[] = []
   let inputTokenBalances: TokenBalance[] = []
   inputTokenAmounts.push(new TokenBalance(vault.token, withdraw.account, withdraw.inputTokenAmount as BigInt))

@@ -167,6 +167,11 @@ type PositionSnapshot @entity {
 
 # Stake DAO protocol entities
 
+type VaultList @entity {
+  id: ID! # {VAULTLIST}
+  vaults: [String!]! # list of ids of vaults in this subgraph
+}
+
 type Vault @entity {
   id: ID! # {vault address}
   token: Token!

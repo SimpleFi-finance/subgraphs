@@ -28,6 +28,8 @@ dataSources:
       callHandlers:
         - function: setVault(address,address)
           handler: handleSetVault
+      blockHandlers:
+        - handler: handleBlock
       file: ./src/stakeDAOController.ts
 templates:
   - kind: ethereum/contract
