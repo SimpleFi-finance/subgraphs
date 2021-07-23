@@ -178,6 +178,7 @@ type Vault @entity {
   controller: String!
   balance: BigInt!
   totalSupply: BigInt!
+  lastTransferToZero: String
 }
 
 type VaultInputToken @entity {

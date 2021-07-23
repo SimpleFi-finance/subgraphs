@@ -33,6 +33,20 @@ export function handleTransfer(event: LPTokenTransfer): void {
   let fromHex = event.params.from.toHexString()
   let toHex = event.params.to.toHexString()
 
+  // Check for lastTransferToZero and transfer LP from user to zero address
+  if(vault.lastTransferToZero != null && vault.lastTransferToZero != event.transaction.hash.toHexString()) {
+    let withdraw = WithdrawEntity.load(vault.lastTransferToZero) as WithdrawEntity
+    transferOutpuToken(
+      event,
+      vault,
+      Address.fromString(withdraw.account),
+      Address.fromString(ADDRESS_ZERO),
+      withdraw.lpTokenAmount as BigInt
+    )
+    vault.lastTransferToZero = null
+    vault.save()
+  }
+
   // mint
   if (fromHex == ADDRESS_ZERO) {
     let deposit = getOrCreateDeposit(event, vault, toHex)
@@ -49,6 +63,10 @@ export function handleTransfer(event: LPTokenTransfer): void {
     withdraw.lpTokenAmount = event.params.value
     withdraw.lpTokenTransferEventApplied = true
     withdraw.save()
+
+    vault.lastTransferToZero = event.transaction.hash.toHexString()
+    vault.save()
+
     handleWithdraw(event, withdraw)
     return
   }
@@ -171,6 +189,7 @@ function handleWithdraw(event: ethereum.Event, withdraw: WithdrawEntity): void {
   let vault = VaultEntity.load(withdraw.vault) as VaultEntity
   vault.totalSupply = vault.totalSupply.minus(withdraw.lpTokenAmount as BigInt)
   vault.balance = StakeDAOVault.bind(Address.fromString(withdraw.vault)).balance()
+  vault.lastTransferToZero = null
   vault.save()
 
   let market = MarketEntity.load(withdraw.vault) as MarketEntity
