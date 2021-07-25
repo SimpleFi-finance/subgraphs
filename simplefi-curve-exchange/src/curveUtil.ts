@@ -8,10 +8,9 @@ import {
   PoolSnapshot as PoolSnapshotEntity,
   Token as TokenEntity,
 } from "../generated/schema";
-import { StableSwapLending3 } from "../generated/TriPool/StableSwapLending3";
-import { StableSwapLending4 } from "../generated/Y/StableSwapLending4";
-import { StableSwapPlain3 } from "../generated/TriPool/StableSwapPlain3";
-import { StableSwapPlain4 } from "../generated/Y/StableSwapPlain4";
+import { StableSwapLending3 } from "../generated/templates/PoolLPToken/StableSwapLending3";
+import { StableSwapLending2_v1API } from "../generated/templates/PoolLPToken/StableSwapLending2_v1API";
+import { StableSwapPlain3 } from "../generated/templates/PoolLPToken/StableSwapPlain3";
 import {
   ADDRESS_ZERO,
   getOrCreateERC20Token,
@@ -19,7 +18,13 @@ import {
   TokenBalance,
   updateMarket,
 } from "./common";
-import { ProtocolName, ProtocolType } from "./constants";
+import {
+  ProtocolName,
+  ProtocolType,
+  PoolStaticInfo,
+  addressToPool,
+  lpTokenToPool,
+} from "./constants";
 
 export namespace CurvePoolType {
   export const PLAIN = "PLAIN";
@@ -33,6 +38,7 @@ class PoolInfo {
   balances: BigInt[];
 }
 
+// to be removed, getOrCreateLendingPool will be used instead
 export function getOrCreatePool(
   event: ethereum.Event,
   address: Address,
@@ -44,13 +50,13 @@ export function getOrCreatePool(
   let pool = PoolEntity.load(address.toHexString());
 
   if (pool == null) {
-    let info: PoolInfo;
+    let info: PoolInfo = getPoolInfo(address);
 
-    if (poolType == CurvePoolType.PLAIN) {
-      info = getPlainPoolInfo(address, coinCount);
-    } else if (poolType == CurvePoolType.LENDING) {
-      info = getLendingPoolInfo(address, coinCount);
-    }
+    // if (poolType == CurvePoolType.PLAIN) {
+    //   info = getPlainPoolInfo(address, coinCount);
+    // } else if (poolType == CurvePoolType.LENDING) {
+    //   info = getLendingPoolInfo(address, coinCount);
+    // }
 
     pool = new PoolEntity(address.toHexString());
     pool.coinCount = info.coins.length;
@@ -89,6 +95,69 @@ export function getOrCreatePool(
 
     // Create LPToken entity
     let curveLPToken = new LPTokenEntity(lpTokenAddress.toHexString());
+    curveLPToken.pool = pool.id;
+    curveLPToken.token = lpToken.id;
+    curveLPToken.save();
+
+    // Create Market entity
+    getOrCreateMarket(
+      event,
+      address,
+      ProtocolName.CURVE_POOL,
+      ProtocolType.EXCHANGE,
+      poolCoins,
+      lpToken,
+      poolRewardTokens
+    );
+  }
+
+  return pool as PoolEntity;
+}
+
+export function getOrCreateLendingPool(event: ethereum.Event, address: Address): PoolEntity {
+  let pool = PoolEntity.load(address.toHexString());
+
+  if (pool == null) {
+    let staticInfo: PoolStaticInfo = addressToPool.get(address.toHexString()) as PoolStaticInfo;
+    let contractInfo: PoolInfo = getPoolInfo(address);
+
+    pool = new PoolEntity(address.toHexString());
+    pool.coinCount = contractInfo.coins.length;
+
+    let poolCoins: TokenEntity[] = [];
+    for (let i = 0; i < contractInfo.coins.length; i++) {
+      let coin = contractInfo.coins[i];
+      let token = getOrCreateERC20Token(event, coin);
+      poolCoins.push(token);
+    }
+    pool.coins = poolCoins.map<string>((t) => t.id);
+
+    let poolUnderlyingCoins: TokenEntity[] = [];
+    for (let i = 0; i < contractInfo.underlyingCoins.length; i++) {
+      let coin = contractInfo.underlyingCoins[i];
+      let token = getOrCreateERC20Token(event, coin);
+      poolUnderlyingCoins.push(token);
+    }
+    pool.underlyingCoins = poolUnderlyingCoins.map<string>((t) => t.id);
+
+    pool.balances = contractInfo.balances;
+    pool.totalSupply = BigInt.fromI32(0);
+    let lpToken = getOrCreateERC20Token(event, Address.fromString(staticInfo.lpTokenAddress));
+    pool.lpToken = Address.fromString(staticInfo.lpTokenAddress);
+
+    pool.blockNumber = event.block.number;
+    pool.timestamp = event.block.timestamp;
+    pool.save();
+
+    let poolRewardTokens: TokenEntity[] = [];
+    for (let i = 0; i < staticInfo.rewardTokens.length; i++) {
+      let coin = Address.fromString(staticInfo.rewardTokens[i]);
+      let token = getOrCreateERC20Token(event, coin);
+      poolRewardTokens.push(token);
+    }
+
+    // Create LPToken entity
+    let curveLPToken = new LPTokenEntity(staticInfo.lpTokenAddress);
     curveLPToken.pool = pool.id;
     curveLPToken.token = lpToken.id;
     curveLPToken.save();
@@ -154,76 +223,57 @@ export function updatePool(
   return pool;
 }
 
-export function getPlainPoolInfo(pool: Address, coinCount: i32): PoolInfo {
-  let swapContract = StableSwapPlain3.bind(pool);
+export function getPoolInfo(pool: Address): PoolInfo {
+  let staticInfo: PoolStaticInfo = addressToPool.get(pool.toHexString()) as PoolStaticInfo;
 
   let coins: Address[] = [];
   let balances: BigInt[] = [];
-
-  let c: ethereum.CallResult<Address>;
-  let b: ethereum.CallResult<BigInt>;
-
-  for (let i = 0; i < coinCount; i++) {
-    let ib = BigInt.fromI32(i);
-    c = swapContract.try_coins(ib);
-    b = swapContract.try_balances(ib);
-
-    if (!c.reverted && c.value.toHexString() != ADDRESS_ZERO && !b.reverted) {
-      coins.push(c.value);
-      balances.push(b.value);
-    }
-  }
-
-  return {
-    coins,
-    underlyingCoins: [],
-    balances,
-  };
-}
-
-export function getLendingPoolInfo(pool: Address, coinCount: i32): PoolInfo {
-  let coins: Address[] = [];
   let underlyingCoins: Address[] = [];
-  let balances: BigInt[] = [];
 
   let c: ethereum.CallResult<Address>;
-  let u: ethereum.CallResult<Address>;
   let b: ethereum.CallResult<BigInt>;
+  let u: ethereum.CallResult<Address>;
 
-  switch (coinCount) {
-    case 3:
-      let contract3 = StableSwapLending3.bind(pool);
+  // old contracts use int128 as input to balances, new contracts use uint256
+  if (staticInfo.isUsingOldApi) {
+    let contractOldApi = StableSwapLending2_v1API.bind(pool);
 
-      for (let i = 0; i < coinCount; i++) {
-        let ib = BigInt.fromI32(i);
-        c = contract3.try_coins(ib);
-        u = contract3.try_underlying_coins(ib);
-        b = contract3.try_balances(ib);
+    for (let i = 0; i < staticInfo.coinCount; i++) {
+      let ib = BigInt.fromI32(i);
+      c = contractOldApi.try_coins(ib);
+      b = contractOldApi.try_balances(ib);
 
-        if (!c.reverted && c.value.toHexString() != ADDRESS_ZERO && !b.reverted && !u.reverted) {
-          coins.push(c.value);
+      if (!c.reverted && c.value.toHexString() != ADDRESS_ZERO && !b.reverted) {
+        coins.push(c.value);
+        balances.push(b.value);
+      }
+
+      if (staticInfo.poolType == CurvePoolType.LENDING) {
+        u = contractOldApi.try_underlying_coins(ib);
+        if (!u.reverted) {
           underlyingCoins.push(u.value);
-          balances.push(b.value);
         }
       }
-      break;
+    }
+  } else {
+    let contract = StableSwapLending3.bind(pool);
+    for (let i = 0; i < staticInfo.coinCount; i++) {
+      let ib = BigInt.fromI32(i);
+      c = contract.try_coins(ib);
+      b = contract.try_balances(ib);
 
-    case 4:
-      let contract4 = StableSwapLending4.bind(pool);
+      if (!c.reverted && c.value.toHexString() != ADDRESS_ZERO && !b.reverted) {
+        coins.push(c.value);
+        balances.push(b.value);
+      }
 
-      for (let i = 0; i < coinCount; i++) {
-        let ib = BigInt.fromI32(i);
-        c = contract4.try_coins(ib);
-        u = contract4.try_underlying_coins(ib);
-        b = contract4.try_balances(ib);
-
-        if (!c.reverted && c.value.toHexString() != ADDRESS_ZERO && !b.reverted && !u.reverted) {
-          coins.push(c.value);
+      if (staticInfo.poolType == CurvePoolType.LENDING) {
+        u = contract.try_underlying_coins(ib);
+        if (!u.reverted) {
           underlyingCoins.push(u.value);
-          balances.push(b.value);
         }
       }
-      break;
+    }
   }
 
   return {
@@ -251,49 +301,64 @@ export function getOtCreateAccountLiquidity(
 }
 
 export function getPoolBalances(pool: PoolEntity): BigInt[] {
-  let swapContract = StableSwapPlain3.bind(Address.fromString(pool.id));
-
   let balances: BigInt[] = [];
   let b: ethereum.CallResult<BigInt>;
 
-  for (let i = 0; i < pool.coinCount; i++) {
-    let ib = BigInt.fromI32(i);
-    b = swapContract.try_balances(ib);
-    if (!b.reverted) {
-      balances.push(b.value);
+  let p: PoolStaticInfo = addressToPool.get(pool.id) as PoolStaticInfo;
+
+  // old contracts use int128 as input to balances, new contracts use uint256
+  if (p.isUsingOldApi) {
+    let contractOldApi = StableSwapLending2_v1API.bind(Address.fromString(pool.id));
+
+    for (let i = 0; i < pool.coinCount; i++) {
+      let ib = BigInt.fromI32(i);
+      b = contractOldApi.try_balances(ib);
+      if (!b.reverted) {
+        balances.push(b.value);
+      }
+    }
+  } else {
+    let contract = StableSwapPlain3.bind(Address.fromString(pool.id));
+
+    for (let i = 0; i < pool.coinCount; i++) {
+      let ib = BigInt.fromI32(i);
+      b = contract.try_balances(ib);
+      if (!b.reverted) {
+        balances.push(b.value);
+      }
     }
   }
 
   return balances;
 }
 
-export function getLendingPoolBalances(pool: PoolEntity): BigInt[] {
-  let balances: BigInt[] = [];
-  let b: ethereum.CallResult<BigInt>;
+/**
+ * Get LpToken address from pre-defined pool to LpToken map
+ * @param pool
+ * @returns
+ */
+export function getLpTokenOfPool(pool: Address): Address {
+  let p: PoolStaticInfo = addressToPool.get(pool.toHexString()) as PoolStaticInfo;
+  let lpTokenAddress = p.poolAddress;
 
-  switch (pool.coinCount) {
-    case 3:
-      let contract3 = StableSwapLending3.bind(Address.fromString(pool.id));
-      for (let i = 0; i < pool.coinCount; i++) {
-        let ib = BigInt.fromI32(i);
-        b = contract3.try_balances(ib);
-        if (!b.reverted) {
-          balances.push(b.value);
-        }
-      }
-      break;
-
-    case 4:
-      let contract4 = StableSwapLending4.bind(Address.fromString(pool.id));
-      for (let i = 0; i < pool.coinCount; i++) {
-        let ib = BigInt.fromI32(i);
-        b = contract4.try_balances(ib);
-        if (!b.reverted) {
-          balances.push(b.value);
-        }
-      }
-      break;
+  if (lpTokenAddress == null) {
+    return null;
   }
 
-  return balances;
+  return Address.fromString(lpTokenAddress);
+}
+
+/**
+ * Get pool address from list of pre-defined pool to LpToken mapping
+ * @param pool
+ * @returns
+ */
+export function getPoolFromLpToken(lpToken: Address): Address {
+  let poolAddress = lpTokenToPool.get(lpToken.toHexString()) as string;
+
+  if (poolAddress == null) {
+    return null;
+  }
+
+  return Address.fromString(poolAddress);
 }

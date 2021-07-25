@@ -1,17 +1,17 @@
-import { Address, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 import {
   AddLiquidity,
   RemoveLiquidity,
   RemoveLiquidityImbalance,
   TokenExchange,
-} from "../generated/Y/StableSwapLending4";
-import { Transfer } from "../generated/Y/ERC20";
+} from "../generated/templates/PoolLPToken/StableSwapLending4_v1API";
+import { Transfer } from "../generated/templates/PoolLPToken/ERC20";
 import {
   LPTokenTransferToZero as LPTokenTransferToZeroEntity,
   Market as MarketEntity,
   Pool as PoolEntity,
 } from "../generated/schema";
-import { yPoolLPToken } from "../generated/templates";
+import { PoolLPToken } from "../generated/templates";
 import {
   ADDRESS_ZERO,
   getOrCreateAccount,
@@ -20,32 +20,20 @@ import {
   TokenBalance,
 } from "./common";
 import {
-  CurvePoolType,
-  getOrCreatePool,
+  getOrCreateLendingPool,
   getOtCreateAccountLiquidity,
-  getLendingPoolBalances,
+  getPoolBalances,
   updatePool,
+  getPoolFromLpToken,
 } from "./curveUtil";
-
-// dai, usdc, usdt, tusd
-const COIN_COUNT = 4;
-const Y_POOL_ADDRESS = "0x45F783CCE6B7FF23B2ab2D70e416cdb7D6055f51";
-const Y_POOL_LP_TOKEN_ADDRESS = "0xdF5e0e81Dff6FAF3A7e52BA697820c5e32D806A8";
 
 export function handleAddLiquidity(event: AddLiquidity): void {
   // create pool
-  let pool = getOrCreatePool(
-    event,
-    event.address,
-    Address.fromString(Y_POOL_LP_TOKEN_ADDRESS),
-    [],
-    CurvePoolType.LENDING,
-    COIN_COUNT
-  );
+  let pool = getOrCreateLendingPool(event, event.address);
 
   // create LPToken entity from template when pool is createed
   if (pool.totalSupply == BigInt.fromI32(0)) {
-    yPoolLPToken.create(pool.lpToken as Address);
+    PoolLPToken.create(pool.lpToken as Address);
   }
 
   // handle any pending LP token tranfers to zero address
@@ -53,8 +41,10 @@ export function handleAddLiquidity(event: AddLiquidity): void {
 
   // Update pool entity balances and totalSupply of LP tokens
   let oldTotalSupply = pool.totalSupply;
-  let newPoolBalances = getLendingPoolBalances(pool);
+  let newPoolBalances = getPoolBalances(pool);
   pool = updatePool(event, pool, newPoolBalances, event.params.token_supply);
+  pool.lastTransferToZero = null;
+  pool.save();
 
   // Update AccountLiquidity to track LPToken balance of account
   let account = getOrCreateAccount(event.params.provider);
@@ -71,7 +61,7 @@ export function handleAddLiquidity(event: AddLiquidity): void {
   let inputTokenAmounts: TokenBalance[] = [];
   let inputTokenBalances: TokenBalance[] = [];
   let coins = pool.coins;
-  for (let i = 0; i < COIN_COUNT; i++) {
+  for (let i = 0; i < pool.coinCount; i++) {
     inputTokenAmounts.push(new TokenBalance(coins[i], account.id, providedTokenAmounts[i]));
 
     // number of pool input tokens that can be redeemed by account's LP tokens
@@ -96,14 +86,7 @@ export function handleAddLiquidity(event: AddLiquidity): void {
 
 export function handleRemoveLiquidity(event: RemoveLiquidity): void {
   // create pool
-  let pool = getOrCreatePool(
-    event,
-    event.address,
-    Address.fromString(Y_POOL_LP_TOKEN_ADDRESS),
-    [],
-    CurvePoolType.LENDING,
-    COIN_COUNT
-  );
+  let pool = getOrCreateLendingPool(event, event.address);
 
   // handle any pending LP token tranfers to zero address
   checkPendingTransferToZero(event, pool);
@@ -120,14 +103,7 @@ export function handleRemoveLiquidity(event: RemoveLiquidity): void {
 
 export function handleRemoveLiquidityImbalance(event: RemoveLiquidityImbalance): void {
   // create pool
-  let pool = getOrCreatePool(
-    event,
-    event.address,
-    Address.fromString(Y_POOL_LP_TOKEN_ADDRESS),
-    [],
-    CurvePoolType.LENDING,
-    COIN_COUNT
-  );
+  let pool = getOrCreateLendingPool(event, event.address);
 
   // handle any pending LP token tranfers to zero address
   checkPendingTransferToZero(event, pool);
@@ -144,20 +120,13 @@ export function handleRemoveLiquidityImbalance(event: RemoveLiquidityImbalance):
 
 export function handleTokenExchange(event: TokenExchange): void {
   // create pool
-  let pool = getOrCreatePool(
-    event,
-    event.address,
-    Address.fromString(Y_POOL_LP_TOKEN_ADDRESS),
-    [],
-    CurvePoolType.LENDING,
-    COIN_COUNT
-  );
+  let pool = getOrCreateLendingPool(event, event.address);
 
   // handle any pending LP token tranfers to zero address
   checkPendingTransferToZero(event, pool);
 
   // update pool entity with new token balances
-  let newPoolBalances = getLendingPoolBalances(pool);
+  let newPoolBalances = getPoolBalances(pool);
   updatePool(event, pool, newPoolBalances, pool.totalSupply);
 }
 
@@ -167,15 +136,7 @@ export function handleTransfer(event: Transfer): void {
     return;
   }
 
-  // create pool
-  let pool = getOrCreatePool(
-    event,
-    Address.fromString(Y_POOL_ADDRESS),
-    Address.fromString(Y_POOL_LP_TOKEN_ADDRESS),
-    [],
-    CurvePoolType.LENDING,
-    COIN_COUNT
-  );
+  let pool = getOrCreateLendingPool(event, getPoolFromLpToken(event.address));
 
   // if receiver is zero-address create tranferToZero entity and return - position updates are done in add/remove liquidity handlers
   if (event.params.to.toHexString() == ADDRESS_ZERO) {
@@ -212,7 +173,7 @@ function handleRemoveLiquidityCommon(
 ): void {
   // Update balances and totalSupply
   let oldTotalSupply = pool.totalSupply;
-  let newBalances = getLendingPoolBalances(pool);
+  let newBalances = getPoolBalances(pool);
   pool = updatePool(event, pool, newBalances, lpTokenSupply);
   pool.lastTransferToZero = null;
   pool.save();
@@ -231,7 +192,7 @@ function handleRemoveLiquidityCommon(
   let providedTokenAmounts: TokenBalance[] = [];
   let inputTokenBalances: TokenBalance[] = [];
   let coins = pool.coins;
-  for (let i = 0; i < COIN_COUNT; i++) {
+  for (let i = 0; i < pool.coinCount; i++) {
     let token = coins[i];
     let inputAmount = tokenAmounts[i];
     let inputBalance = newBalances[i].times(accountLiquidity.balance).div(pool.totalSupply);
@@ -283,7 +244,7 @@ function transferLPToken(
   let fromInputTokenBalances: TokenBalance[] = [];
   let coins = pool.coins;
   let balances = pool.balances;
-  for (let i = 0; i < COIN_COUNT; i++) {
+  for (let i = 0; i < pool.coinCount; i++) {
     // number of pool input tokens that can be redeemed by account's LP tokens
     let inputBalance = balances[i].times(fromAccountLiquidity.balance).div(pool.totalSupply);
     fromInputTokenBalances.push(new TokenBalance(coins[i], fromAccount.id, inputBalance));
@@ -314,7 +275,7 @@ function transferLPToken(
   // Collect data for position update
   let toOutputTokenBalance = toAccountLiquidity.balance;
   let toInputTokenBalances: TokenBalance[] = [];
-  for (let i = 0; i < COIN_COUNT; i++) {
+  for (let i = 0; i < pool.coinCount; i++) {
     // number of pool input tokens that can be redeemed by account's LP tokens
     let inputBalance = balances[i].times(toAccountLiquidity.balance).div(pool.totalSupply);
     toInputTokenBalances.push(new TokenBalance(coins[i], toAccount.id, inputBalance));
