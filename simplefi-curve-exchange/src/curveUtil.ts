@@ -248,7 +248,7 @@ export function getPoolInfo(pool: Address): PoolInfo {
         balances.push(b.value);
       }
 
-      if (staticInfo.poolType == CurvePoolType.LENDING) {
+      if (staticInfo.poolType != CurvePoolType.PLAIN) {
         u = contractOldApi.try_underlying_coins(ib);
         if (!u.reverted) {
           underlyingCoins.push(u.value);
@@ -267,7 +267,7 @@ export function getPoolInfo(pool: Address): PoolInfo {
         balances.push(b.value);
       }
 
-      if (staticInfo.poolType == CurvePoolType.LENDING) {
+      if (staticInfo.poolType != CurvePoolType.PLAIN) {
         u = contract.try_underlying_coins(ib);
         if (!u.reverted) {
           underlyingCoins.push(u.value);
