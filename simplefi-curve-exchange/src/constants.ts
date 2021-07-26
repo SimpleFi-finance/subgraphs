@@ -75,6 +75,10 @@ export class PoolStaticInfo {
 }
 
 // use lower case!
+export const TRIPOOL_POOL = "0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7";
+export const TRIPOOL_LP_TOKEN = "0x6c3f90f043a72fa612cbac8115ee7e52bde6e490";
+export const AAVE_POOL = "0xdebf20617708857ebe4f679508e7b7863a8a8eee";
+export const AAVE_LP_TOKEN = "0xfd2a8fa60abd58efe3eee34dd494cd491dc14900";
 export const Y_POOL = "0x45f783cce6b7ff23b2ab2d70e416cdb7d6055f51";
 export const Y_LP_TOKEN = "0xdf5e0e81dff6faf3a7e52ba697820c5e32d806a8";
 export const SUSD_POOL = "0xa5407eae9ba41422680e2e00537571bcc53efbfd";
@@ -89,6 +93,11 @@ export const IRONBANK_POOL = "0x2dded6da1bf5dbdf597c45fcfaa3194e53ecfeaf";
 export const IRONBANK_LP_TOKEN = "0x5282a4ef67d9c33135340fb3289cc1711c13638c";
 
 export let addressToPool = new TypedMap<string, PoolStaticInfo>();
+addressToPool.set(
+  TRIPOOL_POOL,
+  new PoolStaticInfo(TRIPOOL_POOL, TRIPOOL_LP_TOKEN, 3, "PLAIN", false, [])
+);
+addressToPool.set(AAVE_POOL, new PoolStaticInfo(AAVE_POOL, AAVE_LP_TOKEN, 3, "LENDING", false, []));
 addressToPool.set(Y_POOL, new PoolStaticInfo(Y_POOL, Y_LP_TOKEN, 4, "LENDING", true, []));
 addressToPool.set(SUSD_POOL, new PoolStaticInfo(SUSD_POOL, SUSD_LP_TOKEN, 4, "LENDING", true, []));
 addressToPool.set(BUSD_POOL, new PoolStaticInfo(BUSD_POOL, BUSD_LP_TOKEN, 4, "LENDING", true, []));
@@ -103,6 +112,8 @@ addressToPool.set(
 );
 
 export let lpTokenToPool = new TypedMap<string, string>();
+lpTokenToPool.set(TRIPOOL_LP_TOKEN, TRIPOOL_POOL);
+lpTokenToPool.set(AAVE_LP_TOKEN, AAVE_POOL);
 lpTokenToPool.set(Y_LP_TOKEN, Y_POOL);
 lpTokenToPool.set(SUSD_LP_TOKEN, SUSD_POOL);
 lpTokenToPool.set(BUSD_LP_TOKEN, BUSD_POOL);
