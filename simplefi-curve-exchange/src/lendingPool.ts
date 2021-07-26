@@ -189,14 +189,20 @@ function handleRemoveLiquidityCommon(
   // Collect data for position update
   let market = MarketEntity.load(pool.id) as MarketEntity;
   let accountLpTokenBalance = accountLiquidity.balance;
-  let providedTokenAmounts: TokenBalance[] = [];
+  let inputTokenAmounts: TokenBalance[] = [];
   let inputTokenBalances: TokenBalance[] = [];
   let coins = pool.coins;
   for (let i = 0; i < pool.coinCount; i++) {
     let token = coins[i];
     let inputAmount = tokenAmounts[i];
-    let inputBalance = newBalances[i].times(accountLiquidity.balance).div(pool.totalSupply);
-    providedTokenAmounts.push(new TokenBalance(token, account.id, inputAmount));
+    let inputBalance: BigInt;
+    //in case there is no liquidity
+    if (pool.totalSupply == BigInt.fromI32(0)) {
+      inputBalance = BigInt.fromI32(0);
+    } else {
+      inputBalance = newBalances[i].times(accountLiquidity.balance).div(pool.totalSupply);
+    }
+    inputTokenAmounts.push(new TokenBalance(token, account.id, inputAmount));
     inputTokenBalances.push(new TokenBalance(token, account.id, inputBalance));
   }
 
@@ -206,7 +212,7 @@ function handleRemoveLiquidityCommon(
     account,
     market,
     lpTokenAmount,
-    providedTokenAmounts,
+    inputTokenAmounts,
     [],
     accountLpTokenBalance,
     inputTokenBalances,
