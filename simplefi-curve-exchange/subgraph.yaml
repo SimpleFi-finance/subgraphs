@@ -680,6 +680,49 @@ dataSources:
           handler: handleRemoveLiquidityImbalance
       file: ./src/lendingPool.ts
 
+  - kind: ethereum/contract
+    name: USDNPool
+    network: mainnet
+    source:
+      address: "0x0f9cb53ebe405d49a0bbdbd291a65ff571bc83e1"
+      startBlock: 11010514
+      abi: StableSwapLending2
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Position
+        - PositionSnapshot
+        - Pool
+        - PoolSnapshot
+      abis:
+        - name: StableSwapPlain3
+          file: ./abis/StableSwapPlain3.json
+        - name: StableSwapLending2
+          file: ./abis/StableSwapLending2.json
+        - name: StableSwapLending3
+          file: ./abis/StableSwapLending3.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+      eventHandlers:
+        - event: TokenExchange(indexed address,int128,uint256,int128,uint256)
+          handler: handleTokenExchange
+        - event: TokenExchangeUnderlying(indexed address,int128,uint256,int128,uint256)
+          handler: handleTokenExchange
+        - event: AddLiquidity(indexed address,uint256[2],uint256[2],uint256,uint256)
+          handler: handleAddLiquidity
+        - event: RemoveLiquidity(indexed address,uint256[2],uint256[2],uint256)
+          handler: handleRemoveLiquidity
+        - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
+          handler: handleRemoveLiquidityImbalance
+      file: ./src/lendingPool.ts
+
 templates:
   - kind: ethereum/contract
     name: PoolLPToken
