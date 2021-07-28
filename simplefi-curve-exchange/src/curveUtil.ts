@@ -235,21 +235,21 @@ export function getPoolInfo(pool: Address): PoolInfo {
   let u: ethereum.CallResult<Address>;
 
   // old contracts use int128 as input to balances, new contracts use uint256
-  if (staticInfo.isUsingOldApi) {
-    let contractOldApi = StableSwapLending2_v1API.bind(pool);
+  if (staticInfo.is_v1) {
+    let contract_v1 = StableSwapLending2_v1API.bind(pool);
 
     for (let i = 0; i < staticInfo.coinCount; i++) {
       let ib = BigInt.fromI32(i);
-      c = contractOldApi.try_coins(ib);
-      b = contractOldApi.try_balances(ib);
+      c = contract_v1.try_coins(ib);
+      b = contract_v1.try_balances(ib);
 
       if (!c.reverted && c.value.toHexString() != ADDRESS_ZERO && !b.reverted) {
         coins.push(c.value);
         balances.push(b.value);
       }
 
-      if (staticInfo.poolType != CurvePoolType.PLAIN) {
-        u = contractOldApi.try_underlying_coins(ib);
+      if (staticInfo.poolType == CurvePoolType.LENDING) {
+        u = contract_v1.try_underlying_coins(ib);
         if (!u.reverted) {
           underlyingCoins.push(u.value);
         }
@@ -267,7 +267,7 @@ export function getPoolInfo(pool: Address): PoolInfo {
         balances.push(b.value);
       }
 
-      if (staticInfo.poolType != CurvePoolType.PLAIN) {
+      if (staticInfo.poolType == CurvePoolType.LENDING) {
         u = contract.try_underlying_coins(ib);
         if (!u.reverted) {
           underlyingCoins.push(u.value);
@@ -307,12 +307,12 @@ export function getPoolBalances(pool: PoolEntity): BigInt[] {
   let p: PoolStaticInfo = addressToPool.get(pool.id) as PoolStaticInfo;
 
   // old contracts use int128 as input to balances, new contracts use uint256
-  if (p.isUsingOldApi) {
-    let contractOldApi = StableSwapLending2_v1API.bind(Address.fromString(pool.id));
+  if (p.is_v1) {
+    let contract_v1 = StableSwapLending2_v1API.bind(Address.fromString(pool.id));
 
     for (let i = 0; i < pool.coinCount; i++) {
       let ib = BigInt.fromI32(i);
-      b = contractOldApi.try_balances(ib);
+      b = contract_v1.try_balances(ib);
       if (!b.reverted) {
         balances.push(b.value);
       }
