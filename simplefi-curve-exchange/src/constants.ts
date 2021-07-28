@@ -54,7 +54,7 @@ export class PoolStaticInfo {
   lpTokenAddress: string;
   coinCount: i32;
   poolType: string;
-  isUsingOldApi: boolean;
+  is_v1: boolean;
   rewardTokens: string[];
 
   constructor(
@@ -62,14 +62,14 @@ export class PoolStaticInfo {
     lpTokenAddress: string,
     coinCount: i32,
     poolType: string,
-    isUsingOldApi: boolean,
+    is_v1: boolean,
     rewardTokens: string[]
   ) {
     this.poolAddress = poolAddress;
     this.lpTokenAddress = lpTokenAddress;
     this.coinCount = coinCount;
     this.poolType = poolType;
-    this.isUsingOldApi = isUsingOldApi;
+    this.is_v1 = is_v1;
     this.rewardTokens = rewardTokens;
   }
 }
@@ -111,6 +111,8 @@ export const USDN_POOL = "0x0f9cb53ebe405d49a0bbdbd291a65ff571bc83e1";
 export const USDN_LP_TOKEN = "0x4f3e8f405cf5afc05d68142f3783bdfe13811522";
 export const EURS_POOL = "0x0ce6a5ff5217e38315f87032cf90686c96627caa";
 export const EURS_LP_TOKEN = "0x194ebd173f6cdace046c53eacce9b953f28411d1";
+export const REN_POOL = "0x93054188d876f558f4a66b2ef1d97d16edf0895b";
+export const REN_LP_TOKEN = "0x49849c98ae39fff122806c06791fa73784fb3675";
 
 export let addressToPool = new TypedMap<string, PoolStaticInfo>();
 addressToPool.set(
@@ -140,6 +142,7 @@ addressToPool.set(UST_POOL, new PoolStaticInfo(UST_POOL, UST_LP_TOKEN, 2, "META"
 addressToPool.set(GUSD_POOL, new PoolStaticInfo(GUSD_POOL, GUSD_LP_TOKEN, 2, "META", false, []));
 addressToPool.set(USDN_POOL, new PoolStaticInfo(USDN_POOL, USDN_LP_TOKEN, 2, "META", false, []));
 addressToPool.set(EURS_POOL, new PoolStaticInfo(EURS_POOL, EURS_LP_TOKEN, 2, "PLAIN", false, []));
+addressToPool.set(REN_POOL, new PoolStaticInfo(REN_POOL, REN_LP_TOKEN, 2, "PLAIN", true, []));
 
 export let lpTokenToPool = new TypedMap<string, string>();
 lpTokenToPool.set(TRIPOOL_LP_TOKEN, TRIPOOL_POOL);
@@ -160,3 +163,4 @@ lpTokenToPool.set(UST_LP_TOKEN, UST_POOL);
 lpTokenToPool.set(GUSD_LP_TOKEN, GUSD_POOL);
 lpTokenToPool.set(USDN_LP_TOKEN, USDN_POOL);
 lpTokenToPool.set(EURS_LP_TOKEN, EURS_POOL);
+lpTokenToPool.set(REN_LP_TOKEN, REN_POOL);
