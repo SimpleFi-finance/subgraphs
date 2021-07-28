@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
+import { Address, BigInt, dataSource, ethereum } from "@graphprotocol/graph-ts";
 import {
   AccountLiquidity as AccountLiquidityEntity,
   Deposit as DepositEntity,
@@ -10,7 +10,8 @@ import {
 import { Transfer as InputTokenTransfer } from "../generated/templates/StakeDAOVault/ERC20";
 import {
   SetControllerCall,
-  StakeDAOVault,
+  StakeDAOVault, 
+  StakeDAOVault as StakeDAOVaultContract, 
   Transfer as LPTokenTransfer
 } from "../generated/templates/StakeDAOVault/StakeDAOVault";
 import {
@@ -34,7 +35,7 @@ export function handleTransfer(event: LPTokenTransfer): void {
   let toHex = event.params.to.toHexString()
 
   // Check for lastTransferToZero and transfer LP from user to zero address
-  if(vault.lastTransferToZero != null && vault.lastTransferToZero != event.transaction.hash.toHexString()) {
+  if (vault.lastTransferToZero != null && vault.lastTransferToZero != event.transaction.hash.toHexString()) {
     let withdraw = WithdrawEntity.load(vault.lastTransferToZero) as WithdrawEntity
     transferOutpuToken(
       event,
@@ -221,6 +222,33 @@ function handleWithdraw(event: ethereum.Event, withdraw: WithdrawEntity): void {
     inputTokenBalances,
     [],
     null
+  )
+}
+
+export function handleBlock(block: ethereum.Block): void {
+  let fakeEvent = new ethereum.Event()
+  fakeEvent.block = block
+  let transaction = new ethereum.Transaction()
+  transaction.hash = block.hash
+  fakeEvent.transaction = transaction
+  fakeEvent.logIndex = block.number
+
+  let context = dataSource.context()
+  let vaultId = context.getString('vaultId')
+
+  let vault = VaultEntity.load(vaultId) as VaultEntity
+  let contract = StakeDAOVaultContract.bind(Address.fromString(vault.id))
+  vault.controller = contract.controller().toHexString()
+  vault.balance = contract.balance()
+  vault.totalSupply = contract.totalSupply()
+  vault.save()
+
+  let market = MarketEntity.load(vault.id) as MarketEntity
+  updateMarket(
+    fakeEvent,
+    market,
+    [new TokenBalance(vault.token, vault.id, vault.balance)],
+    vault.totalSupply
   )
 }
 

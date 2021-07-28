@@ -9,7 +9,7 @@ import {
   Token,
   Transaction
 } from "../generated/schema"
-import { ERC20 } from "../generated/StakeDAOController/ERC20"
+import { ERC20 } from "../generated/StakeDAOMasterChef/ERC20"
 import { PositionType, TokenStandard, TransactionType } from "./constants"
 
 
@@ -64,8 +64,31 @@ export function getOrCreateMarket(
   outputToken: Token,
   rewardTokens: Token[]
 ): Market {
+  let market = getOrCreateMarketWithId(
+    event,
+    address.toHexString(),
+    address,
+    protocolName,
+    protocolType,
+    inputTokens,
+    outputToken,
+    rewardTokens
+  )
+  return market
+}
+
+export function getOrCreateMarketWithId(
+  event: ethereum.Event,
+  id: string,
+  address: Address,
+  protocolName: string,
+  protocolType: string,
+  inputTokens: Token[],
+  outputToken: Token,
+  rewardTokens: Token[]
+): Market {
   let addressHex = address.toHexString()
-  let market = Market.load(addressHex)
+  let market = Market.load(id)
   if (market != null) {
     return market as Market
   }
@@ -76,7 +99,7 @@ export function getOrCreateMarket(
     inputTokenBalances.push(new TokenBalance(token.id, addressHex, BigInt.fromI32(0)))
   }
 
-  market = new Market(addressHex)
+  market = new Market(id)
   market.account = getOrCreateAccount(address).id
   market.protocolName = protocolName
   market.protocolType = protocolType

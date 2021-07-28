@@ -32,6 +32,7 @@ enum ProtocolType {
   SYNTHETIC_TOKEN
   TOKEN_MANAGEMENT  # Meta LP vaults
   PREDICTION_MARKET
+  LP_FARMING
 }
 
 enum PositionType {
@@ -167,11 +168,6 @@ type PositionSnapshot @entity {
 
 # Stake DAO protocol entities
 
-type VaultList @entity {
-  id: ID! # {VAULTLIST}
-  vaults: [String!]! # list of ids of vaults in this subgraph
-}
-
 type Vault @entity {
   id: ID! # {vault address}
   token: Token!
@@ -211,6 +207,37 @@ type Withdraw @entity {
   lpTokenAmount: BigInt
   inputTokenTransferEventApplied: Boolean!
   lpTokenTransferEventApplied: Boolean!
+}
+
+# LP Farming entities
+
+type MasterChef @entity {
+  id: ID! # {master chef contract address}
+  startBlock: BigInt!
+  sdtPerBlock: BigInt!
+  totalAllocPoint: BigInt!
+  bonusEndBlock: BigInt!
+  poolLength: BigInt!
+  poolInfo: [MCPoolInfo!]! @derivedFrom(field: "masterChef")
+  userInfo: [MCUserInfo!]! @derivedFrom(field: "masterChef")
+}
+
+type MCPoolInfo @entity {
+  id: ID! # {master chef contract address}{pool id}
+  masterChef: MasterChef!
+  lpToken: Token!
+  lpTokenBalance: BigInt!
+  allocPoint: BigInt!
+  lastRewardBlock: BigInt!
+  accSdtPerShare: BigInt!
+}
+
+type MCUserInfo @entity {
+  id: ID! # {master chef contract address}{user address}
+  masterChef: MasterChef!
+  amount: BigInt!
+  rewardDebt: BigInt!
+  rewardEarned: BigInt!
 }
 
 # END - Stake DAO protocol entities
