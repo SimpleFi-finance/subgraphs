@@ -113,6 +113,8 @@ export const EURS_POOL = "0x0ce6a5ff5217e38315f87032cf90686c96627caa";
 export const EURS_LP_TOKEN = "0x194ebd173f6cdace046c53eacce9b953f28411d1";
 export const REN_POOL = "0x93054188d876f558f4a66b2ef1d97d16edf0895b";
 export const REN_LP_TOKEN = "0x49849c98ae39fff122806c06791fa73784fb3675";
+export const HBTC_POOL = "0x4ca9b3063ec5866a4b82e437059d2c43d1be596f";
+export const HBTC_LP_TOKEN = "0xb19059ebb43466c323583928285a49f558e572fd";
 
 export let addressToPool = new TypedMap<string, PoolStaticInfo>();
 addressToPool.set(
@@ -143,6 +145,7 @@ addressToPool.set(GUSD_POOL, new PoolStaticInfo(GUSD_POOL, GUSD_LP_TOKEN, 2, "ME
 addressToPool.set(USDN_POOL, new PoolStaticInfo(USDN_POOL, USDN_LP_TOKEN, 2, "META", false, []));
 addressToPool.set(EURS_POOL, new PoolStaticInfo(EURS_POOL, EURS_LP_TOKEN, 2, "PLAIN", false, []));
 addressToPool.set(REN_POOL, new PoolStaticInfo(REN_POOL, REN_LP_TOKEN, 2, "PLAIN", true, []));
+addressToPool.set(HBTC_POOL, new PoolStaticInfo(HBTC_POOL, HBTC_LP_TOKEN, 2, "PLAIN", false, []));
 
 export let lpTokenToPool = new TypedMap<string, string>();
 lpTokenToPool.set(TRIPOOL_LP_TOKEN, TRIPOOL_POOL);
@@ -164,3 +167,4 @@ lpTokenToPool.set(GUSD_LP_TOKEN, GUSD_POOL);
 lpTokenToPool.set(USDN_LP_TOKEN, USDN_POOL);
 lpTokenToPool.set(EURS_LP_TOKEN, EURS_POOL);
 lpTokenToPool.set(REN_LP_TOKEN, REN_POOL);
+lpTokenToPool.set(HBTC_LP_TOKEN, HBTC_POOL);
