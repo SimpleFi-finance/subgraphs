@@ -131,6 +131,8 @@ export const FRAX_POOL = "0xd632f22692fac7611d2aa1c0d552930d43caed3b";
 export const FRAX_LP_TOKEN = "0xd632f22692fac7611d2aa1c0d552930d43caed3b";
 export const BUSDv2_POOL = "0x4807862aa8b2bf68830e4c8dc86d0e9a998e085a";
 export const BUSDv2_LP_TOKEN = "0x4807862aa8b2bf68830e4c8dc86d0e9a998e085a";
+export const ALUSD_POOL = "0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c";
+export const ALUSD_LP_TOKEN = "0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c";
 
 export let addressToPool = new TypedMap<string, PoolStaticInfo>();
 addressToPool.set(
@@ -173,6 +175,7 @@ addressToPool.set(
   BUSDv2_POOL,
   new PoolStaticInfo(BUSDv2_POOL, BUSDv2_LP_TOKEN, 2, "META", false, [])
 );
+addressToPool.set(ALUSD_POOL, new PoolStaticInfo(ALUSD_POOL, ALUSD_LP_TOKEN, 2, "META", false, []));
 
 export let lpTokenToPool = new TypedMap<string, string>();
 lpTokenToPool.set(TRIPOOL_LP_TOKEN, TRIPOOL_POOL);
@@ -203,3 +206,4 @@ lpTokenToPool.set(TBTC_LP_TOKEN, TBTC_POOL);
 lpTokenToPool.set(LUSD_LP_TOKEN, LUSD_POOL);
 lpTokenToPool.set(FRAX_LP_TOKEN, FRAX_POOL);
 lpTokenToPool.set(BUSDv2_LP_TOKEN, BUSDv2_POOL);
+lpTokenToPool.set(ALUSD_LP_TOKEN, ALUSD_POOL);
