@@ -135,6 +135,8 @@ export const ALUSD_POOL = "0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c";
 export const ALUSD_LP_TOKEN = "0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c";
 export const SAAVE_POOL = "0xeb16ae0052ed37f479f7fe63849198df1765a733";
 export const SAAVE_LP_TOKEN = "0x02d341ccb60faaf662bc0554d13778015d1b285c";
+export const SETH_POOL = "0xc5424b857f758e906013f3555dad202e4bdb4567";
+export const SETH_LP_TOKEN = "0xa3d87fffce63b53e0d54faa1cc983b7eb0b74a9c";
 
 export let addressToPool = new TypedMap<string, PoolStaticInfo>();
 addressToPool.set(
@@ -182,6 +184,7 @@ addressToPool.set(
   SAAVE_POOL,
   new PoolStaticInfo(SAAVE_POOL, SAAVE_LP_TOKEN, 2, "LENDING", false, [])
 );
+addressToPool.set(SETH_POOL, new PoolStaticInfo(SETH_POOL, SETH_LP_TOKEN, 2, "PLAIN", false, []));
 
 export let lpTokenToPool = new TypedMap<string, string>();
 lpTokenToPool.set(TRIPOOL_LP_TOKEN, TRIPOOL_POOL);
@@ -214,3 +217,4 @@ lpTokenToPool.set(FRAX_LP_TOKEN, FRAX_POOL);
 lpTokenToPool.set(BUSDv2_LP_TOKEN, BUSDv2_POOL);
 lpTokenToPool.set(ALUSD_LP_TOKEN, ALUSD_POOL);
 lpTokenToPool.set(SAAVE_LP_TOKEN, SAAVE_POOL);
+lpTokenToPool.set(SETH_LP_TOKEN, SETH_POOL);
