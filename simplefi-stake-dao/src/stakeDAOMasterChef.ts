@@ -19,6 +19,7 @@ import {
   Withdraw
 } from "../generated/StakeDAOMasterChef/StakeDAOMasterChef";
 import {
+  ADDRESS_ZERO,
   getOrCreateAccount,
   getOrCreateERC20Token,
   getOrCreateMarketWithId,
@@ -47,6 +48,22 @@ export function handleTransferOwnership(event: OwnershipTransferred): void {
   masterChef.bonusEndBlock = contract.bonusEndBlock()
   masterChef.poolLength = BigInt.fromI32(0)
   masterChef.save()
+
+  // Add zero pid pool manually to handle error in ABI decoder for add method inputs
+  let token = getOrCreateERC20Token(event, Address.fromString("0x00000000b17640796e4c27a39Af51887aff3F8Dc"))
+  let id = masterChef.id.concat("-").concat(masterChef.poolLength.toString())
+  let poolInfo = new MCPoolInfoEntity(id)
+  poolInfo.masterChef = masterChef.id
+  poolInfo.lpToken = token.id
+  poolInfo.lpTokenBalance = BigInt.fromI32(0)
+  poolInfo.allocPoint = BigInt.fromI32(0)
+  poolInfo.lastRewardBlock = BigInt.fromI32(0)
+  poolInfo.accSdtPerShare = BigInt.fromI32(0)
+  poolInfo.save()
+
+  masterChef.poolLength = masterChef.poolLength.plus(BigInt.fromI32(1))
+  masterChef.totalAllocPoint = masterChef.totalAllocPoint.plus(poolInfo.allocPoint)
+  masterChef.save()
 }
 
 export function handleAdd(call: AddCall): void {
@@ -61,7 +78,7 @@ export function handleAdd(call: AddCall): void {
   let token = getOrCreateERC20Token(event, call.inputs._lpToken)
   let sdt = getOrCreateERC20Token(event, Address.fromString(SDT_ADDRESS))
 
-  let id = masterChef.id.concat("-").concat(masterChef.poolInfo.toString())
+  let id = masterChef.id.concat("-").concat(masterChef.poolLength.toString())
   let poolInfo = new MCPoolInfoEntity(id)
   poolInfo.masterChef = masterChef.id
   poolInfo.lpToken = token.id
@@ -145,6 +162,9 @@ export function handleDeposit(event: Deposit): void {
   let pendingReward = BigInt.fromI32(0)
   if (userInfo == null) {
     userInfo = new MCUserInfoEntity(uid)
+    userInfo.masterChef = masterChef.id
+    userInfo.amount = BigInt.fromI32(0)
+    userInfo.rewardDebt = BigInt.fromI32(0)
     userInfo.rewardEarned = BigInt.fromI32(0)
   } else if (userInfo.amount.gt(BigInt.fromI32(0))) {
     // Update market and position

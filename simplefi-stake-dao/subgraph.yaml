@@ -62,8 +62,6 @@ dataSources:
         - event: EmergencyWithdraw(indexed address,indexed uint256,uint256)
           handler: handleEmergencyWithdraw
       callHandlers:
-        - function: add(uint256,address,bool)
-          handler: handleAdd
         - function: set(uint256,uint256,bool)
           handler: handleSet
         - function: updatePool(uint256)
@@ -74,6 +72,33 @@ dataSources:
           handler: handleSetSdtPerBlock
         - function: setBonusEndBlock(uint256)
           handler: handleSetBonusEndBlock
+      file: ./src/stakeDAOMasterChef.ts
+  - kind: ethereum/contract
+    name: StakeDAOMasterChefAdd
+    network: mainnet
+    source:
+      address: "0xfEA5E213bbD81A8a94D0E1eDB09dBD7CEab61e1c"
+      startBlock: 11696986
+      abi: StakeDAOMasterChef
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Token
+        - InvestmentToken
+        - Vault
+        - Strategy
+      abis:
+        - name: StakeDAOMasterChef
+          file: ./abis/StakeDAOMasterChef.json
+        - name: StakeDAOVault
+          file: ./abis/StakeDAOVault.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+      callHandlers:
+        - function: add(uint256,address,bool)
+          handler: handleAdd
       file: ./src/stakeDAOMasterChef.ts
 templates:
   - kind: ethereum/contract

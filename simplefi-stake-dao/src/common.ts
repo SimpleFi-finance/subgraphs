@@ -9,7 +9,7 @@ import {
   Token,
   Transaction
 } from "../generated/schema"
-import { ERC20 } from "../generated/StakeDAOMasterChef/ERC20"
+import { ERC20 } from "../generated/StakeDAOController/ERC20"
 import { PositionType, TokenStandard, TransactionType } from "./constants"
 
 
