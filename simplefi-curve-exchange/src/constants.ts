@@ -141,6 +141,8 @@ export const STETH_POOL = "0xdc24316b9ae028f1497c275eb9192a3ea0f67022";
 export const STETH_LP_TOKEN = "0x06325440d014e39736583c165c2963ba99faf14e";
 export const ANKRETH_POOL = "0xa96a65c051bf88b4095ee1f2451c2a9d43f53ae2";
 export const ANKRETH_LP_TOKEN = "0xaa17a236f2badc98ddc0cf999abb47d47fc0a6cf";
+export const RETH_POOL = "0xf9440930043eb3997fc70e1339dbb11f341de7a8";
+export const RETH_LP_TOKEN = "0x53a901d48795c58f485cbb38df08fa96a24669d5";
 
 export let addressToPool = new TypedMap<string, PoolStaticInfo>();
 addressToPool.set(
@@ -197,6 +199,7 @@ addressToPool.set(
   ANKRETH_POOL,
   new PoolStaticInfo(ANKRETH_POOL, ANKRETH_LP_TOKEN, 2, "PLAIN", false, [])
 );
+addressToPool.set(RETH_POOL, new PoolStaticInfo(RETH_POOL, RETH_LP_TOKEN, 2, "PLAIN", false, []));
 
 export let lpTokenToPool = new TypedMap<string, string>();
 lpTokenToPool.set(TRIPOOL_LP_TOKEN, TRIPOOL_POOL);
@@ -232,3 +235,4 @@ lpTokenToPool.set(SAAVE_LP_TOKEN, SAAVE_POOL);
 lpTokenToPool.set(SETH_LP_TOKEN, SETH_POOL);
 lpTokenToPool.set(STETH_LP_TOKEN, STETH_POOL);
 lpTokenToPool.set(ANKRETH_LP_TOKEN, ANKRETH_POOL);
+lpTokenToPool.set(RETH_LP_TOKEN, RETH_POOL);
