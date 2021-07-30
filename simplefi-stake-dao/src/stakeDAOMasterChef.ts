@@ -206,13 +206,21 @@ export function handleDeposit(event: Deposit): void {
 }
 
 export function handleWithdraw(event: Withdraw): void {
+  if (event.params.amount.equals(BigInt.fromI32(0))) {
+    return
+  }
   let masterChef = MasterChefEntity.load(event.address.toHexString()) as MasterChefEntity
   let id = masterChef.id.concat("-").concat(event.params.pid.toString())
   let poolInfo = MCPoolInfoEntity.load(id) as MCPoolInfoEntity
   poolInfo = updatePool(event, masterChef, poolInfo)
 
   let uid = masterChef.id.concat("-").concat(event.params.user.toHexString())
-  let userInfo = MCUserInfoEntity.load(uid) as MCUserInfoEntity
+  let userInfo = MCUserInfoEntity.load(uid)
+  if (userInfo == null) {
+    return
+  } else {
+    userInfo = userInfo as MCUserInfoEntity
+  }
   let pendingReward = userInfo.amount.times(poolInfo.accSdtPerShare).div(oneE12).minus(userInfo.rewardDebt)
   userInfo.amount = userInfo.amount.minus(event.params.amount)
   userInfo.rewardDebt = userInfo.amount.times(poolInfo.accSdtPerShare).div(oneE12)
