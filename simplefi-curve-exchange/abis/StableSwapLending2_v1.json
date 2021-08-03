@@ -155,6 +155,28 @@
     "type": "event"
   },
   {
+    "name": "RemoveLiquidityOne",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "provider",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "token_amount",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "coin_amount",
+        "indexed": false
+      }
+    ],
+    "anonymous": false,
+    "type": "event"
+  },
+  {
     "name": "CommitNewAdmin",
     "inputs": [
       {
@@ -512,6 +534,32 @@
     "payable": false,
     "type": "function",
     "gas": 6479708
+  },
+  {
+    "name": "remove_liquidity_one_coin",
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": ""
+      }
+    ],
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_token_amount"
+      },
+      {
+        "type": "int128",
+        "name": "i"
+      },
+      {
+        "type": "uint256",
+        "name": "_min_amount"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "gas": 3827137
   },
   {
     "name": "commit_new_parameters",

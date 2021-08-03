@@ -29,6 +29,7 @@ import {
   getOtCreateAccountLiquidity,
   getPoolBalances,
   updatePool,
+  getOrCreateRemoveLiquidityOneEvent,
 } from "./curveUtil";
 
 const coinCount = 3;
@@ -164,23 +165,6 @@ function transferLPToken(
     [],
     from.toHexString()
   );
-}
-
-function getOrCreateRemoveLiquidityOneEvent(
-  id: string,
-  pool: PoolEntity
-): RemoveLiqudityOneEventEntity {
-  let removeLiquidityEvent = RemoveLiqudityOneEventEntity.load(id);
-  if (removeLiquidityEvent != null) {
-    return removeLiquidityEvent as RemoveLiqudityOneEventEntity;
-  }
-  removeLiquidityEvent = new RemoveLiqudityOneEventEntity(id);
-  removeLiquidityEvent.pool = pool.id;
-  removeLiquidityEvent.eventApplied = false;
-  removeLiquidityEvent.callApplied = false;
-  removeLiquidityEvent.save();
-
-  return removeLiquidityEvent as RemoveLiqudityOneEventEntity;
 }
 
 function handleRLOEEntityUpdate(

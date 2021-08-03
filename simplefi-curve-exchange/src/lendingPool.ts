@@ -2,14 +2,17 @@ import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 import {
   AddLiquidity,
   RemoveLiquidity,
+  RemoveLiquidityOne,
+  Remove_liquidity_one_coinCall,
   RemoveLiquidityImbalance,
   TokenExchange,
-} from "../generated/templates/PoolLPToken/StableSwapLending4_v1API";
+} from "../generated/templates/PoolLPToken/StableSwapLending3";
 import { Transfer } from "../generated/templates/PoolLPToken/ERC20";
 import {
   LPTokenTransferToZero as LPTokenTransferToZeroEntity,
   Market as MarketEntity,
   Pool as PoolEntity,
+  RemoveLiqudityOneEvent as RemoveLiqudityOneEventEntity,
 } from "../generated/schema";
 import { PoolLPToken } from "../generated/templates";
 import {
@@ -25,6 +28,7 @@ import {
   getPoolBalances,
   updatePool,
   getPoolFromLpToken,
+  getOrCreateRemoveLiquidityOneEvent,
 } from "./curveUtil";
 
 export function handleAddLiquidity(event: AddLiquidity): void {
@@ -154,6 +158,50 @@ export function handleTransfer(event: Transfer): void {
 
   // update all relevant entities
   transferLPToken(event, pool, event.params.from, event.params.to, event.params.value);
+}
+
+export function handleRemoveLiquidityOne(event: RemoveLiquidityOne): void {
+  // create pool
+  let pool = getOrCreateLendingPool(event, event.address);
+
+  // handle any pending LP token tranfers to zero address
+  checkPendingTransferToZero(event, pool);
+
+  // create RemoveLiquidityOne entity
+  let id = event.transaction.hash
+    .toHexString()
+    .concat("-")
+    .concat(pool.id);
+  let entity = getOrCreateRemoveLiquidityOneEvent(id, pool);
+  entity.eventApplied = true;
+  entity.account = getOrCreateAccount(event.params.provider).id;
+  entity.tokenAmount = event.params.token_amount;
+  entity.dy = event.params.coin_amount;
+  entity.logIndex = event.logIndex;
+  entity.save();
+
+  handleRLOEEntityUpdate(event, entity, pool);
+}
+
+export function handleRemoveLiquidityOneCall(call: Remove_liquidity_one_coinCall): void {
+  // load pool
+  let pool = PoolEntity.load(call.to.toHexString()) as PoolEntity;
+
+  // update RemoveLiquidityOne entity
+  let id = call.transaction.hash
+    .toHexString()
+    .concat("-")
+    .concat(pool.id);
+  let entity = getOrCreateRemoveLiquidityOneEvent(id, pool);
+  entity.i = call.inputs.i.toI32();
+  entity.callApplied = true;
+  entity.save();
+
+  let event = new ethereum.Event();
+  event.block = call.block;
+  event.transaction = call.transaction;
+  event.logIndex = entity.logIndex as BigInt;
+  handleRLOEEntityUpdate(event, entity, pool);
 }
 
 /**
@@ -336,4 +384,42 @@ function checkPendingTransferToZero(event: ethereum.Event, pool: PoolEntity): vo
 
   pool.lastTransferToZero = null;
   pool.save();
+}
+
+/**
+ * Collect data about one coin liquidity removal
+ * @param event
+ * @param entity
+ * @param pool
+ * @returns
+ */
+function handleRLOEEntityUpdate(
+  event: ethereum.Event,
+  entity: RemoveLiqudityOneEventEntity,
+  pool: PoolEntity
+): void {
+  // handle liquidity removal only after both event and call are handled
+  if (!entity.eventApplied || !entity.callApplied) {
+    return;
+  }
+
+  // collect data from RemoveLiqudityOneEvent entity
+  let tokenAmount = entity.tokenAmount as BigInt;
+  let i = entity.i as i32;
+  let dy = entity.dy as BigInt;
+  let provider = Address.fromString(entity.account);
+
+  let tokenAmounts: BigInt[] = [];
+  for (let j = 0; j < pool.coinCount; j++) {
+    if (j == i) {
+      tokenAmounts[j] = dy;
+    } else {
+      tokenAmounts[j] = BigInt.fromI32(0);
+    }
+  }
+
+  let totalSupply = pool.totalSupply.minus(tokenAmount);
+
+  // use common function to update entities
+  handleRemoveLiquidityCommon(event, pool, provider, tokenAmounts, totalSupply);
 }

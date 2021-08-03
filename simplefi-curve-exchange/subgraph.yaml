@@ -98,7 +98,7 @@ dataSources:
     source:
       address: "0x45F783CCE6B7FF23B2ab2D70e416cdb7D6055f51"
       startBlock: 9476468
-      abi: StableSwapLending4_v1API
+      abi: StableSwapLending4_v1
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
@@ -114,10 +114,10 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
-        - name: StableSwapLending2_v1API
-          file: ./abis/StableSwapLending2_v1API.json
-        - name: StableSwapLending4_v1API
-          file: ./abis/StableSwapLending4_v1API.json
+        - name: StableSwapLending2_v1
+          file: ./abis/StableSwapLending2_v1.json
+        - name: StableSwapLending4_v1
+          file: ./abis/StableSwapLending4_v1.json
         - name: ERC20
           file: ./abis/IERC20.json
       eventHandlers:
@@ -139,7 +139,7 @@ dataSources:
     source:
       address: "0xA5407eAE9Ba41422680e2e00537571bcC53efBfD"
       startBlock: 9906598
-      abi: StableSwapLending4_v1API
+      abi: StableSwapLending4_v1
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
@@ -155,10 +155,10 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
-        - name: StableSwapLending2_v1API
-          file: ./abis/StableSwapLending2_v1API.json
-        - name: StableSwapLending4_v1API
-          file: ./abis/StableSwapLending4_v1API.json
+        - name: StableSwapLending2_v1
+          file: ./abis/StableSwapLending2_v1.json
+        - name: StableSwapLending4_v1
+          file: ./abis/StableSwapLending4_v1.json
         - name: ERC20
           file: ./abis/IERC20.json
       eventHandlers:
@@ -180,7 +180,7 @@ dataSources:
     source:
       address: "0x79a8c46dea5ada233abaffd40f3a0a2b1e5a4f27"
       startBlock: 9567295
-      abi: StableSwapLending4_v1API
+      abi: StableSwapLending4_v1
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
@@ -196,10 +196,10 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
-        - name: StableSwapLending2_v1API
-          file: ./abis/StableSwapLending2_v1API.json
-        - name: StableSwapLending4_v1API
-          file: ./abis/StableSwapLending4_v1API.json
+        - name: StableSwapLending2_v1
+          file: ./abis/StableSwapLending2_v1.json
+        - name: StableSwapLending4_v1
+          file: ./abis/StableSwapLending4_v1.json
         - name: ERC20
           file: ./abis/IERC20.json
       eventHandlers:
@@ -221,7 +221,7 @@ dataSources:
     source:
       address: "0x06364f10b501e868329afbc005b3492902d6c763"
       startBlock: 10041041
-      abi: StableSwapLending4_v1API
+      abi: StableSwapLending4_v1
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
@@ -237,10 +237,10 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
-        - name: StableSwapLending2_v1API
-          file: ./abis/StableSwapLending2_v1API.json
-        - name: StableSwapLending4_v1API
-          file: ./abis/StableSwapLending4_v1API.json
+        - name: StableSwapLending2_v1
+          file: ./abis/StableSwapLending2_v1.json
+        - name: StableSwapLending4_v1
+          file: ./abis/StableSwapLending4_v1.json
         - name: ERC20
           file: ./abis/IERC20.json
       eventHandlers:
@@ -262,7 +262,7 @@ dataSources:
     source:
       address: "0xa2b47e3d5c44877cca798226b7b8118f9bfb7a56"
       startBlock: 9554040
-      abi: StableSwapLending2_v1API
+      abi: StableSwapLending2_v1
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
@@ -278,8 +278,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
-        - name: StableSwapLending2_v1API
-          file: ./abis/StableSwapLending2_v1API.json
+        - name: StableSwapLending2_v1
+          file: ./abis/StableSwapLending2_v1.json
         - name: ERC20
           file: ./abis/IERC20.json
       eventHandlers:
@@ -334,6 +334,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[3],uint256[3],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -377,6 +382,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -420,6 +430,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -463,6 +478,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -506,6 +526,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -549,6 +574,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -592,6 +622,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -635,6 +670,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -678,6 +718,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -721,6 +766,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -762,6 +812,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -770,7 +825,7 @@ dataSources:
     source:
       address: "0x93054188d876f558f4a66b2ef1d97d16edf0895b"
       startBlock: 10151385
-      abi: StableSwapLending2_v1API
+      abi: StableSwapLending2_v1
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
@@ -786,8 +841,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
-        - name: StableSwapLending2_v1API
-          file: ./abis/StableSwapLending2_v1API.json
+        - name: StableSwapLending2_v1
+          file: ./abis/StableSwapLending2_v1.json
         - name: ERC20
           file: ./abis/IERC20.json
       eventHandlers:
@@ -799,6 +854,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -840,6 +900,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -866,8 +931,8 @@ dataSources:
       abis:
         - name: StableSwapPlain3_v1
           file: ./abis/StableSwapPlain3_v1.json
-        - name: StableSwapLending2_v1API
-          file: ./abis/StableSwapLending2_v1API.json
+        - name: StableSwapLending2_v1
+          file: ./abis/StableSwapLending2_v1.json
         - name: ERC20
           file: ./abis/IERC20.json
       eventHandlers:
@@ -879,6 +944,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[3],uint256[3],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -922,6 +992,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -965,6 +1040,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -1008,6 +1088,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -1051,6 +1136,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -1094,6 +1184,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -1137,6 +1232,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -1180,6 +1280,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -1223,6 +1328,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -1266,6 +1376,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -1307,6 +1422,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -1348,6 +1468,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -1389,6 +1514,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -1430,6 +1560,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -1471,6 +1606,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
   - kind: ethereum/contract
@@ -1514,6 +1654,11 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
 templates:
@@ -1538,10 +1683,10 @@ templates:
         - Pool
         - PoolSnapshot
       abis:
-        - name: StableSwapLending2_v1API
-          file: ./abis/StableSwapLending2_v1API.json
-        - name: StableSwapLending4_v1API
-          file: ./abis/StableSwapLending4_v1API.json
+        - name: StableSwapLending2_v1
+          file: ./abis/StableSwapLending2_v1.json
+        - name: StableSwapLending4_v1
+          file: ./abis/StableSwapLending4_v1.json
         - name: StableSwapPlain3
           file: ./abis/StableSwapPlain3.json
         - name: StableSwapLending3

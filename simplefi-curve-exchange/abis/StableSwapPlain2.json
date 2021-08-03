@@ -118,6 +118,28 @@
     "type": "event"
   },
   {
+    "name": "RemoveLiquidityOne",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "provider",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "token_amount",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "coin_amount",
+        "indexed": false
+      }
+    ],
+    "anonymous": false,
+    "type": "event"
+  },
+  {
     "name": "RemoveLiquidityImbalance",
     "inputs": [
       {

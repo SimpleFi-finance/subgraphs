@@ -7,9 +7,10 @@ import {
   Pool as PoolEntity,
   PoolSnapshot as PoolSnapshotEntity,
   Token as TokenEntity,
+  RemoveLiqudityOneEvent as RemoveLiqudityOneEventEntity,
 } from "../generated/schema";
 import { StableSwapLending3 } from "../generated/templates/PoolLPToken/StableSwapLending3";
-import { StableSwapLending2_v1API } from "../generated/templates/PoolLPToken/StableSwapLending2_v1API";
+import { StableSwapLending2_v1 } from "../generated/templates/PoolLPToken/StableSwapLending2_v1";
 import { StableSwapPlain3 } from "../generated/templates/PoolLPToken/StableSwapPlain3";
 import {
   ADDRESS_ZERO,
@@ -236,7 +237,7 @@ export function getPoolInfo(pool: Address): PoolInfo {
 
   // old contracts use int128 as input to balances, new contracts use uint256
   if (staticInfo.is_v1) {
-    let contract_v1 = StableSwapLending2_v1API.bind(pool);
+    let contract_v1 = StableSwapLending2_v1.bind(pool);
 
     for (let i = 0; i < staticInfo.coinCount; i++) {
       let ib = BigInt.fromI32(i);
@@ -308,7 +309,7 @@ export function getPoolBalances(pool: PoolEntity): BigInt[] {
 
   // old contracts use int128 as input to balances, new contracts use uint256
   if (p.is_v1) {
-    let contract_v1 = StableSwapLending2_v1API.bind(Address.fromString(pool.id));
+    let contract_v1 = StableSwapLending2_v1.bind(Address.fromString(pool.id));
 
     for (let i = 0; i < pool.coinCount; i++) {
       let ib = BigInt.fromI32(i);
@@ -330,6 +331,29 @@ export function getPoolBalances(pool: PoolEntity): BigInt[] {
   }
 
   return balances;
+}
+
+/**
+ * Create RemoveLiquidityOne entity with pool ID
+ * @param id
+ * @param pool
+ * @returns
+ */
+export function getOrCreateRemoveLiquidityOneEvent(
+  id: string,
+  pool: PoolEntity
+): RemoveLiqudityOneEventEntity {
+  let removeLiquidityEvent = RemoveLiqudityOneEventEntity.load(id);
+  if (removeLiquidityEvent != null) {
+    return removeLiquidityEvent as RemoveLiqudityOneEventEntity;
+  }
+  removeLiquidityEvent = new RemoveLiqudityOneEventEntity(id);
+  removeLiquidityEvent.pool = pool.id;
+  removeLiquidityEvent.eventApplied = false;
+  removeLiquidityEvent.callApplied = false;
+  removeLiquidityEvent.save();
+
+  return removeLiquidityEvent as RemoveLiqudityOneEventEntity;
 }
 
 /**
