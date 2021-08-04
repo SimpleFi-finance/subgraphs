@@ -1661,6 +1661,98 @@ dataSources:
           handler: handleRemoveLiquidityOneCall
       file: ./src/lendingPool.ts
 
+  - kind: ethereum/contract
+    name: TRICRYPTOPool
+    network: mainnet
+    source:
+      address: "0x80466c64868e1ab14a1ddf27a676c3fcbe638fe5"
+      startBlock: 12521538
+      abi: StableSwapTriCrypto
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Position
+        - PositionSnapshot
+        - Pool
+        - PoolSnapshot
+      abis:
+        - name: StableSwapTriCrypto
+          file: ./abis/StableSwapTriCrypto.json
+        - name: StableSwapPlain3
+          file: ./abis/StableSwapPlain3.json
+        - name: StableSwapLending2
+          file: ./abis/StableSwapLending2.json
+        - name: StableSwapLending3
+          file: ./abis/StableSwapLending3.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+      eventHandlers:
+        - event: TokenExchange(indexed address,uint256,uint256,uint256,uint256)
+          handler: handleTokenExchange
+        - event: AddLiquidity(indexed address,uint256[3],uint256,uint256)
+          handler: handleAddLiquidity
+        - event: RemoveLiquidity(indexed address,uint256[3],uint256)
+          handler: handleRemoveLiquidity
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOneCall
+      file: ./src/triCryptoPool.ts
+
+  - kind: ethereum/contract
+    name: TRICRYPTO_2_Pool
+    network: mainnet
+    source:
+      address: "0xd51a44d3fae010294c616388b506acda1bfaae46"
+      startBlock: 12821148
+      abi: StableSwapTriCrypto
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Position
+        - PositionSnapshot
+        - Pool
+        - PoolSnapshot
+      abis:
+        - name: StableSwapTriCrypto
+          file: ./abis/StableSwapTriCrypto.json
+        - name: StableSwapPlain3
+          file: ./abis/StableSwapPlain3.json
+        - name: StableSwapLending2
+          file: ./abis/StableSwapLending2.json
+        - name: StableSwapLending3
+          file: ./abis/StableSwapLending3.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+      eventHandlers:
+        - event: TokenExchange(indexed address,uint256,uint256,uint256,uint256)
+          handler: handleTokenExchange
+        - event: AddLiquidity(indexed address,uint256[3],uint256,uint256)
+          handler: handleAddLiquidity
+        - event: RemoveLiquidity(indexed address,uint256[3],uint256)
+          handler: handleRemoveLiquidity
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOneCall
+      file: ./src/triCryptoPool.ts
+
 templates:
   - kind: ethereum/contract
     name: PoolLPToken

@@ -363,7 +363,7 @@ export function getOrCreateRemoveLiquidityOneEvent(
  */
 export function getLpTokenOfPool(pool: Address): Address {
   let p: PoolStaticInfo = addressToPool.get(pool.toHexString()) as PoolStaticInfo;
-  let lpTokenAddress = p.poolAddress;
+  let lpTokenAddress = p.lpTokenAddress;
 
   if (lpTokenAddress == null) {
     return null;
