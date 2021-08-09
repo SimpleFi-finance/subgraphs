@@ -537,12 +537,7 @@
   },
   {
     "name": "remove_liquidity_one_coin",
-    "outputs": [
-      {
-        "type": "uint256",
-        "name": ""
-      }
-    ],
+    "outputs": [],
     "inputs": [
       {
         "type": "uint256",
@@ -554,12 +549,12 @@
       },
       {
         "type": "uint256",
-        "name": "_min_amount"
+        "name": "min_amount"
       }
     ],
     "stateMutability": "nonpayable",
     "type": "function",
-    "gas": 3827137
+    "gas": 4025523
   },
   {
     "name": "commit_new_parameters",
