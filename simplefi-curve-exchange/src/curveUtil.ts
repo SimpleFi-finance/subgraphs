@@ -164,7 +164,7 @@ export function getOrCreateLendingPool(event: ethereum.Event, address: Address):
     curveLPToken.save();
 
     // Create Market entity
-    getOrCreateMarket(
+    let market = getOrCreateMarket(
       event,
       address,
       ProtocolName.CURVE_POOL,
@@ -173,6 +173,9 @@ export function getOrCreateLendingPool(event: ethereum.Event, address: Address):
       lpToken,
       poolRewardTokens
     );
+
+    lpToken.mintedByMarket = market.id;
+    lpToken.save();
   }
 
   return pool as PoolEntity;
