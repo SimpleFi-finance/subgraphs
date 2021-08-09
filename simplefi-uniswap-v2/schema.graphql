@@ -74,15 +74,31 @@ type Market @entity {
   inputTokens: [Token!]!   # Tokens that need to be deposited to take a position in protocol
   outputToken: Token       # Token that is minted to track ownership of position in protocol
   rewardTokens: [Token!]   # Aditional tokens that are given as reward for position in a protocol
+  inputTokenTotalBalances: [String!]!   # Total balance of this market contract of all input tokens in TokenBalance string format
+  outputTokenTotalSupply: BigInt!       # Total supply of output token
   blockNumber: BigInt!
   timestamp: BigInt!
   positions: [Position!]! @derivedFrom(field: "market")
+  history: [MarketSnapshot!]! @derivedFrom(field: "market")
+}
+
+type MarketSnapshot @entity {
+  id: ID! # {trasactionHash}{logIndex}
+  market: Market!
+  inputTokenBalances: [String!]!  # TokenBalance string format
+  outputTokenTotalSupply: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: String!
+  transactionIndexInBlock: BigInt!
+  logIndex: BigInt!
 }
 
 type Transaction @entity {
   id: ID! # {account}{transactionHash}{logIndex}
   transactionHash: Bytes!
   market: Market!
+  marketSnapshot: MarketSnapshot!
   # A transaction.from is always transaction origin because outside EVM transaction.origin and msg.sender are same
   from: Account!
   to: Account
@@ -163,21 +179,7 @@ type Pair @entity {
   totalSupply: BigInt!
   blockNumber: BigInt!
   timestamp: BigInt!
-  history: [PairSnapshot!]! @derivedFrom(field: "pair")
   lastIncompleteBurn: Burn
-}
-
-type PairSnapshot @entity {
-  id: ID! # {trasactionHash}{logIndex}
-  pair: Pair!
-  reserve0: BigInt!
-  reserve1: BigInt!
-  totalSupply: BigInt!
-  blockNumber: BigInt!
-  timestamp: BigInt!
-  transactionHash: String!
-  transactionIndexInBlock: BigInt!
-  logIndex: BigInt!
 }
 
 type AccountLiquidity @entity {

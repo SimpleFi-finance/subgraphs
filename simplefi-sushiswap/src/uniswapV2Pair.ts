@@ -274,6 +274,11 @@ export function handleTransfer(event: Transfer): void {
   // Check if transfer it's a mint or burn or transfer transaction
   // minting new LP tokens
   if (fromHex == ADDRESS_ZERO) {
+    if (toHex == ADDRESS_ZERO) {
+      pair.totalSupply = pair.totalSupply.plus(event.params.value)
+      pair.save()
+    }
+    
     let mint = getOrCreateMint(event, pair)
     mint.transferEventApplied = true
     mint.to = getOrCreateAccount(event.params.to).id
@@ -294,9 +299,6 @@ export function handleTransfer(event: Transfer): void {
 
   // internal _burn method call
   if (fromHex == pairAddressHex && toHex == ADDRESS_ZERO) {
-    pair.totalSupply = pair.totalSupply.minus(event.params.value)
-    pair.save()
-
     let burn = getOrCreateBurn(event, pair)
     burn.transferToZeroEventApplied = true
     burn.liquityAmount = event.params.value
