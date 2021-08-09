@@ -44,7 +44,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/triPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: AaveLendingPool
@@ -90,7 +90,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/aavePool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: YLendingPool
@@ -131,7 +131,7 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[4],uint256[4],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: sUSDLendingPool
@@ -172,7 +172,7 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[4],uint256[4],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: BUSDLendingPool
@@ -213,7 +213,7 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[4],uint256[4],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: PaxLendingPool
@@ -254,7 +254,7 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[4],uint256[4],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: CompoundLendingPool
@@ -293,7 +293,7 @@ dataSources:
           handler: handleRemoveLiquidity
         - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
           handler: handleRemoveLiquidityImbalance
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: IronBankPool
@@ -339,7 +339,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: HUSDPool
@@ -387,7 +387,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: USDKPool
@@ -435,7 +435,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: MUSDPool
@@ -483,7 +483,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: USDPPool
@@ -531,7 +531,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: DUSDPool
@@ -579,7 +579,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: RSVPool
@@ -627,7 +627,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: USTPool
@@ -675,7 +675,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: GUSDPool
@@ -723,7 +723,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: USDNPool
@@ -771,7 +771,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: EURSPool
@@ -817,7 +817,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: RenPool
@@ -859,7 +859,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: HBTCPool
@@ -905,7 +905,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: SBTCPool
@@ -949,7 +949,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: OBTCPool
@@ -997,7 +997,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: BBTCPool
@@ -1045,7 +1045,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: PBTCPool
@@ -1093,7 +1093,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: TBTCPool
@@ -1141,7 +1141,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: LUSDPool
@@ -1189,7 +1189,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: FRAXPool
@@ -1237,7 +1237,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: BUSDv2Pool
@@ -1285,7 +1285,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: ALUSDPool
@@ -1333,7 +1333,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: SAAVEPool
@@ -1381,7 +1381,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: SETHPool
@@ -1427,7 +1427,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: STETHPool
@@ -1473,7 +1473,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: ANKRETHPool
@@ -1519,7 +1519,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: RETHPool
@@ -1565,7 +1565,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: LINKPool
@@ -1611,7 +1611,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: LINKUSDPool
@@ -1659,7 +1659,7 @@ dataSources:
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: TRICRYPTOPool
@@ -1788,4 +1788,4 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
-      file: ./src/lendingPool.ts
+      file: ./src/pool.ts
