@@ -7,7 +7,13 @@ import {
   RemoveLiquidityImbalance,
   TokenExchange,
 } from "../generated/templates/PoolLPToken/StableSwapLending3";
-import { Transfer } from "../generated/templates/PoolLPToken/ERC20";
+import {
+  AddLiquidity as AddLiquidityTriCrypto,
+  RemoveLiquidity as RemoveLiquidityTriCrypto,
+  Remove_liquidity_one_coinCall as Remove_liquidity_one_coin_tricrypto_Call,
+  TokenExchange as TokenExchangeTriCrypto,
+} from "../generated/TRICRYPTOPool/StableSwapTriCrypto";
+import { ERC20, Transfer } from "../generated/templates/PoolLPToken/ERC20";
 import {
   LPTokenTransferToZero as LPTokenTransferToZeroEntity,
   Market as MarketEntity,
@@ -28,12 +34,48 @@ import {
   getPoolBalances,
   updatePool,
   getPoolFromLpToken,
+  getLpTokenOfPool,
   getOrCreateRemoveLiquidityOneEvent,
 } from "./curveUtil";
 
 export function handleAddLiquidity(event: AddLiquidity): void {
+  handleAddLiquidityCommon(
+    event,
+    event.address,
+    event.params.token_supply,
+    event.params.token_amounts,
+    event.params.provider
+  );
+}
+
+export function handleAddLiquidityTriCrypto(event: AddLiquidityTriCrypto): void {
+  handleAddLiquidityCommon(
+    event,
+    event.address,
+    event.params.token_supply,
+    event.params.token_amounts,
+    event.params.provider
+  );
+}
+
+/**
+ * Function receives unpacked event params (in order to support different
+ * event signatures) and handles the AddLiquidity event.
+ * @param event
+ * @param address
+ * @param token_supply
+ * @param token_amounts
+ * @param provider
+ */
+function handleAddLiquidityCommon(
+  event: ethereum.Event,
+  address: Address,
+  token_supply: BigInt,
+  token_amounts: BigInt[],
+  provider: Address
+): void {
   // create pool
-  let pool = getOrCreateLendingPool(event, event.address);
+  let pool = getOrCreateLendingPool(event, address);
 
   // create LPToken entity from template when pool is createed
   if (pool.totalSupply == BigInt.fromI32(0)) {
@@ -46,11 +88,22 @@ export function handleAddLiquidity(event: AddLiquidity): void {
   // Update pool entity balances and totalSupply of LP tokens
   let oldTotalSupply = pool.totalSupply;
   let newPoolBalances = getPoolBalances(pool);
-  pool = updatePool(event, pool, newPoolBalances, event.params.token_supply);
+
+  // If token supply in event is 0, then check directly from contract
+  let currentTokenSupply = token_supply;
+  if (currentTokenSupply == BigInt.fromI32(0)) {
+    let contract = ERC20.bind(getLpTokenOfPool(Address.fromString(pool.id)));
+    let supply = contract.try_totalSupply();
+    if (!supply.reverted) {
+      currentTokenSupply = supply.value;
+    }
+  }
+
+  pool = updatePool(event, pool, newPoolBalances, currentTokenSupply);
 
   // Update AccountLiquidity to track LPToken balance of account
-  let account = getOrCreateAccount(event.params.provider);
-  let lpTokenAmount = event.params.token_supply.minus(oldTotalSupply);
+  let account = getOrCreateAccount(provider);
+  let lpTokenAmount = token_supply.minus(oldTotalSupply);
 
   let accountLiquidity = getOtCreateAccountLiquidity(account, pool);
   accountLiquidity.balance = accountLiquidity.balance.plus(lpTokenAmount);
@@ -59,7 +112,7 @@ export function handleAddLiquidity(event: AddLiquidity): void {
   // Collect data for position update
   let market = MarketEntity.load(pool.id) as MarketEntity;
   let accountLpTokenBalance = accountLiquidity.balance;
-  let providedTokenAmounts = event.params.token_amounts;
+  let providedTokenAmounts = token_amounts;
   let inputTokenAmounts: TokenBalance[] = [];
   let inputTokenBalances: TokenBalance[] = [];
   let coins = pool.coins;
@@ -103,6 +156,23 @@ export function handleRemoveLiquidity(event: RemoveLiquidity): void {
   );
 }
 
+export function handleRemoveLiquidityTriCrypto(event: RemoveLiquidityTriCrypto): void {
+  // create pool
+  let pool = getOrCreateLendingPool(event, event.address);
+
+  // handle any pending LP token tranfers to zero address
+  checkPendingTransferToZero(event, pool);
+
+  // update all relevant entities
+  handleRemoveLiquidityCommon(
+    event,
+    pool,
+    event.params.provider,
+    event.params.token_amounts,
+    event.params.token_supply
+  );
+}
+
 export function handleRemoveLiquidityImbalance(event: RemoveLiquidityImbalance): void {
   // create pool
   let pool = getOrCreateLendingPool(event, event.address);
@@ -121,8 +191,22 @@ export function handleRemoveLiquidityImbalance(event: RemoveLiquidityImbalance):
 }
 
 export function handleTokenExchange(event: TokenExchange): void {
+  handleTokenExchangeCommon(event, event.address);
+}
+
+export function handleTokenExchangeTriCrypto(event: TokenExchangeTriCrypto): void {
+  handleTokenExchangeCommon(event, event.address);
+}
+
+/**
+ * Function receives unpacked event params (in order to support different
+ * event signatures) and handles the TokenExchange event.
+ * @param event
+ * @param address
+ */
+function handleTokenExchangeCommon(event: ethereum.Event, address: Address): void {
   // create pool
-  let pool = getOrCreateLendingPool(event, event.address);
+  let pool = getOrCreateLendingPool(event, address);
 
   // handle any pending LP token tranfers to zero address
   checkPendingTransferToZero(event, pool);
@@ -182,6 +266,22 @@ export function handleRemoveLiquidityOne(event: RemoveLiquidityOne): void {
 }
 
 export function handleRemoveLiquidityOneCall(call: Remove_liquidity_one_coinCall): void {
+  handleRemoveLiquidityOneCallCommon(call, call.inputs.i);
+}
+
+export function handleRemoveLiquidityOneTriCryptoCall(
+  call: Remove_liquidity_one_coin_tricrypto_Call
+): void {
+  handleRemoveLiquidityOneCallCommon(call, call.inputs.i);
+}
+
+/**
+ * Function receives unpacked call params (in order to support different
+ * event signatures) and handles the RemoveLiquidityOneCall event.
+ * @param call
+ * @param i
+ */
+function handleRemoveLiquidityOneCallCommon(call: ethereum.Call, i: BigInt): void {
   // load pool
   let pool = PoolEntity.load(call.to.toHexString()) as PoolEntity;
 
@@ -191,7 +291,7 @@ export function handleRemoveLiquidityOneCall(call: Remove_liquidity_one_coinCall
     .concat("-")
     .concat(pool.id);
   let entity = getOrCreateRemoveLiquidityOneEvent(id, pool);
-  entity.i = call.inputs.i.toI32();
+  entity.i = i.toI32();
   entity.callApplied = true;
   entity.save();
 

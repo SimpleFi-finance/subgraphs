@@ -1695,17 +1695,17 @@ dataSources:
           file: ./abis/IERC20.json
       eventHandlers:
         - event: TokenExchange(indexed address,uint256,uint256,uint256,uint256)
-          handler: handleTokenExchange
+          handler: handleTokenExchangeTriCrypto
         - event: AddLiquidity(indexed address,uint256[3],uint256,uint256)
-          handler: handleAddLiquidity
+          handler: handleAddLiquidityTriCrypto
         - event: RemoveLiquidity(indexed address,uint256[3],uint256)
-          handler: handleRemoveLiquidity
+          handler: handleRemoveLiquidityTriCrypto
         - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
           handler: handleRemoveLiquidityOne
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,uint256,uint256)
-          handler: handleRemoveLiquidityOneCall
-      file: ./src/triCryptoPool.ts
+          handler: handleRemoveLiquidityOneTriCryptoCall
+      file: ./src/pool.ts
 
   - kind: ethereum/contract
     name: TRICRYPTO_2_Pool
@@ -1741,17 +1741,17 @@ dataSources:
           file: ./abis/IERC20.json
       eventHandlers:
         - event: TokenExchange(indexed address,uint256,uint256,uint256,uint256)
-          handler: handleTokenExchange
+          handler: handleTokenExchangeTriCrypto
         - event: AddLiquidity(indexed address,uint256[3],uint256,uint256)
-          handler: handleAddLiquidity
+          handler: handleAddLiquidityTriCrypto
         - event: RemoveLiquidity(indexed address,uint256[3],uint256)
-          handler: handleRemoveLiquidity
+          handler: handleRemoveLiquidityTriCrypto
         - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
           handler: handleRemoveLiquidityOne
       callHandlers:
         - function: remove_liquidity_one_coin(uint256,uint256,uint256)
-          handler: handleRemoveLiquidityOneCall
-      file: ./src/triCryptoPool.ts
+          handler: handleRemoveLiquidityOneTriCryptoCall
+      file: ./src/pool.ts
 
 templates:
   - kind: ethereum/contract
