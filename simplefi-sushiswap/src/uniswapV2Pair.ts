@@ -274,12 +274,11 @@ export function handleTransfer(event: Transfer): void {
   // Check if transfer it's a mint or burn or transfer transaction
   // minting new LP tokens
   if (fromHex == ADDRESS_ZERO) {
-    // Initial minimum liquidity locking of 1000
     if (toHex == ADDRESS_ZERO) {
       pair.totalSupply = pair.totalSupply.plus(event.params.value)
       pair.save()
     }
-
+    
     let mint = getOrCreateMint(event, pair)
     mint.transferEventApplied = true
     mint.to = getOrCreateAccount(event.params.to).id

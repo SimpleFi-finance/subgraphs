@@ -20,7 +20,7 @@ export function handlePairCreated(event: PairCreated): void {
   let market = getOrCreateMarket(
     event,
     event.params.pair,
-    ProtocolName.UNISWAP_V2,
+    ProtocolName.SUSHISWAP,
     ProtocolType.EXCHANGE,
     [token0, token1],
     lpToken,
