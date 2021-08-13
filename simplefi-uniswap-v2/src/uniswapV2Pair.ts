@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts"
+import { Address, BigInt, ethereum, store } from "@graphprotocol/graph-ts"
 import {
   Account as AccountEntity,
   AccountLiquidity as AccountLiquidityEntity,
@@ -119,6 +119,8 @@ function createOrUpdatePositionOnMint(event: ethereum.Event, pair: PairEntity, m
     marketInputTokenBalances,
     pair.totalSupply
   )
+
+  store.remove('Mint', mint.id)
 }
 
 function createOrUpdatePositionOnBurn(event: ethereum.Event, pair: PairEntity, burn: BurnEntity): void {
@@ -172,6 +174,8 @@ function createOrUpdatePositionOnBurn(event: ethereum.Event, pair: PairEntity, b
     marketInputTokenBalances,
     pair.totalSupply
   )
+
+  store.remove('Burn', burn.id)
 }
 
 function transferLPToken(event: ethereum.Event, pair: PairEntity, from: Address, to: Address, amount: BigInt): void {
