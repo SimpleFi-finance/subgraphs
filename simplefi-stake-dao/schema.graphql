@@ -82,6 +82,7 @@ type Market @entity {
   blockNumber: BigInt!
   timestamp: BigInt!
   positions: [Position!]! @derivedFrom(field: "market")
+  history: [MarketSnapshot!]! @derivedFrom(field: "market")
 }
 
 type MarketSnapshot @entity {
@@ -100,6 +101,7 @@ type Transaction @entity {
   id: ID! # {account}{transactionHash}{logIndex}
   transactionHash: Bytes!
   market: Market!
+  marketSnapshot: MarketSnapshot!
   # A transaction.from is always transaction origin because outside EVM transaction.origin and msg.sender are same
   from: Account!
   to: Account
