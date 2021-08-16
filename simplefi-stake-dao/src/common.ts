@@ -9,7 +9,7 @@ import {
   Token,
   Transaction
 } from "../generated/schema"
-import { ERC20 } from "../generated/UniswapV2Factory/ERC20"
+import { ERC20 } from "../generated/StakeDAOController/ERC20"
 import { PositionType, TokenStandard, TransactionType } from "./constants"
 
 
@@ -64,8 +64,31 @@ export function getOrCreateMarket(
   outputToken: Token,
   rewardTokens: Token[]
 ): Market {
+  let market = getOrCreateMarketWithId(
+    event,
+    address.toHexString(),
+    address,
+    protocolName,
+    protocolType,
+    inputTokens,
+    outputToken,
+    rewardTokens
+  )
+  return market
+}
+
+export function getOrCreateMarketWithId(
+  event: ethereum.Event,
+  id: string,
+  address: Address,
+  protocolName: string,
+  protocolType: string,
+  inputTokens: Token[],
+  outputToken: Token,
+  rewardTokens: Token[]
+): Market {
   let addressHex = address.toHexString()
-  let market = Market.load(addressHex)
+  let market = Market.load(id)
   if (market != null) {
     return market as Market
   }
@@ -76,7 +99,7 @@ export function getOrCreateMarket(
     inputTokenBalances.push(new TokenBalance(token.id, addressHex, BigInt.fromI32(0)))
   }
 
-  market = new Market(addressHex)
+  market = new Market(id)
   market.account = getOrCreateAccount(address).id
   market.protocolName = protocolName
   market.protocolType = protocolType
@@ -100,18 +123,20 @@ export function updateMarket(
   let transactionHash = event.transaction.hash.toHexString()
   let id = transactionHash.concat("-").concat(event.logIndex.toHexString())
   let marketSnapshot = MarketSnapshot.load(id)
-  if (marketSnapshot == null) {
-    marketSnapshot = new MarketSnapshot(id)
-    marketSnapshot.market = market.id
-    marketSnapshot.inputTokenBalances = market.inputTokenTotalBalances
-    marketSnapshot.outputTokenTotalSupply = market.outputTokenTotalSupply
-    marketSnapshot.blockNumber = event.block.number
-    marketSnapshot.timestamp = event.block.timestamp
-    marketSnapshot.transactionHash = transactionHash
-    marketSnapshot.transactionIndexInBlock = event.transaction.index
-    marketSnapshot.logIndex = event.logIndex
-    marketSnapshot.save()
+  if (marketSnapshot != null) {
+    return marketSnapshot as MarketSnapshot
   }
+
+  marketSnapshot = new MarketSnapshot(id)
+  marketSnapshot.market = market.id
+  marketSnapshot.inputTokenBalances = market.inputTokenTotalBalances
+  marketSnapshot.outputTokenTotalSupply = market.outputTokenTotalSupply
+  marketSnapshot.blockNumber = event.block.number
+  marketSnapshot.timestamp = event.block.timestamp
+  marketSnapshot.transactionHash = transactionHash
+  marketSnapshot.transactionIndexInBlock = event.transaction.index
+  marketSnapshot.logIndex = event.logIndex
+  marketSnapshot.save()
 
   market.inputTokenTotalBalances = inputTokenBalances.map<string>(tb => tb.toString())
   market.outputTokenTotalSupply = outputTokenTotalSupply
@@ -475,7 +500,7 @@ export function repayToMarket(
   let transaction = new Transaction(transactionId)
   transaction.transactionHash = event.transaction.hash
   transaction.market = market.id
-  transaction.marketSnapshot = marketSnapshot.id
+  transaction.marketSnapshot= marketSnapshot.id
   transaction.from = getOrCreateAccount(event.transaction.from).id
   if (event.transaction.to) {
     transaction.to = getOrCreateAccount(event.transaction.to as Address).id
