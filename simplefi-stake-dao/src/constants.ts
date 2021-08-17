@@ -16,6 +16,8 @@ export namespace TokenStandard {
 
 export namespace ProtocolName {
   export const UNISWAP_V2 = "UNISWAP_V2"
+  export const CURVE_POOL = "CURVE_POOL"
+  export const STAKE_DAO = "STAKE_DAO"
 }
 
 export namespace ProtocolType {
@@ -28,6 +30,7 @@ export namespace ProtocolType {
   export const SYNTHETIC_TOKEN = "SYNTHETIC_TOKEN"
   export const TOKEN_MANAGEMENT = "TOKEN_MANAGEMENT"
   export const PREDICTION_MARKET = "PREDICTION_MARKET"
+  export const LP_FARMING = "LP_FARMING"
 }
 
 export namespace PositionType {

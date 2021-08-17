@@ -18,6 +18,8 @@ enum TokenStandard {
 
 enum ProtocolName {
   UNISWAP_V2
+  CURVE_POOL
+  STAKE_DAO
 }
 
 enum ProtocolType {
@@ -30,6 +32,7 @@ enum ProtocolType {
   SYNTHETIC_TOKEN
   TOKEN_MANAGEMENT  # Meta LP vaults
   PREDICTION_MARKET
+  LP_FARMING
 }
 
 enum PositionType {
@@ -63,7 +66,7 @@ type Token @entity {
 }
 
 type Market @entity {
-  id: ID! # {protocol pair/pool/vault address}
+  id: ID! # {protocol pool/pool/vault address}
   account: Account!
   protocolName: ProtocolName!
   protocolType: ProtocolType!
@@ -165,53 +168,78 @@ type PositionSnapshot @entity {
 
 # END - Common entities for all protocols
 
-# UniswapV2 protocol entities
+# Stake DAO protocol entities
 
-# Created on PairCreated event on UniswapV2Factory.sol
-# feeTo is not part of Pair contract. We need to fetch it from factory contract
-type Pair @entity {
-  id: ID! # {pairAddress}
-  factory: Account!
-  token0: Token!
-  token1: Token!
-  reserve0: BigInt!
-  reserve1: BigInt!
+type Vault @entity {
+  id: ID! # {vault address}
+  token: Token!
+  controller: String!
+  balance: BigInt!
   totalSupply: BigInt!
-  blockNumber: BigInt!
-  timestamp: BigInt!
-  lastIncompleteBurn: Burn
+  lastTransferToZero: String
+}
+
+type VaultInputToken @entity {
+  id: ID! # {token address}
+  vault: Vault!
 }
 
 type AccountLiquidity @entity {
   id: ID! # {pairAddress}{accoutnAddress}
-  pair: Pair!
+  vault: Vault!
   account: Account!
   balance: BigInt!
 }
 
-type Mint @entity {
-  id: ID! # {trasactionHash}
-  pair: Pair
-  to: Account
-  liquityAmount: BigInt
-  amount0: BigInt
-  amount1: BigInt
-  transferEventApplied: Boolean!
-  syncEventApplied: Boolean!
-  mintEventApplied: Boolean!
+type Deposit @entity {
+  id: ID! # {transaction hash}
+  vault: Vault!
+  account: Account!
+  inputTokenAmount: BigInt
+  lpTokenAmount: BigInt
+  inputTokenTransferEventApplied: Boolean!
+  lpTokenTransferEventApplied: Boolean!
 }
 
-type Burn @entity {
-  id: ID! # {trasactionHash}
-  pair: Pair
-  to: Account
-  liquityAmount: BigInt
-  amount0: BigInt
-  amount1: BigInt
-  transferToPairEventApplied: Boolean!
-  transferToZeroEventApplied: Boolean!
-  syncEventApplied: Boolean!
-  burnEventApplied: Boolean!
+type Withdraw @entity {
+  id: ID! # {transaction hash}
+  vault: Vault!
+  account: Account!
+  inputTokenAmount: BigInt
+  lpTokenAmount: BigInt
+  inputTokenTransferEventApplied: Boolean!
+  lpTokenTransferEventApplied: Boolean!
 }
 
-# END - UniswapV2 protocol entities
+# LP Farming entities
+
+type MasterChef @entity {
+  id: ID! # {master chef contract address}
+  startBlock: BigInt!
+  sdtPerBlock: BigInt!
+  totalAllocPoint: BigInt!
+  bonusEndBlock: BigInt!
+  poolLength: BigInt!
+  poolInfo: [MCPoolInfo!]! @derivedFrom(field: "masterChef")
+  userInfo: [MCUserInfo!]! @derivedFrom(field: "masterChef")
+}
+
+type MCPoolInfo @entity {
+  id: ID! # {master chef contract address}{pool id}
+  masterChef: MasterChef!
+  lpToken: Token!
+  lpTokenBalance: BigInt!
+  allocPoint: BigInt!
+  lastRewardBlock: BigInt!
+  accSdtPerShare: BigInt!
+}
+
+type MCUserInfo @entity {
+  id: ID! # {master chef contract address}{user address}
+  masterChef: MasterChef!
+  amount: BigInt!
+  rewardDebt: BigInt!
+  rewardEarned: BigInt!
+}
+
+# END - Stake DAO protocol entities

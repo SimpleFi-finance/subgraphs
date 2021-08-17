@@ -1,5 +1,3 @@
-# Common entities for all protocols
-
 enum Blockchain {
   ETHEREUM
   BSC
@@ -18,6 +16,7 @@ enum TokenStandard {
 
 enum ProtocolName {
   UNISWAP_V2
+  CURVE_POOL
 }
 
 enum ProtocolType {
@@ -63,7 +62,7 @@ type Token @entity {
 }
 
 type Market @entity {
-  id: ID! # {protocol pair/pool/vault address}
+  id: ID! # {protocol pool/pool/vault address}
   account: Account!
   protocolName: ProtocolName!
   protocolType: ProtocolType!
@@ -79,7 +78,6 @@ type Market @entity {
   blockNumber: BigInt!
   timestamp: BigInt!
   positions: [Position!]! @derivedFrom(field: "market")
-  history: [MarketSnapshot!]! @derivedFrom(field: "market")
 }
 
 type MarketSnapshot @entity {
@@ -98,7 +96,6 @@ type Transaction @entity {
   id: ID! # {account}{transactionHash}{logIndex}
   transactionHash: Bytes!
   market: Market!
-  marketSnapshot: MarketSnapshot!
   # A transaction.from is always transaction origin because outside EVM transaction.origin and msg.sender are same
   from: Account!
   to: Account
@@ -162,56 +159,3 @@ type PositionSnapshot @entity {
   rewardTokenBalances: [String!]!   # TokenBalance string format
   transferredTo: [String!]!         # TokenBalance string format
 }
-
-# END - Common entities for all protocols
-
-# UniswapV2 protocol entities
-
-# Created on PairCreated event on UniswapV2Factory.sol
-# feeTo is not part of Pair contract. We need to fetch it from factory contract
-type Pair @entity {
-  id: ID! # {pairAddress}
-  factory: Account!
-  token0: Token!
-  token1: Token!
-  reserve0: BigInt!
-  reserve1: BigInt!
-  totalSupply: BigInt!
-  blockNumber: BigInt!
-  timestamp: BigInt!
-  lastIncompleteBurn: Burn
-}
-
-type AccountLiquidity @entity {
-  id: ID! # {pairAddress}{accoutnAddress}
-  pair: Pair!
-  account: Account!
-  balance: BigInt!
-}
-
-type Mint @entity {
-  id: ID! # {trasactionHash}
-  pair: Pair
-  to: Account
-  liquityAmount: BigInt
-  amount0: BigInt
-  amount1: BigInt
-  transferEventApplied: Boolean!
-  syncEventApplied: Boolean!
-  mintEventApplied: Boolean!
-}
-
-type Burn @entity {
-  id: ID! # {trasactionHash}
-  pair: Pair
-  to: Account
-  liquityAmount: BigInt
-  amount0: BigInt
-  amount1: BigInt
-  transferToPairEventApplied: Boolean!
-  transferToZeroEventApplied: Boolean!
-  syncEventApplied: Boolean!
-  burnEventApplied: Boolean!
-}
-
-# END - UniswapV2 protocol entities
