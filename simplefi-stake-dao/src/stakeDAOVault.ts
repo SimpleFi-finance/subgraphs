@@ -267,7 +267,7 @@ function getOrCreateLiquidity(vault: VaultEntity, accountAddress: Address): Acco
 }
 
 function transferOutpuToken(event: ethereum.Event, vault: VaultEntity, from: Address, to: Address, value: BigInt): void {
-  let market = new MarketEntity(vault.id)
+  let market = MarketEntity.load(vault.id) as MarketEntity
 
   let fromAccount = getOrCreateAccount(from)
   let fromAccountLiquidity = getOrCreateLiquidity(vault, from)
