@@ -10,12 +10,14 @@ import { LiquidityGauge as GaugeContract } from "../generated/GaugeController/Li
 
 import { LiquidityGauge } from "../generated/templates";
 
-import { Gauge, GaugeType, Token as TokenEntity } from "../generated/schema";
+import { Gauge, GaugeType, Token } from "../generated/schema";
 
 const MAX_N_TOKENS = 8;
 
 export function handleNewGauge(event: NewGauge): void {
+  // bind controller and gauge contracts
   let gaugeController = GaugeController.bind(event.address);
+  let gaugeContract = GaugeContract.bind(event.params.addr);
 
   // Register new gauge type
   let gaugeType = GaugeType.load(event.params.gauge_type.toString())!;
@@ -34,21 +36,24 @@ export function handleNewGauge(event: NewGauge): void {
   gauge.save();
 
   // create common entities
-  let gaugeContract = GaugeContract.bind(event.params.addr);
 
   // get LPToken which is input token to gauge
-  let inputTokens: TokenEntity[] = [];
+  let inputTokens: Token[] = [];
   let inputTokenAddress = gaugeContract.try_lp_token();
   if (!inputTokenAddress.reverted) {
     let inputToken = getOrCreateERC20Token(event, inputTokenAddress.value);
     inputTokens.push(inputToken);
+
+    // also save LP token reference to gauge entity
+    gauge.lpToken = inputToken.id;
+    gauge.save();
   }
 
   // output token is gauge contract itself
   let outputToken = getOrCreateERC20Token(event, Address.fromString(gauge.id));
 
   // get reward tokens
-  let rewardTokens: TokenEntity[] = [];
+  let rewardTokens: Token[] = [];
 
   // CRV
   let crvTokenAddress = gaugeContract.try_crv_token();

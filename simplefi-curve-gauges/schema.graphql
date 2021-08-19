@@ -167,32 +167,6 @@ type PositionSnapshot @entity {
 
 # Curve gauge entities
 
-type Pool @entity {
-  id: ID! # {poolAddress}
-  coinCount: Int!
-  coins: [Token!]!
-  underlyingCoins: [Token!]!
-  balances: [BigInt!]!
-  totalSupply: BigInt!
-  lpToken: Bytes!
-  blockNumber: BigInt!
-  timestamp: BigInt!
-  #lastTransferToZero: LPTokenTransferToZero
-  history: [PoolSnapshot!]! @derivedFrom(field: "pool")
-}
-
-type PoolSnapshot @entity {
-  id: ID! # {trasactionHash}{logIndex}
-  pool: Pool!
-  balances: [BigInt!]!
-  totalSupply: BigInt!
-  blockNumber: BigInt!
-  timestamp: BigInt!
-  transactionHash: String!
-  transactionIndexInBlock: BigInt!
-  logIndex: BigInt!
-}
-
 type Gauge @entity {
   " Gauge contract address "
   id: ID!
@@ -201,6 +175,29 @@ type Gauge @entity {
   created: BigInt!
   createdAtBlock: BigInt!
   createdAtTransaction: Bytes!
+
+  version: String!
+
+  " Input token for gauge "
+  lpToken: Token!
+
+  " Total amount of LP tokens deposited to gauge "
+  totalSupply: BigInt!
+
+  " Effective total LP token amount after all deposits have been boosted "
+  workingSupply: BigInt!
+}
+
+type GaugeSnapshot @entity {
+  id: ID! # {trasactionHash}{logIndex}
+  gauge: Gauge!
+  originalSupply: BigInt!
+  workingSupply: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  transactionIndexInBlock: BigInt!
+  logIndex: BigInt!
 }
 
 type GaugeType @entity {
@@ -208,19 +205,6 @@ type GaugeType @entity {
   name: String!
   gauges: [Gauge!] @derivedFrom(field: "type")
   #weights: [GaugeTypeWeight!] @derivedFrom(field: "type")
-}
-
-type GaugeLiquidity @entity {
-  id: ID!
-  user: Account!
-  gauge: Gauge!
-  originalBalance: BigInt!
-  originalSupply: BigInt!
-  workingBalance: BigInt!
-  workingSupply: BigInt!
-  timestamp: BigInt!
-  block: BigInt!
-  transaction: Bytes!
 }
 
 type GaugeDeposit @entity {
@@ -238,16 +222,10 @@ type GaugeWithdraw @entity {
 }
 
 type AccountLiquidity @entity {
-  id: ID! # {accoutnAddress}{poolAddress}
-  pool: Pool!
+  id: ID! # {accountAddress}{gaugeAddress}
+  gauge: Gauge!
   account: Account!
   balance: BigInt!
-}
-
-type LPToken @entity {
-  id: ID! # {tokenAddress}
-  token: Token!
-  pool: Pool!
 }
 
 # END - Curve protocol entities
