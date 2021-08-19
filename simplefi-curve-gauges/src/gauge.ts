@@ -83,25 +83,8 @@ export function handleDeposit(event: Deposit): void {
 
   // reward token amounts (CRV + custom tokens) claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
-  let claimableCrv = gaugeContract.try_claimable_tokens(Address.fromString(account.id));
-  if (!claimableCrv.reverted) {
-    rewardTokenBalances.push(
-      new TokenBalance(market.rewardTokens[0], account.id, claimableCrv.value)
-    );
-  }
-  // TODO different gauge types use different APIs for reward tokens
-  for (let i: i32 = 1; i < market.rewardTokens.length; i++) {
-    let claimableCustomRewardToken = gaugeContract.try_claimable_reward(
-      Address.fromString(account.id),
-      Address.fromString(market.rewardTokens[i])
-    );
+  collectRewardTokenBalances(gauge, account, rewardTokenBalances, market);
 
-    if (!claimableCustomRewardToken.reverted) {
-      rewardTokenBalances.push(
-        new TokenBalance(market.rewardTokens[i], account.id, claimableCustomRewardToken.value)
-      );
-    }
-  }
   // use common function to update position and store transaction
   investInMarket(
     event,
@@ -164,4 +147,78 @@ function getOrCreateAccountLiquidity(account: Account, gauge: Gauge): AccountLiq
   liquidity.balance = BigInt.fromI32(0);
   liquidity.save();
   return liquidity as AccountLiquidity;
+}
+
+/**
+ * Collect info from gauge contracts about number of claimable reward tokens
+ * using correct API calls (depends on gauge type)
+ * @param gauge
+ * @param account
+ * @param rewardTokenBalances
+ * @param market
+ */
+function collectRewardTokenBalances(
+  gauge: Gauge,
+  account: Account,
+  rewardTokenBalances: TokenBalance[],
+  market: Market
+) {
+  let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
+
+  // collect claimable CRV
+  let claimableCrv = gaugeContract.try_claimable_tokens(Address.fromString(account.id));
+  if (!claimableCrv.reverted) {
+    rewardTokenBalances.push(
+      new TokenBalance(market.rewardTokens[0], account.id, claimableCrv.value)
+    );
+  }
+
+  // different gauge types use different APIs for reward tokens
+  switch (gauge.version) {
+    case GaugeVersion.LIQUIDITY_GAUGE_REWARD:
+      let rewardedToken = gaugeContract.try_rewarded_token();
+      let claimableRewardTotal = gaugeContract.try_claimable_reward(Address.fromString(account.id));
+      let claimedRewards = gaugeContract.try_claimed_rewards_for(Address.fromString(account.id));
+
+      if (!rewardedToken.reverted && !claimableRewardTotal.reverted && !claimedRewards.reverted) {
+        let claimableRewards = claimableRewardTotal.value.minus(claimedRewards.value);
+        rewardTokenBalances.push(
+          new TokenBalance(rewardedToken.value.toHexString(), account.id, claimableRewards)
+        );
+      }
+      break;
+    case GaugeVersion.LIQUIDITY_GAUGE_V1:
+      // do nothing, no reward tokens
+      break;
+    case GaugeVersion.LIQUIDITY_GAUGE_V2:
+      for (let i: i32 = 1; i < market.rewardTokens.length; i++) {
+        let claimableCustomRewardToken = gaugeContract.try_claimable_reward1(
+          Address.fromString(account.id),
+          Address.fromString(market.rewardTokens[i])
+        );
+
+        if (!claimableCustomRewardToken.reverted) {
+          rewardTokenBalances.push(
+            new TokenBalance(market.rewardTokens[i], account.id, claimableCustomRewardToken.value)
+          );
+        }
+      }
+      break;
+    case GaugeVersion.LIQUIDITY_GAUGE_V3:
+    // handle V3 as default case
+    default:
+      for (let i: i32 = 1; i < market.rewardTokens.length; i++) {
+        let claimableCustomRewardToken = gaugeContract.try_claimable_reward_write(
+          Address.fromString(account.id),
+          Address.fromString(market.rewardTokens[i])
+        );
+
+        if (!claimableCustomRewardToken.reverted) {
+          rewardTokenBalances.push(
+            new TokenBalance(market.rewardTokens[i], account.id, claimableCustomRewardToken.value)
+          );
+        }
+      }
+      break;
+  }
 }

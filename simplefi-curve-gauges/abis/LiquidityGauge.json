@@ -263,6 +263,24 @@
     "gas": 3066
   },
   {
+    "name": "claimable_reward",
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": ""
+      }
+    ],
+    "inputs": [
+      {
+        "type": "address",
+        "name": "addr"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "gas": 7252
+  },
+  {
     "stateMutability": "view",
     "type": "function",
     "name": "claimable_reward",
@@ -285,7 +303,7 @@
     "gas": 3034
   },
   {
-    "stateMutability": "nonpayable",
+    "stateMutability": "view",
     "type": "function",
     "name": "claimable_reward_write",
     "inputs": [
@@ -1043,5 +1061,23 @@
     "stateMutability": "view",
     "type": "function",
     "gas": 2081
+  },
+  {
+    "name": "claimed_rewards_for",
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": ""
+      }
+    ],
+    "inputs": [
+      {
+        "type": "address",
+        "name": "arg0"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "gas": 2416
   }
 ]
