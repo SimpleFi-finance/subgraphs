@@ -1030,5 +1030,18 @@
       }
     ],
     "gas": 3858
+  },
+  {
+    "name": "rewarded_token",
+    "outputs": [
+      {
+        "type": "address",
+        "name": ""
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function",
+    "gas": 2081
   }
 ]

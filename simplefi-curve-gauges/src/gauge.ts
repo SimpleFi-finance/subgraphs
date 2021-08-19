@@ -27,6 +27,8 @@ import {
   TokenBalance,
 } from "./common";
 
+import { GaugeVersion } from "./constants";
+
 export function handleDeposit(event: Deposit): void {
   let account = getOrCreateAccount(event.params.provider);
 

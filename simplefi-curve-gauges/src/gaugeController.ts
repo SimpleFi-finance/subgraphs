@@ -2,7 +2,7 @@ import { Address, BigInt } from "@graphprotocol/graph-ts";
 
 import { getOrCreateERC20Token, getOrCreateMarket, TokenBalance, ADDRESS_ZERO } from "./common";
 
-import { ProtocolName, ProtocolType } from "./constants";
+import { GaugeVersion, ProtocolName, ProtocolType } from "./constants";
 
 import { GaugeController, NewGauge } from "../generated/GaugeController/GaugeController";
 
@@ -33,6 +33,7 @@ export function handleNewGauge(event: NewGauge): void {
   gauge.created = event.block.timestamp;
   gauge.createdAtBlock = event.block.number;
   gauge.createdAtTransaction = event.transaction.hash;
+  determineGaugeVersion(gauge, gaugeContract);
   gauge.save();
 
   // create common entities
@@ -63,15 +64,27 @@ export function handleNewGauge(event: NewGauge): void {
   }
 
   // collect all other reward tokens
-  for (let i: i32 = 0; i < MAX_N_TOKENS; i++) {
-    let rewardTokenAddress = gaugeContract.try_reward_tokens(BigInt.fromI32(i));
-
-    if (rewardTokenAddress.reverted || rewardTokenAddress.value.toHexString() == ADDRESS_ZERO) {
-      break;
+  if (gauge.version == GaugeVersion.LIQUIDITY_GAUGE_REWARD) {
+    // LiquidityGaugeReward.vy uses rewarded_token() function
+    let rewardedTokenAddress = gaugeContract.try_rewarded_token();
+    if (!rewardedTokenAddress.reverted) {
+      let rewardedToken = getOrCreateERC20Token(event, rewardedTokenAddress.value);
+      rewardTokens.push(rewardedToken);
     }
+  } else if (gauge.version == GaugeVersion.LIQUIDITY_GAUGE_V1) {
+    //do nothing as V1 doesn't have reward token
+  } else {
+    // from V2 onwards use reward_tokens(uint256) function
+    for (let i: i32 = 0; i < MAX_N_TOKENS; i++) {
+      let rewardTokenAddress = gaugeContract.try_reward_tokens(BigInt.fromI32(i));
 
-    let rewardToken = getOrCreateERC20Token(event, rewardTokenAddress.value);
-    rewardTokens.push(rewardToken);
+      if (rewardTokenAddress.reverted || rewardTokenAddress.value.toHexString() == ADDRESS_ZERO) {
+        break;
+      }
+
+      let rewardToken = getOrCreateERC20Token(event, rewardTokenAddress.value);
+      rewardTokens.push(rewardToken);
+    }
   }
 
   // Create Market entity
@@ -89,8 +102,38 @@ export function handleNewGauge(event: NewGauge): void {
   outputToken.mintedByMarket = market.id;
   outputToken.save();
 
-  // Create indexer for gauges on Ethereum
-  if (gaugeType.name == "Liquidity" || gaugeType.name == "Crypto Pools") {
+  // Create indexer only for gauges on Ethereum mainnet
+  if (gaugeType.name == "Liquidity") {
     LiquidityGauge.create(event.params.addr);
   }
+}
+
+/**
+ * Due to different Gauge implementations having different APIs and different way of
+ * calculating rewards, we need to figure out dynamically which version is used.
+ * Version is determined based on API differences.
+ * Reference used: https://curve.readthedocs.io/dao-gauges.html#querying-gauge-information
+ * @param gauge
+ */
+function determineGaugeVersion(gauge: Gauge, gaugeContract: GaugeContract) {
+  // only LIQUIDITY_GAUGE_REWARD has rewarded_token function
+  if (!gaugeContract.try_rewarded_token().reverted) {
+    gauge.version = GaugeVersion.LIQUIDITY_GAUGE_REWARD;
+    return;
+  }
+
+  // V1 doesn't have reward_contract function
+  if (gaugeContract.try_reward_contract().reverted) {
+    gauge.version = GaugeVersion.LIQUIDITY_GAUGE_V1;
+    return;
+  }
+
+  // V2 doesn't have last_claim function
+  if (gaugeContract.try_last_claim().reverted) {
+    gauge.version = GaugeVersion.LIQUIDITY_GAUGE_V2;
+    return;
+  }
+
+  // assume latest V3 version
+  gauge.version = GaugeVersion.LIQUIDITY_GAUGE_V3;
 }
