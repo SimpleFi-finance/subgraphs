@@ -101,7 +101,74 @@ export function handleDeposit(event: Deposit): void {
   );
 }
 
-export function handleWithdraw(event: Withdraw): void {}
+export function handleWithdraw(event: Withdraw): void {
+  let account = getOrCreateAccount(event.params.provider);
+
+  // save new deposit entity
+  let withdrawal = new GaugeWithdraw(
+    event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
+  );
+  withdrawal.gauge = event.address.toHexString();
+  withdrawal.provider = account.id;
+  withdrawal.value = event.params.value.toBigDecimal();
+  withdrawal.save();
+
+  //////////////////////////////////////
+
+  // get gauge
+  let gauge = Gauge.load(event.address.toHexString());
+  let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
+
+  //// Collect data for position update
+
+  // market (representing gauge)
+  let market = Market.load(gauge.id) as Market;
+
+  // number of gauge tokens burned by user
+  let outputTokenAmount = event.params.value;
+
+  // number of LP tokens withdrawn by user
+  let inputTokenAmounts = [new TokenBalance(gauge.lpToken, account.id, event.params.value)];
+
+  // number of reward tokens claimed by user in this transaction
+  // TODO find a way to collect info
+  let rewardTokenAmounts: TokenBalance[] = [];
+
+  // total number of gauge tokens owned by user
+  let accountLiquidity = getOrCreateAccountLiquidity(account, gauge);
+  accountLiquidity.balance = accountLiquidity.balance.minus(outputTokenAmount);
+  accountLiquidity.save();
+  let accountGaugeTokenBalance = accountLiquidity.balance;
+
+  // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
+  // in this case it is working balance of user (takes into account CRV vote boosting)
+  let inputTokenBalances: TokenBalance[] = [];
+  let inputBalance = gaugeContract.try_working_balances(Address.fromString(account.id));
+  if (!inputBalance.reverted) {
+    inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, inputBalance.value));
+  } else {
+    // in case working balance can't be fetched, assume inputTokenBalance is equal to gauge token balance (no boost)
+    inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, accountGaugeTokenBalance));
+  }
+
+  // reward token amounts (CRV + custom tokens) claimable by user
+  let rewardTokenBalances: TokenBalance[] = [];
+  collectRewardTokenBalances(gauge, account, rewardTokenBalances, market);
+
+  // use common function to update position and store transaction
+  redeemFromMarket(
+    event,
+    account,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    accountGaugeTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
+}
 
 export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
   let transactionHash = event.transaction.hash.toHexString();
