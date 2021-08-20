@@ -27,12 +27,44 @@ dataSources:
       entities:
         - Gauge
         - GaugeType
-        - GaugeWeight
-        - GaugeWeightVote
-        - SystemState
       eventHandlers:
         - event: NewGauge(address,int128,uint256)
           handler: handleNewGauge
+
+  # Issues CRV tokens for the gauge users
+  - name: Minter
+    kind: ethereum/contract
+    network: mainnet
+    source:
+      abi: Minter
+      address: "0xd061d61a4d941c39e5453435b6345dc261c2fce0"
+      startBlock: 10647887
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/gauge.ts
+      abis:
+        - name: Minter
+          file: ./abis/Minter.json
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGauge.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Gauge
+        - GaugeSnapshot
+      eventHandlers:
+        - event: Minted(indexed address,address,uint256)
+          handler: handleMinted
 
 templates:
   # Measures the amount of liquidity provided by each user
@@ -54,8 +86,8 @@ templates:
         - Transfer
         - Position
         - PositionSnapshot
-        - Pool
-        - PoolSnapshot
+        - Gauge
+        - GaugeSnapshot
       abis:
         - name: LiquidityGauge
           file: ./abis/LiquidityGauge.json
@@ -86,8 +118,8 @@ templates:
         - Transfer
         - Position
         - PositionSnapshot
-        - Pool
-        - PoolSnapshot
+        - Gauge
+        - GaugeSnapshot
       abis:
         - name: ERC20
           file: ./abis/ERC20.json

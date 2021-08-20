@@ -6,7 +6,8 @@ import {
   Withdraw,
 } from "../generated/templates/LiquidityGauge/LiquidityGauge";
 
-import { ERC20, Transfer } from "../generated/templates/ERC20Token/ERC20";
+import { Transfer } from "../generated/templates/ERC20Token/ERC20";
+import { Minted } from "../generated/Minter/Minter";
 
 import { LiquidityGauge as GaugeContract } from "../generated/GaugeController/LiquidityGauge";
 
@@ -208,6 +209,65 @@ export function handleTransfer(event: Transfer): void {
     handleGaugeTokenTransfer(gauge, event);
     return;
   }
+}
+
+export function handleMinted(event: Minted) {
+  // get gauge
+  let gauge = Gauge.load(event.params.gauge.toHexString());
+  let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
+
+  //// Collect data for position update after CRV rewards have been transferred to user
+
+  // user who gets minted CRV tokens
+  let account = getOrCreateAccount(event.params.recipient);
+
+  // market (representing gauge)
+  let market = Market.load(gauge.id) as Market;
+
+  // number of gauge tokens burned by user
+  let outputTokenAmount = BigInt.fromI32(0);
+
+  // number of LP tokens withdrawn by user
+  let inputTokenAmounts = [];
+
+  // number of reward tokens claimed by user in this transaction
+  // this events tracks aquiring CRV tokens specifically
+  let rewardTokenAmounts: TokenBalance[] = [];
+  let crvTokenBalance = new TokenBalance(market.rewardTokens[0], account.id, event.params.minted);
+  rewardTokenAmounts.push(crvTokenBalance);
+
+  // total number of gauge tokens owned by user - no change in this case
+  let accountLiquidity = getOrCreateAccountLiquidity(account, gauge);
+  let accountGaugeTokenBalance = accountLiquidity.balance;
+
+  // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
+  // in this case it is working balance of user (takes into account CRV vote boosting)
+  let inputTokenBalances: TokenBalance[] = [];
+  let inputBalance = gaugeContract.try_working_balances(Address.fromString(account.id));
+  if (!inputBalance.reverted) {
+    inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, inputBalance.value));
+  } else {
+    // in case working balance can't be fetched, assume inputTokenBalance is equal to gauge token balance (no boost)
+    inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, accountGaugeTokenBalance));
+  }
+
+  // update reward token amounts (CRV + custom tokens) claimable by user
+  let rewardTokenBalances: TokenBalance[] = [];
+  collectRewardTokenBalances(gauge, account, rewardTokenBalances, market);
+
+  // use common function to update position and store transaction
+  redeemFromMarket(
+    event,
+    account,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    accountGaugeTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
 }
 
 /**

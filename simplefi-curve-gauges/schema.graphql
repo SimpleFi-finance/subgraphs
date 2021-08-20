@@ -176,6 +176,7 @@ type Gauge @entity {
   createdAtBlock: BigInt!
   createdAtTransaction: Bytes!
 
+  " API version of gauge implementation "
   version: GaugeVersion!
 
   " Input token for gauge "
