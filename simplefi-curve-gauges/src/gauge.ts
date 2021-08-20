@@ -45,8 +45,6 @@ export function handleDeposit(event: Deposit): void {
   deposit.value = event.params.value.toBigDecimal();
   deposit.save();
 
-  //////////////////////////////////////
-
   // get gauge
   let gauge = Gauge.load(event.address.toHexString());
   let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
@@ -204,9 +202,17 @@ export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
 }
 
 export function handleTransfer(event: Transfer): void {
+  // if gauge contract generated event then it is gauge token transfer
   let gauge = Gauge.load(event.address.toHexString());
   if (gauge != null) {
     handleGaugeTokenTransfer(gauge, event);
+    return;
+  }
+
+  // if gauge contract is sender ('from') then it is reward claim
+  gauge = Gauge.load(event.params.from.toHexString());
+  if (gauge != null) {
+    handleRewardTokenClaim(gauge, event);
     return;
   }
 }
@@ -271,7 +277,7 @@ export function handleMinted(event: Minted) {
 }
 
 /**
- *
+ * AccountLiquidity tracks user's balance of gauge tokens 
  * @param account
  * @param gauge
  * @returns
@@ -365,8 +371,14 @@ function collectRewardTokenBalances(
   }
 }
 
-function handleGaugeTokenTransfer(gauge: Gauge, event: Transfer) {
-  // ignore 0 value tranfer
+/**
+ * Handles event of gauge token transfer from one account to another
+ * @param gauge
+ * @param event
+ * @returns
+ */
+function handleGaugeTokenTransfer(gauge: Gauge, event: Transfer): void {
+  // ignore 0 value transfer
   if (event.params.value == BigInt.fromI32(0)) {
     return;
   }
@@ -495,5 +507,75 @@ function handleGaugeTokenTransfer(gauge: Gauge, event: Transfer) {
     toInputTokenBalances,
     toRewardTokenBalances,
     transferredFrom
+  );
+}
+
+/**
+ * Handles event of reward token transfer. We know it is reward claim because `from` is gauge itself.
+ * @param gauge
+ * @param event
+ * @returns
+ */
+function handleRewardTokenClaim(gauge: Gauge, event: Transfer): void {
+  // ignore 0 value transfer
+  if (event.params.value == BigInt.fromI32(0)) {
+    return;
+  }
+
+  // get gauge
+  let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
+
+  //// Collect data for position update after reward token has been claimed by user
+
+  // user who gets the reward token
+  let account = getOrCreateAccount(event.params.to);
+
+  // market (gauge)
+  let market = Market.load(gauge.id) as Market;
+
+  // number of gauge tokens burned by user - none in this case
+  let outputTokenAmount = BigInt.fromI32(0);
+
+  // number of LP tokens withdrawn by user - none in this case
+  let inputTokenAmounts = [];
+
+  // number of reward tokens claimed by user in this transaction
+  // this events tracks aquiring one reward token specifically
+  let rewardTokenAmounts: TokenBalance[] = [];
+  let rewardToken = event.address.toHexString();
+  let rewardTokenBalance = new TokenBalance(rewardToken, account.id, event.params.value);
+  rewardTokenAmounts.push(rewardTokenBalance);
+
+  // total number of gauge tokens owned by user - no change in this case
+  let accountLiquidity = getOrCreateAccountLiquidity(account, gauge);
+  let accountGaugeTokenBalance = accountLiquidity.balance;
+
+  // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
+  // in this case it is working balance of user (takes into account CRV vote boosting)
+  let inputTokenBalances: TokenBalance[] = [];
+  let inputBalance = gaugeContract.try_working_balances(Address.fromString(account.id));
+  if (!inputBalance.reverted) {
+    inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, inputBalance.value));
+  } else {
+    // in case working balance can't be fetched, assume inputTokenBalance is equal to gauge token balance (no boost)
+    inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, accountGaugeTokenBalance));
+  }
+
+  // update reward token amounts (CRV + custom tokens) claimable by user
+  let rewardTokenBalances: TokenBalance[] = [];
+  collectRewardTokenBalances(gauge, account, rewardTokenBalances, market);
+
+  // use common function to update position and store transaction
+  redeemFromMarket(
+    event,
+    account,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    accountGaugeTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
   );
 }
