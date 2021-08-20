@@ -6,6 +6,8 @@ import {
   Withdraw,
 } from "../generated/templates/LiquidityGauge/LiquidityGauge";
 
+import { ERC20, Transfer } from "../generated/templates/ERC20Token/ERC20";
+
 import { LiquidityGauge as GaugeContract } from "../generated/GaugeController/LiquidityGauge";
 
 import {
@@ -16,6 +18,7 @@ import {
   Market,
   AccountLiquidity,
   Account,
+  GaugeTokenTransferToZero,
 } from "../generated/schema";
 
 import {
@@ -47,11 +50,6 @@ export function handleDeposit(event: Deposit): void {
   let gauge = Gauge.load(event.address.toHexString());
   let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
 
-  // Update AccountLiquidity to track gauge token balance of account
-  let accountLiquidity = getOrCreateAccountLiquidity(account, gauge);
-  accountLiquidity.balance = accountLiquidity.balance.plus(event.params.value);
-  accountLiquidity.save();
-
   //// Collect data for position update
 
   // market (representing gauge)
@@ -60,15 +58,18 @@ export function handleDeposit(event: Deposit): void {
   // number of LP tokens deposited (equals to number of gauge tokens assigned to user)
   let outputTokenAmount = event.params.value;
 
-  // total number of gauge tokens owned by user
-  let accountGaugeTokenBalance = accountLiquidity.balance;
-
   // number of LP tokens deposited by user
   let inputTokenAmounts = [new TokenBalance(gauge.lpToken, account.id, outputTokenAmount)];
 
   // number of reward tokens claimed by user in this transaction
   // TODO find a way to collect info
   let rewardTokenAmounts: TokenBalance[] = [];
+
+  // total number of gauge tokens owned by user
+  let accountLiquidity = getOrCreateAccountLiquidity(account, gauge);
+  accountLiquidity.balance = accountLiquidity.balance.plus(event.params.value);
+  accountLiquidity.save();
+  let accountGaugeTokenBalance = accountLiquidity.balance;
 
   // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
   // in this case it is working balance of user (takes into account CRV vote boosting)
@@ -134,6 +135,20 @@ export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
   );
 }
 
+export function handleTransfer(event: Transfer): void {
+  let gauge = Gauge.load(event.address.toHexString());
+  if (gauge != null) {
+    handleGaugeTokenTransfer(gauge, event);
+    return;
+  }
+}
+
+/**
+ *
+ * @param account
+ * @param gauge
+ * @returns
+ */
 function getOrCreateAccountLiquidity(account: Account, gauge: Gauge): AccountLiquidity {
   let id = account.id.concat("-").concat(gauge.id);
   let liquidity = AccountLiquidity.load(id);
@@ -150,7 +165,7 @@ function getOrCreateAccountLiquidity(account: Account, gauge: Gauge): AccountLiq
 }
 
 /**
- * Collect info from gauge contracts about number of claimable reward tokens
+ * Collect info from gauge contract about number of claimable reward tokens
  * using correct API calls (depends on gauge type)
  * @param gauge
  * @param account
@@ -221,4 +236,137 @@ function collectRewardTokenBalances(
       }
       break;
   }
+}
+
+function handleGaugeTokenTransfer(gauge: Gauge, event: Transfer) {
+  // ignore 0 value tranfer
+  if (event.params.value == BigInt.fromI32(0)) {
+    return;
+  }
+
+  // mint of gauge tokens event is already handled in handleDeposit
+  if (event.params.from.toHexString() == ADDRESS_ZERO) {
+    return;
+  }
+
+  // if receiver is zero-address create transferToZero entity and return - position updates are done handle deposit/withdrawal
+  if (event.params.to.toHexString() == ADDRESS_ZERO) {
+    let transferToZero = new GaugeTokenTransferToZero(event.transaction.hash.toHexString());
+    transferToZero.from = event.params.from;
+    transferToZero.to = event.params.to;
+    transferToZero.value = event.params.value;
+    transferToZero.save();
+
+    gauge.lastTransferToZero = transferToZero.id;
+    gauge.save();
+
+    return;
+  }
+
+  //// Collect data for sender's position update
+  let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
+
+  // sender
+  let fromAccount = getOrCreateAccount(event.params.from);
+
+  // market (gauge)
+  let market = Market.load(gauge.id) as Market;
+
+  // outputTokenAmount - number of gauge tokens transferred
+  let tokensTransferred = event.params.value;
+
+  // number of LP tokens deposited by user - none in this case
+  let fromInputTokenAmounts = [];
+
+  // number of reward tokens claimed by user in this transaction
+  let fromRewardTokenAmounts: TokenBalance[] = [];
+
+  // Substract transferred gauge tokens from sender's account
+  let fromAccountLiquidity = getOrCreateAccountLiquidity(fromAccount, gauge);
+  fromAccountLiquidity.balance = fromAccountLiquidity.balance.minus(tokensTransferred);
+  fromAccountLiquidity.save();
+  let fromTokenBalance = fromAccountLiquidity.balance;
+
+  // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
+  // in this case it is working balance of user (takes into account CRV vote boosting)
+  let fromInputTokenBalances: TokenBalance[] = [];
+  let inputBalance = gaugeContract.try_working_balances(Address.fromString(fromAccount.id));
+  if (!inputBalance.reverted) {
+    fromInputTokenBalances.push(
+      new TokenBalance(gauge.lpToken, fromAccount.id, inputBalance.value)
+    );
+  } else {
+    // in case working balance can't be fetched, assume inputTokenBalance is equal to gauge token balance (no boost)
+    fromInputTokenBalances.push(new TokenBalance(gauge.lpToken, fromAccount.id, fromTokenBalance));
+  }
+
+  // reward token amounts (CRV + custom tokens) claimable by user
+  let fromRewardTokenBalances: TokenBalance[] = [];
+  collectRewardTokenBalances(gauge, fromAccount, fromRewardTokenBalances, market);
+
+  // receiver
+  let transferredTo = event.params.to.toHexString();
+
+  // use common function to update position and store transaction of sender
+  redeemFromMarket(
+    event,
+    fromAccount,
+    market,
+    tokensTransferred,
+    fromInputTokenAmounts,
+    fromRewardTokenAmounts,
+    fromTokenBalance,
+    fromInputTokenBalances,
+    fromRewardTokenBalances,
+    transferredTo
+  );
+
+  //// Collect data for receiver's position update
+
+  // receiver
+  let toAccount = getOrCreateAccount(event.params.to);
+
+  // number of LP tokens deposited by user - none in this case
+  let toInputTokenAmounts = [];
+
+  // number of reward tokens claimed by user in this transaction
+  let toRewardTokenAmounts: TokenBalance[] = [];
+
+  // add transferred gauge tokens to receiver's account
+  let toAccountLiquidity = getOrCreateAccountLiquidity(toAccount, gauge);
+  toAccountLiquidity.balance = toAccountLiquidity.balance.plus(tokensTransferred);
+  toAccountLiquidity.save();
+  let toTokenBalance = toAccountLiquidity.balance;
+
+  // inputTokenBalance -> number of LP tokens that can be redeemed by receiver's gauge tokens
+  // in this case it is working balance of user (takes into account CRV vote boosting)
+  let toInputTokenBalances: TokenBalance[] = [];
+  let toInputBalance = gaugeContract.try_working_balances(Address.fromString(toAccount.id));
+  if (!toInputBalance.reverted) {
+    toInputTokenBalances.push(new TokenBalance(gauge.lpToken, toAccount.id, toInputBalance.value));
+  } else {
+    // in case working balance can't be fetched, assume inputTokenBalance is equal to gauge token balance (no boost)
+    toInputTokenBalances.push(new TokenBalance(gauge.lpToken, toAccount.id, toTokenBalance));
+  }
+
+  // reward token amounts (CRV + custom tokens) claimable by user
+  let toRewardTokenBalances: TokenBalance[] = [];
+  collectRewardTokenBalances(gauge, toAccount, toRewardTokenBalances, market);
+
+  // sender
+  let transferredFrom = event.params.from.toHexString();
+
+  // use common function to update position and store transaction
+  investInMarket(
+    event,
+    toAccount,
+    market,
+    tokensTransferred,
+    toInputTokenAmounts,
+    toRewardTokenAmounts,
+    toTokenBalance,
+    toInputTokenBalances,
+    toRewardTokenBalances,
+    transferredFrom
+  );
 }

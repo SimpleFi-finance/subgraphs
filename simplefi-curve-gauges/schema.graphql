@@ -186,6 +186,9 @@ type Gauge @entity {
 
   " Effective total LP token amount after all deposits have been boosted "
   workingSupply: BigInt!
+
+  " Helper param used to distinguish between withdraw of LP tokens and direct burn of gauge tokens "
+  lastTransferToZero: GaugeTokenTransferToZero
 }
 
 enum GaugeVersion {
@@ -233,6 +236,13 @@ type AccountLiquidity @entity {
   gauge: Gauge!
   account: Account!
   balance: BigInt!
+}
+
+type GaugeTokenTransferToZero @entity {
+  id: ID! # {transactionHash}
+  from: Bytes!
+  to: Bytes!
+  value: BigInt!
 }
 
 # END - Curve protocol entities

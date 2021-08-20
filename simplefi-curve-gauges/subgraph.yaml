@@ -36,17 +36,26 @@ dataSources:
 
 templates:
   # Measures the amount of liquidity provided by each user
-  - name: LiquidityGauge
-    kind: ethereum/contract
+  - kind: ethereum/contract
+    name: LiquidityGauge
     network: mainnet
     source:
       abi: LiquidityGauge
-    mapping: &liquidity_gauge_mapping
+    mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
       language: wasm/assemblyscript
-      file: ./src/gauge.ts
-      entities: []
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Pool
+        - PoolSnapshot
       abis:
         - name: LiquidityGauge
           file: ./abis/LiquidityGauge.json
@@ -57,3 +66,32 @@ templates:
           handler: handleUpdateLiquidityLimit
         - event: Withdraw(indexed address,uint256)
           handler: handleWithdraw
+      file: ./src/gauge.ts
+
+  - kind: ethereum/contract
+    name: ERC20Token
+    network: mainnet
+    source:
+      abi: ERC20
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Pool
+        - PoolSnapshot
+      abis:
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/gauge.ts
