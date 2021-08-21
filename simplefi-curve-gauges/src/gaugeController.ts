@@ -34,7 +34,8 @@ export function handleNewGauge(event: NewGauge): void {
   gauge.createdAtBlock = event.block.number;
   gauge.createdAtTransaction = event.transaction.hash;
   determineGaugeVersion(gauge, gaugeContract);
-  gauge.save();
+  gauge.totalSupply = BigInt.fromI32(0);
+  gauge.workingSupply = BigInt.fromI32(0);
 
   // create common entities
 
@@ -47,8 +48,8 @@ export function handleNewGauge(event: NewGauge): void {
 
     // also save LP token reference to gauge entity
     gauge.lpToken = inputToken.id;
-    gauge.save();
   }
+  gauge.save();
 
   // output token is gauge contract itself
   let outputToken = getOrCreateERC20Token(event, Address.fromString(gauge.id));
@@ -115,7 +116,7 @@ export function handleNewGauge(event: NewGauge): void {
  * Reference used: https://curve.readthedocs.io/dao-gauges.html#querying-gauge-information
  * @param gauge
  */
-function determineGaugeVersion(gauge: Gauge, gaugeContract: GaugeContract) {
+function determineGaugeVersion(gauge: Gauge, gaugeContract: GaugeContract): void {
   // only LIQUIDITY_GAUGE_REWARD has rewarded_token function
   if (!gaugeContract.try_rewarded_token().reverted) {
     gauge.version = GaugeVersion.LIQUIDITY_GAUGE_REWARD;

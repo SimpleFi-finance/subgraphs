@@ -46,7 +46,7 @@ export function handleDeposit(event: Deposit): void {
   deposit.save();
 
   // get gauge
-  let gauge = Gauge.load(event.address.toHexString());
+  let gauge = Gauge.load(event.address.toHexString()) as Gauge;
   let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
 
   //// Collect data for position update
@@ -58,7 +58,9 @@ export function handleDeposit(event: Deposit): void {
   let outputTokenAmount = event.params.value;
 
   // number of LP tokens deposited by user
-  let inputTokenAmounts = [new TokenBalance(gauge.lpToken, account.id, outputTokenAmount)];
+  let inputTokenAmounts: TokenBalance[] = [
+    new TokenBalance(gauge.lpToken, account.id, outputTokenAmount),
+  ];
 
   // number of reward tokens claimed by user in this transaction
   // TODO find a way to collect info
@@ -115,7 +117,7 @@ export function handleWithdraw(event: Withdraw): void {
   //////////////////////////////////////
 
   // get gauge
-  let gauge = Gauge.load(event.address.toHexString());
+  let gauge = Gauge.load(event.address.toHexString()) as Gauge;
   let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
 
   //// Collect data for position update
@@ -127,7 +129,9 @@ export function handleWithdraw(event: Withdraw): void {
   let outputTokenAmount = event.params.value;
 
   // number of LP tokens withdrawn by user
-  let inputTokenAmounts = [new TokenBalance(gauge.lpToken, account.id, event.params.value)];
+  let inputTokenAmounts: TokenBalance[] = [
+    new TokenBalance(gauge.lpToken, account.id, event.params.value),
+  ];
 
   // number of reward tokens claimed by user in this transaction
   // TODO find a way to collect info
@@ -172,7 +176,7 @@ export function handleWithdraw(event: Withdraw): void {
 export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
   let transactionHash = event.transaction.hash.toHexString();
   let snapshotId = transactionHash.concat("-").concat(event.logIndex.toHexString());
-  let gauge = Gauge.load(event.address.toHexString());
+  let gauge = Gauge.load(event.address.toHexString()) as Gauge;
 
   // handle any pending gauge token tranfers to zero address
   checkPendingTransferToZero(event, gauge);
@@ -211,23 +215,23 @@ export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
 
 export function handleTransfer(event: Transfer): void {
   // if gauge contract generated event then it is gauge token transfer
-  let gauge = Gauge.load(event.address.toHexString());
+  let gauge = Gauge.load(event.address.toHexString()) as Gauge;
   if (gauge != null) {
     handleGaugeTokenTransfer(gauge, event);
     return;
   }
 
   // if gauge contract is sender ('from') then it is reward claim
-  gauge = Gauge.load(event.params.from.toHexString());
+  gauge = Gauge.load(event.params.from.toHexString()) as Gauge;
   if (gauge != null) {
     handleRewardTokenClaim(gauge, event);
     return;
   }
 }
 
-export function handleMinted(event: Minted) {
+export function handleMinted(event: Minted): void {
   // get gauge
-  let gauge = Gauge.load(event.params.gauge.toHexString());
+  let gauge = Gauge.load(event.params.gauge.toHexString()) as Gauge;
   let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
 
   //// Collect data for position update after CRV rewards have been transferred to user
@@ -242,12 +246,13 @@ export function handleMinted(event: Minted) {
   let outputTokenAmount = BigInt.fromI32(0);
 
   // number of LP tokens withdrawn by user
-  let inputTokenAmounts = [];
+  let inputTokenAmounts: TokenBalance[] = [];
 
   // number of reward tokens claimed by user in this transaction
   // this events tracks aquiring CRV tokens specifically
   let rewardTokenAmounts: TokenBalance[] = [];
-  let crvTokenBalance = new TokenBalance(market.rewardTokens[0], account.id, event.params.minted);
+  let rewardTokens = market.rewardTokens as string[];
+  let crvTokenBalance = new TokenBalance(rewardTokens[0], account.id, event.params.minted);
   rewardTokenAmounts.push(crvTokenBalance);
 
   // total number of gauge tokens owned by user - no change in this case
@@ -318,64 +323,60 @@ function collectRewardTokenBalances(
   account: Account,
   rewardTokenBalances: TokenBalance[],
   market: Market
-) {
+): void {
   let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
 
   // collect claimable CRV
   let claimableCrv = gaugeContract.try_claimable_tokens(Address.fromString(account.id));
   if (!claimableCrv.reverted) {
-    rewardTokenBalances.push(
-      new TokenBalance(market.rewardTokens[0], account.id, claimableCrv.value)
-    );
+    let rewardTokens = market.rewardTokens as string[];
+    let crvToken = rewardTokens[0];
+    rewardTokenBalances.push(new TokenBalance(crvToken, account.id, claimableCrv.value));
   }
 
   // different gauge types use different APIs for reward tokens
-  switch (gauge.version) {
-    case GaugeVersion.LIQUIDITY_GAUGE_REWARD:
-      let rewardedToken = gaugeContract.try_rewarded_token();
-      let claimableRewardTotal = gaugeContract.try_claimable_reward(Address.fromString(account.id));
-      let claimedRewards = gaugeContract.try_claimed_rewards_for(Address.fromString(account.id));
+  if (gauge.version == GaugeVersion.LIQUIDITY_GAUGE_REWARD) {
+    let rewardedToken = gaugeContract.try_rewarded_token();
+    let claimableRewardTotal = gaugeContract.try_claimable_reward(Address.fromString(account.id));
+    let claimedRewards = gaugeContract.try_claimed_rewards_for(Address.fromString(account.id));
 
-      if (!rewardedToken.reverted && !claimableRewardTotal.reverted && !claimedRewards.reverted) {
-        let claimableRewards = claimableRewardTotal.value.minus(claimedRewards.value);
+    if (!rewardedToken.reverted && !claimableRewardTotal.reverted && !claimedRewards.reverted) {
+      let claimableRewards = claimableRewardTotal.value.minus(claimedRewards.value);
+      rewardTokenBalances.push(
+        new TokenBalance(rewardedToken.value.toHexString(), account.id, claimableRewards)
+      );
+    }
+  } else if (gauge.version == GaugeVersion.LIQUIDITY_GAUGE_V1) {
+    // do nothing, no reward tokens in V1
+  } else if (gauge.version == GaugeVersion.LIQUIDITY_GAUGE_V2) {
+    let rewardTokens = market.rewardTokens as string[];
+    for (let i: i32 = 1; i < market.rewardTokens.length; i++) {
+      let claimableCustomRewardToken = gaugeContract.try_claimable_reward1(
+        Address.fromString(account.id),
+        Address.fromString(rewardTokens[i])
+      );
+
+      if (!claimableCustomRewardToken.reverted) {
         rewardTokenBalances.push(
-          new TokenBalance(rewardedToken.value.toHexString(), account.id, claimableRewards)
+          new TokenBalance(rewardTokens[i], account.id, claimableCustomRewardToken.value)
         );
       }
-      break;
-    case GaugeVersion.LIQUIDITY_GAUGE_V1:
-      // do nothing, no reward tokens
-      break;
-    case GaugeVersion.LIQUIDITY_GAUGE_V2:
-      for (let i: i32 = 1; i < market.rewardTokens.length; i++) {
-        let claimableCustomRewardToken = gaugeContract.try_claimable_reward1(
-          Address.fromString(account.id),
-          Address.fromString(market.rewardTokens[i])
-        );
+    }
+  } else {
+    // handle LIQUIDITY_GAUGE_V3 as default case
+    let rewardTokens = market.rewardTokens as string[];
+    for (let i: i32 = 1; i < market.rewardTokens.length; i++) {
+      let claimableCustomRewardToken = gaugeContract.try_claimable_reward_write(
+        Address.fromString(account.id),
+        Address.fromString(rewardTokens[i])
+      );
 
-        if (!claimableCustomRewardToken.reverted) {
-          rewardTokenBalances.push(
-            new TokenBalance(market.rewardTokens[i], account.id, claimableCustomRewardToken.value)
-          );
-        }
-      }
-      break;
-    case GaugeVersion.LIQUIDITY_GAUGE_V3:
-    // handle V3 as default case
-    default:
-      for (let i: i32 = 1; i < market.rewardTokens.length; i++) {
-        let claimableCustomRewardToken = gaugeContract.try_claimable_reward_write(
-          Address.fromString(account.id),
-          Address.fromString(market.rewardTokens[i])
+      if (!claimableCustomRewardToken.reverted) {
+        rewardTokenBalances.push(
+          new TokenBalance(rewardTokens[i], account.id, claimableCustomRewardToken.value)
         );
-
-        if (!claimableCustomRewardToken.reverted) {
-          rewardTokenBalances.push(
-            new TokenBalance(market.rewardTokens[i], account.id, claimableCustomRewardToken.value)
-          );
-        }
       }
-      break;
+    }
   }
 }
 
@@ -440,7 +441,7 @@ function handleRewardTokenClaim(gauge: Gauge, event: Transfer): void {
   let outputTokenAmount = BigInt.fromI32(0);
 
   // number of LP tokens withdrawn by user - none in this case
-  let inputTokenAmounts = [];
+  let inputTokenAmounts: TokenBalance[] = [];
 
   // number of reward tokens claimed by user in this transaction
   // this events tracks aquiring one reward token specifically
@@ -494,7 +495,7 @@ function transferGaugeToken(
   from: Address,
   to: Address,
   value: BigInt
-) {
+): void {
   let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
 
   // sender
@@ -507,7 +508,7 @@ function transferGaugeToken(
   let tokensTransferred = value;
 
   // number of LP tokens deposited by user - none in this case
-  let fromInputTokenAmounts = [];
+  let fromInputTokenAmounts: TokenBalance[] = [];
 
   // number of reward tokens claimed by user in this transaction
   let fromRewardTokenAmounts: TokenBalance[] = [];
@@ -558,7 +559,7 @@ function transferGaugeToken(
   let toAccount = getOrCreateAccount(to);
 
   // number of LP tokens deposited by user - none in this case
-  let toInputTokenAmounts = [];
+  let toInputTokenAmounts: TokenBalance[] = [];
 
   // number of reward tokens claimed by user in this transaction
   let toRewardTokenAmounts: TokenBalance[] = [];
@@ -626,7 +627,13 @@ function checkPendingTransferToZero(event: ethereum.Event, gauge: Gauge): void {
   let transferTozero = GaugeTokenTransferToZero.load(
     gauge.lastTransferToZero
   ) as GaugeTokenTransferToZero;
-  transferGaugeToken(gauge, event, transferTozero.from, transferTozero.to, transferTozero.value);
+  transferGaugeToken(
+    gauge,
+    event,
+    transferTozero.from as Address,
+    transferTozero.to as Address,
+    transferTozero.value
+  );
 
   gauge.lastTransferToZero = null;
   gauge.save();
