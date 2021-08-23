@@ -123,6 +123,8 @@ templates:
         - Gauge
         - GaugeSnapshot
       abis:
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGauge.json
         - name: ERC20
           file: ./abis/ERC20.json
       eventHandlers:
