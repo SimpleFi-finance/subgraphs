@@ -8,7 +8,7 @@ import { GaugeController, NewGauge } from "../generated/GaugeController/GaugeCon
 
 import { LiquidityGauge as GaugeContract } from "../generated/GaugeController/LiquidityGauge";
 
-import { LiquidityGauge } from "../generated/templates";
+import { RewardToken, LiquidityGauge } from "../generated/templates";
 
 import { Gauge, GaugeType, Token } from "../generated/schema";
 
@@ -71,6 +71,9 @@ export function handleNewGauge(event: NewGauge): void {
     if (!rewardedTokenAddress.reverted) {
       let rewardedToken = getOrCreateERC20Token(event, rewardedTokenAddress.value);
       rewardTokens.push(rewardedToken);
+
+      // start indexing reward token - we want to listen for Transfer events
+      RewardToken.create(rewardedTokenAddress.value);
     }
   } else if (gauge.version == GaugeVersion.LIQUIDITY_GAUGE_V1) {
     //do nothing as V1 doesn't have reward token
@@ -85,6 +88,9 @@ export function handleNewGauge(event: NewGauge): void {
 
       let rewardToken = getOrCreateERC20Token(event, rewardTokenAddress.value);
       rewardTokens.push(rewardToken);
+
+      // start indexing reward token - we want to listen for Transfer events
+      RewardToken.create(rewardTokenAddress.value);
     }
   }
 

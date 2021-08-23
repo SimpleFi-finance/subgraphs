@@ -98,10 +98,12 @@ templates:
           handler: handleUpdateLiquidityLimit
         - event: Withdraw(indexed address,uint256)
           handler: handleWithdraw
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleGaugeTokenTransfer
       file: ./src/gauge.ts
 
   - kind: ethereum/contract
-    name: ERC20Token
+    name: RewardToken
     network: mainnet
     source:
       abi: ERC20
@@ -125,5 +127,5 @@ templates:
           file: ./abis/ERC20.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
-          handler: handleTransfer
+          handler: handleRewardTokenTransfer
       file: ./src/gauge.ts
