@@ -237,6 +237,7 @@ type AccountLiquidity @entity {
   gauge: Gauge!
   account: Account!
   balance: BigInt!
+  crvReceived: BigInt!
 }
 
 type GaugeTokenTransferToZero @entity {

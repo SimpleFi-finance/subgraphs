@@ -324,14 +324,25 @@ export function handleRewardTokenTransfer(event: RewardTokenTransfer): void {
 }
 
 export function handleMinted(event: Minted): void {
+  // user who gets minted CRV tokens
+  let account = getOrCreateAccount(event.params.recipient);
+
   // get gauge
   let gauge = Gauge.load(event.params.gauge.toHexString()) as Gauge;
   let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
 
-  //// Collect data for position update after CRV rewards have been transferred to user
+  // event emits total number of CRV tokens minted for user for this gauge
+  let accountLiquidity = getOrCreateAccountLiquidity(account, gauge);
+  let crvTokensReceivedTotal = event.params.minted;
 
-  // user who gets minted CRV tokens
-  let account = getOrCreateAccount(event.params.recipient);
+  // calculate CRV tokens received in this transaction
+  let crvTokensReceivedInTransaction = crvTokensReceivedTotal.minus(accountLiquidity.crvReceived);
+
+  // store new total
+  accountLiquidity.crvReceived = crvTokensReceivedTotal;
+  accountLiquidity.save();
+
+  //// Collect data for position update after CRV rewards have been transferred to user
 
   // market (representing gauge)
   let market = Market.load(gauge.id) as Market;
@@ -343,14 +354,17 @@ export function handleMinted(event: Minted): void {
   let inputTokenAmounts: TokenBalance[] = [];
 
   // number of reward tokens claimed by user in this transaction
-  // this events tracks aquiring CRV tokens specifically
+  // this event tracks aquiring CRV tokens specifically (CRV is at 0 index in rewardTokens)
   let rewardTokenAmounts: TokenBalance[] = [];
   let rewardTokens = market.rewardTokens as string[];
-  let crvTokenBalance = new TokenBalance(rewardTokens[0], account.id, event.params.minted);
+  let crvTokenBalance = new TokenBalance(
+    rewardTokens[0],
+    account.id,
+    crvTokensReceivedInTransaction
+  );
   rewardTokenAmounts.push(crvTokenBalance);
 
   // total number of gauge tokens owned by user - no change in this case
-  let accountLiquidity = getOrCreateAccountLiquidity(account, gauge);
   let accountGaugeTokenBalance = accountLiquidity.balance;
 
   // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
@@ -400,6 +414,7 @@ function getOrCreateAccountLiquidity(account: Account, gauge: Gauge): AccountLiq
   liquidity.gauge = gauge.id;
   liquidity.account = account.id;
   liquidity.balance = BigInt.fromI32(0);
+  liquidity.crvReceived = BigInt.fromI32(0);
   liquidity.save();
   return liquidity as AccountLiquidity;
 }
