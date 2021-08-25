@@ -182,6 +182,11 @@ export function handleWithdraw(event: Withdraw): void {
   );
 }
 
+/**
+ * UpdateLiquidityLimit event is emitted every time funds are deposited or withdrawn.
+ * Handler updates the state of market. User's positions are updated only in deposit/withdraw handlers.
+ * @param event
+ */
 export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
   let transactionHash = event.transaction.hash.toHexString();
   let snapshotId = transactionHash.concat("-").concat(event.logIndex.toHexString());
