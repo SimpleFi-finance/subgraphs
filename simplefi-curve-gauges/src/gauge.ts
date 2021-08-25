@@ -35,6 +35,11 @@ import {
 
 import { GaugeVersion } from "./constants";
 
+/**
+ * When user deposits funds create entity and update user's position.
+ * Market state is not updated here, but upon UpdateLiquidityLimit event.
+ * @param event
+ */
 export function handleDeposit(event: Deposit): void {
   let account = getOrCreateAccount(event.params.provider);
 
@@ -103,6 +108,11 @@ export function handleDeposit(event: Deposit): void {
   );
 }
 
+/**
+ * When user withdraws funds create entity and update user's position.
+ * Market state is not updated here, but upon UpdateLiquidityLimit event.
+ * @param event
+ */
 export function handleWithdraw(event: Withdraw): void {
   let account = getOrCreateAccount(event.params.provider);
 
@@ -250,8 +260,8 @@ export function handleGaugeTokenTransfer(event: GaugeTokenTranfer): void {
 }
 
 /**
- *
- * @param event Handles event of reward token transfer. We know it is reward claim if `from` is gauge itself.
+ * Handles event of reward token transfer. We know it is reward claim if `from` is gauge itself.
+ * @param event
  * @returns
  */
 export function handleRewardTokenTransfer(event: RewardTokenTransfer): void {
@@ -323,6 +333,11 @@ export function handleRewardTokenTransfer(event: RewardTokenTransfer): void {
   );
 }
 
+/**
+ * Tracks `Minted` event emitted by CRV minter.
+ * Minted CRV is transferred to user as reward for providing liquidity to gauge
+ * @param event
+ */
 export function handleMinted(event: Minted): void {
   // user who gets minted CRV tokens
   let account = getOrCreateAccount(event.params.recipient);
@@ -398,7 +413,7 @@ export function handleMinted(event: Minted): void {
 }
 
 /**
- * AccountLiquidity tracks user's balance of gauge tokens
+ * AccountLiquidity tracks user's balance of gauge tokens and CRV tokens
  * @param account
  * @param gauge
  * @returns

@@ -14,6 +14,10 @@ import { Gauge, GaugeType, Token } from "../generated/schema";
 
 const MAX_N_TOKENS = 8;
 
+/**
+ * Create new gauge entity and start indexing it
+ * @param event
+ */
 export function handleNewGauge(event: NewGauge): void {
   // bind controller and gauge contracts
   let gaugeController = GaugeController.bind(event.address);
