@@ -121,6 +121,28 @@ export function updateMarket(
   return marketSnapshot as MarketSnapshot;
 }
 
+export function createMarketSnapshot(event: ethereum.Event, market: Market): MarketSnapshot {
+  let transactionHash = event.transaction.hash.toHexString();
+  let id = transactionHash.concat("-").concat(event.logIndex.toHexString());
+  let marketSnapshot = MarketSnapshot.load(id);
+  if (marketSnapshot != null) {
+    return marketSnapshot as MarketSnapshot;
+  }
+
+  marketSnapshot = new MarketSnapshot(id);
+  marketSnapshot.market = market.id;
+  marketSnapshot.inputTokenBalances = market.inputTokenTotalBalances;
+  marketSnapshot.outputTokenTotalSupply = market.outputTokenTotalSupply;
+  marketSnapshot.blockNumber = event.block.number;
+  marketSnapshot.timestamp = event.block.timestamp;
+  marketSnapshot.transactionHash = transactionHash;
+  marketSnapshot.transactionIndexInBlock = event.transaction.index;
+  marketSnapshot.logIndex = event.logIndex;
+  marketSnapshot.save();
+
+  return marketSnapshot as MarketSnapshot;
+}
+
 export function getOrCreateOpenPosition(
   event: ethereum.Event,
   account: Account,
@@ -273,6 +295,9 @@ export function investInMarket(
   rewardTokenBalances: TokenBalance[],
   transferredFrom: string | null
 ): Position {
+  // Create marketSnapshot for transaction
+  let marketSnapshot = createMarketSnapshot(event, market);
+
   // Create transaction for given event
   let transactionId = account.id
     .concat("-")
@@ -282,6 +307,7 @@ export function investInMarket(
   let transaction = new Transaction(transactionId);
   transaction.transactionHash = event.transaction.hash;
   transaction.market = market.id;
+  transaction.marketSnapshot = marketSnapshot.id;
   transaction.from = getOrCreateAccount(event.transaction.from).id;
   if (event.transaction.to) {
     transaction.to = getOrCreateAccount(event.transaction.to as Address).id;
@@ -331,6 +357,9 @@ export function redeemFromMarket(
   rewardTokenBalances: TokenBalance[],
   transferredTo: string | null
 ): Position {
+  // Create marketSnapshot for transaction
+  let marketSnapshot = createMarketSnapshot(event, market);
+
   // Create transaction for given event
   let transactionId = account.id
     .concat("-")
@@ -340,6 +369,7 @@ export function redeemFromMarket(
   let transaction = new Transaction(transactionId);
   transaction.transactionHash = event.transaction.hash;
   transaction.market = market.id;
+  transaction.marketSnapshot = marketSnapshot.id;
   transaction.from = getOrCreateAccount(event.transaction.from).id;
   if (event.transaction.to) {
     transaction.to = getOrCreateAccount(event.transaction.to as Address).id;
@@ -399,6 +429,9 @@ export function borrowFromMarket(
   inputTokenBalances: TokenBalance[],
   rewardTokenBalances: TokenBalance[]
 ): Position {
+  // Create marketSnapshot for transaction
+  let marketSnapshot = createMarketSnapshot(event, market);
+
   // Create transaction for given event
   let transactionId = account.id
     .concat("-")
@@ -408,6 +441,7 @@ export function borrowFromMarket(
   let transaction = new Transaction(transactionId);
   transaction.transactionHash = event.transaction.hash;
   transaction.market = market.id;
+  transaction.marketSnapshot = marketSnapshot.id;
   transaction.from = getOrCreateAccount(event.transaction.from).id;
   if (event.transaction.to) {
     transaction.to = getOrCreateAccount(event.transaction.to as Address).id;
@@ -451,6 +485,9 @@ export function repayToMarket(
   inputTokenBalances: TokenBalance[],
   rewardTokenBalances: TokenBalance[]
 ): Position {
+  // Create marketSnapshot for transaction
+  let marketSnapshot = createMarketSnapshot(event, market);
+
   // Create transaction for given event
   let transactionId = account.id
     .concat("-")
@@ -460,6 +497,7 @@ export function repayToMarket(
   let transaction = new Transaction(transactionId);
   transaction.transactionHash = event.transaction.hash;
   transaction.market = market.id;
+  transaction.marketSnapshot = marketSnapshot.id;
   transaction.from = getOrCreateAccount(event.transaction.from).id;
   if (event.transaction.to) {
     transaction.to = getOrCreateAccount(event.transaction.to as Address).id;
