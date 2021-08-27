@@ -184,6 +184,11 @@ type VaultInputToken @entity {
   vault: Vault!
 }
 
+type TokenStrategy @entity {
+  id: ID! # {token address}
+  strategy: String!
+}
+
 type AccountLiquidity @entity {
   id: ID! # {pairAddress}{accoutnAddress}
   vault: Vault!
