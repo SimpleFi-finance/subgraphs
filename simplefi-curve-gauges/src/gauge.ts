@@ -36,8 +36,7 @@ import {
 import { GaugeVersion } from "./constants";
 
 /**
- * When user deposits funds create entity and update user's position.
- * Market state is not updated here, but upon UpdateLiquidityLimit event.
+ * When user deposits funds create entity.
  * @param event
  */
 export function handleDeposit(event: Deposit): void {
@@ -51,66 +50,10 @@ export function handleDeposit(event: Deposit): void {
   deposit.provider = account.id;
   deposit.value = event.params.value.toBigDecimal();
   deposit.save();
-
-  // get gauge
-  let gauge = Gauge.load(event.address.toHexString()) as Gauge;
-  let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
-
-  //// Collect data for position update
-
-  // market (representing gauge)
-  let market = Market.load(gauge.id) as Market;
-
-  // number of LP tokens deposited (equals to number of gauge tokens assigned to user)
-  let outputTokenAmount = event.params.value;
-
-  // number of LP tokens deposited by user
-  let inputTokenAmounts: TokenBalance[] = [
-    new TokenBalance(gauge.lpToken, account.id, outputTokenAmount),
-  ];
-
-  // number of reward tokens claimed by user in this transaction
-  let rewardTokenAmounts: TokenBalance[] = [];
-
-  // total number of gauge tokens owned by user
-  let accountLiquidity = getOrCreateAccountLiquidity(account, gauge);
-  accountLiquidity.balance = accountLiquidity.balance.plus(event.params.value);
-  accountLiquidity.save();
-  let accountGaugeTokenBalance = accountLiquidity.balance;
-
-  // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
-  // in this case it is working balance of user (takes into account CRV vote boosting)
-  let inputTokenBalances: TokenBalance[] = [];
-  let inputBalance = gaugeContract.try_working_balances(Address.fromString(account.id));
-  if (!inputBalance.reverted) {
-    inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, inputBalance.value));
-  } else {
-    // in case working balance can't be fetched, assume inputTokenBalance is equal to gauge token balance (no boost)
-    inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, accountGaugeTokenBalance));
-  }
-
-  // reward token amounts (CRV + custom tokens) claimable by user
-  let rewardTokenBalances: TokenBalance[] = [];
-  collectRewardTokenBalances(gauge, account, rewardTokenBalances, market);
-
-  // use common function to update position and store transaction
-  investInMarket(
-    event,
-    account,
-    market,
-    outputTokenAmount,
-    inputTokenAmounts,
-    rewardTokenAmounts,
-    accountGaugeTokenBalance,
-    inputTokenBalances,
-    rewardTokenBalances,
-    null
-  );
 }
 
 /**
- * When user withdraws funds create entity and update user's position.
- * Market state is not updated here, but upon UpdateLiquidityLimit event.
+ * When user withdraws funds create entity.
  * @param event
  */
 export function handleWithdraw(event: Withdraw): void {
@@ -124,73 +67,25 @@ export function handleWithdraw(event: Withdraw): void {
   withdrawal.provider = account.id;
   withdrawal.value = event.params.value.toBigDecimal();
   withdrawal.save();
-
-  // get gauge
-  let gauge = Gauge.load(event.address.toHexString()) as Gauge;
-  let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
-
-  //// Collect data for position update
-
-  // market (representing gauge)
-  let market = Market.load(gauge.id) as Market;
-
-  // number of gauge tokens burned by user
-  let outputTokenAmount = event.params.value;
-
-  // number of LP tokens withdrawn by user
-  let inputTokenAmounts: TokenBalance[] = [
-    new TokenBalance(gauge.lpToken, account.id, event.params.value),
-  ];
-
-  // number of reward tokens claimed by user in this transaction
-  // TODO find a way to collect info
-  let rewardTokenAmounts: TokenBalance[] = [];
-
-  // total number of gauge tokens owned by user
-  let accountLiquidity = getOrCreateAccountLiquidity(account, gauge);
-  accountLiquidity.balance = accountLiquidity.balance.minus(outputTokenAmount);
-  accountLiquidity.save();
-  let accountGaugeTokenBalance = accountLiquidity.balance;
-
-  // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
-  // in this case it is working balance of user (takes into account CRV vote boosting)
-  let inputTokenBalances: TokenBalance[] = [];
-  let inputBalance = gaugeContract.try_working_balances(Address.fromString(account.id));
-  if (!inputBalance.reverted) {
-    inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, inputBalance.value));
-  } else {
-    // in case working balance can't be fetched, assume inputTokenBalance is equal to gauge token balance (no boost)
-    inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, accountGaugeTokenBalance));
-  }
-
-  // reward token amounts (CRV + custom tokens) claimable by user
-  let rewardTokenBalances: TokenBalance[] = [];
-  collectRewardTokenBalances(gauge, account, rewardTokenBalances, market);
-
-  // use common function to update position and store transaction
-  redeemFromMarket(
-    event,
-    account,
-    market,
-    outputTokenAmount,
-    inputTokenAmounts,
-    rewardTokenAmounts,
-    accountGaugeTokenBalance,
-    inputTokenBalances,
-    rewardTokenBalances,
-    null
-  );
 }
 
 /**
- * UpdateLiquidityLimit event is emitted every time funds are deposited or withdrawn.
- * Handler updates the state of market. User's positions are updated only in deposit/withdraw handlers.
+ * UpdateLiquidityLimit event is emitted every time funds are deposited or withdrawn
+ * Handler updates the state of market and user's positions.
  * @param event
  */
 export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
   let transactionHash = event.transaction.hash.toHexString();
   let snapshotId = transactionHash.concat("-").concat(event.logIndex.toHexString());
   let gauge = Gauge.load(event.address.toHexString()) as Gauge;
+
+  let isWithdraw = gauge.totalSupply > event.params.original_supply;
+  let isDeposit = gauge.totalSupply < event.params.original_supply;
+
+  // if there's no change in supply, don't handle the event
+  if (!isWithdraw && !isDeposit) {
+    return;
+  }
 
   // handle any pending gauge token tranfers to zero address
   checkPendingTransferToZero(event, gauge);
@@ -208,7 +103,7 @@ export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
   gaugeSnapshot.save();
 
   // if this was burn event, reset lastTransferToZero
-  if (gauge.totalSupply > event.params.original_supply) {
+  if (isWithdraw) {
     gauge.lastTransferToZero = null;
   }
 
@@ -225,6 +120,9 @@ export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
     [new TokenBalance(gauge.lpToken, gauge.id, gauge.totalSupply)],
     gauge.totalSupply
   );
+
+  // update user position in market after deposit/withdraw
+  updateUserPosition(gauge, event, isDeposit);
 }
 
 /**
@@ -662,4 +560,73 @@ function checkPendingTransferToZero(event: ethereum.Event, gauge: Gauge): void {
 
   gauge.lastTransferToZero = null;
   gauge.save();
+}
+
+/**
+ * Collect info and update user's position after depositing/withdrawing LP tokens
+ * @param gauge
+ * @param event
+ * @param isDeposit
+ */
+function updateUserPosition(gauge: Gauge, event: UpdateLiquidityLimit, isDeposit: boolean): void {
+  // market (representing gauge)
+  let market = Market.load(gauge.id) as Market;
+
+  // calculate number of gauge tokens minted/burned by user
+  let account = getOrCreateAccount(event.params.user);
+  let accountLiquidity = getOrCreateAccountLiquidity(account, gauge);
+  let outputTokenAmount = accountLiquidity.balance.minus(event.params.original_balance).abs();
+
+  // number of LP tokens deposited/withdrawn by user
+  let inputTokenAmounts: TokenBalance[] = [
+    new TokenBalance(gauge.lpToken, account.id, outputTokenAmount),
+  ];
+
+  // number of reward tokens claimed by user in this transaction
+  let rewardTokenAmounts: TokenBalance[] = [];
+
+  // total number of gauge tokens owned by user
+  accountLiquidity.balance = event.params.original_balance;
+  accountLiquidity.save();
+  let outputTokenBalance = accountLiquidity.balance;
+
+  // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
+  // in this case it is working balance of user (takes into account CRV vote boosting)
+  let inputTokenBalances: TokenBalance[] = [];
+  inputTokenBalances.push(
+    new TokenBalance(gauge.lpToken, account.id, event.params.working_balance)
+  );
+
+  // reward token amounts (CRV + custom tokens) claimable by user
+  let rewardTokenBalances: TokenBalance[] = [];
+  collectRewardTokenBalances(gauge, account, rewardTokenBalances, market);
+
+  // use common function to update position and store transaction
+  if (isDeposit) {
+    investInMarket(
+      event,
+      account,
+      market,
+      outputTokenAmount,
+      inputTokenAmounts,
+      rewardTokenAmounts,
+      outputTokenBalance,
+      inputTokenBalances,
+      rewardTokenBalances,
+      null
+    );
+  } else {
+    redeemFromMarket(
+      event,
+      account,
+      market,
+      outputTokenAmount,
+      inputTokenAmounts,
+      rewardTokenAmounts,
+      outputTokenBalance,
+      inputTokenBalances,
+      rewardTokenBalances,
+      null
+    );
+  }
 }
