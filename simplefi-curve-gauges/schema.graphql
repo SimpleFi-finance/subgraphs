@@ -234,6 +234,16 @@ type GaugeWithdraw @entity {
   value: BigDecimal!
 }
 
+type GaugeUpdateLiquidityLimit @entity {
+  id: ID! # {transactionHash}{account}{gauge}
+  gauge: Gauge!
+  user: Account!
+  original_balance: BigInt!
+  original_supply: BigInt!
+  working_balance: BigInt!
+  working_supply: BigInt!
+}
+
 type AccountLiquidity @entity {
   id: ID! # {accountAddress}{gaugeAddress}
   gauge: Gauge!

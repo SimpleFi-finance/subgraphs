@@ -4,7 +4,7 @@ import {
   Deposit,
   UpdateLiquidityLimit,
   Withdraw,
-  Transfer as GaugeTokenTranfer,
+  Transfer as GaugeTokenTransfer,
 } from "../generated/templates/LiquidityGauge/LiquidityGauge";
 
 import { Transfer as RewardTokenTransfer } from "../generated/templates/RewardToken/ERC20";
@@ -17,6 +17,7 @@ import {
   GaugeDeposit,
   GaugeSnapshot,
   GaugeWithdraw,
+  GaugeUpdateLiquidityLimit,
   Gauge,
   Market,
   AccountLiquidity,
@@ -70,15 +71,19 @@ export function handleWithdraw(event: Withdraw): void {
 }
 
 /**
- * UpdateLiquidityLimit event is emitted every time funds are deposited or withdrawn
+ * UpdateLiquidityLimit event is emitted when:
+ * - LP tokens are deposited or withdrawn
+ * - CRV is minted and sent to user
+ * - checkpoints are executed to update the rewards state
  * Handler updates the state of market and user's positions.
  * @param event
  */
 export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
-  let transactionHash = event.transaction.hash.toHexString();
-  let snapshotId = transactionHash.concat("-").concat(event.logIndex.toHexString());
-  let gauge = Gauge.load(event.address.toHexString()) as Gauge;
+  // store event info
+  getOrCreateGaugeUpdateLiquidityLimit(event);
 
+  // check if this is deposit/withdraw or neither
+  let gauge = Gauge.load(event.address.toHexString()) as Gauge;
   let isWithdraw = gauge.totalSupply > event.params.original_supply;
   let isDeposit = gauge.totalSupply < event.params.original_supply;
 
@@ -91,6 +96,8 @@ export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
   checkPendingTransferToZero(event, gauge);
 
   // create gauge snapshot
+  let transactionHash = event.transaction.hash.toHexString();
+  let snapshotId = transactionHash.concat("-").concat(event.logIndex.toHexString());
   let gaugeSnapshot = new GaugeSnapshot(snapshotId);
   gaugeSnapshot.gauge = event.address.toHexString();
   gaugeSnapshot.originalSupply = gauge.totalSupply;
@@ -131,7 +138,7 @@ export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
  * @param event
  * @returns
  */
-export function handleGaugeTokenTransfer(event: GaugeTokenTranfer): void {
+export function handleGaugeTokenTransfer(event: GaugeTokenTransfer): void {
   // if gauge contract generated event then it is gauge token transfer
   let gauge = Gauge.load(event.address.toHexString()) as Gauge;
 
@@ -242,12 +249,22 @@ export function handleRewardTokenTransfer(event: RewardTokenTransfer): void {
  * @param event
  */
 export function handleMinted(event: Minted): void {
+  // Load UpdateLiquidityLimit event which preceded minting
+  let transactionHash = event.transaction.hash.toHexString();
+  let user = event.params.recipient.toHexString();
+  let id = transactionHash
+    .concat("-")
+    .concat(user)
+    .concat("-")
+    .concat(event.params.gauge.toHexString());
+
+  let eventEntity = GaugeUpdateLiquidityLimit.load(id);
+
   // user who gets minted CRV tokens
   let account = getOrCreateAccount(event.params.recipient);
 
   // get gauge
   let gauge = Gauge.load(event.params.gauge.toHexString()) as Gauge;
-  let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
 
   // event emits total number of CRV tokens minted for user for this gauge
   let accountLiquidity = getOrCreateAccountLiquidity(account, gauge);
@@ -288,13 +305,8 @@ export function handleMinted(event: Minted): void {
   // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
   // in this case it is working balance of user (takes into account CRV vote boosting)
   let inputTokenBalances: TokenBalance[] = [];
-  let inputBalance = gaugeContract.try_working_balances(Address.fromString(account.id));
-  if (!inputBalance.reverted) {
-    inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, inputBalance.value));
-  } else {
-    // in case working balance can't be fetched, assume inputTokenBalance is equal to gauge token balance (no boost)
-    inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, accountGaugeTokenBalance));
-  }
+
+  inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, eventEntity.working_balance));
 
   // update reward token amounts (CRV + custom tokens) claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
@@ -335,6 +347,39 @@ function getOrCreateAccountLiquidity(account: Account, gauge: Gauge): AccountLiq
   liquidity.crvReceived = BigInt.fromI32(0);
   liquidity.save();
   return liquidity as AccountLiquidity;
+}
+
+/**
+ * Store params of UpdateLiquidityLimit event to entity, so they might be used for later processing.
+ * @param event
+ * @returns
+ */
+function getOrCreateGaugeUpdateLiquidityLimit(
+  event: UpdateLiquidityLimit
+): GaugeUpdateLiquidityLimit {
+  let transactionHash = event.transaction.hash.toHexString();
+  let user = event.params.user.toHexString();
+  let id = transactionHash
+    .concat("-")
+    .concat(user)
+    .concat("-")
+    .concat(event.address.toHexString());
+
+  let eventEntity = GaugeUpdateLiquidityLimit.load(id);
+
+  if (eventEntity != null) {
+    return eventEntity as GaugeUpdateLiquidityLimit;
+  }
+
+  eventEntity = new GaugeUpdateLiquidityLimit(id);
+  eventEntity.gauge = event.address.toHexString();
+  eventEntity.user = event.params.user.toHexString();
+  eventEntity.original_balance = event.params.original_balance;
+  eventEntity.original_supply = event.params.original_supply;
+  eventEntity.working_balance = event.params.working_balance;
+  eventEntity.working_supply = event.params.working_supply;
+  eventEntity.save();
+  return eventEntity as GaugeUpdateLiquidityLimit;
 }
 
 /**
@@ -445,15 +490,17 @@ function transferGaugeToken(
   // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
   // in this case it is working balance of user (takes into account CRV vote boosting)
   let fromInputTokenBalances: TokenBalance[] = [];
-  let inputBalance = gaugeContract.try_working_balances(Address.fromString(fromAccount.id));
-  if (!inputBalance.reverted) {
-    fromInputTokenBalances.push(
-      new TokenBalance(gauge.lpToken, fromAccount.id, inputBalance.value)
-    );
-  } else {
-    // in case working balance can't be fetched, assume inputTokenBalance is equal to gauge token balance (no boost)
-    fromInputTokenBalances.push(new TokenBalance(gauge.lpToken, fromAccount.id, fromTokenBalance));
-  }
+  // Load UpdateLiquidityLimit event which preceded token transfer
+  let entityId = event.transaction.hash
+    .toHexString()
+    .concat("-")
+    .concat(from.toHexString())
+    .concat("-")
+    .concat(event.address.toHexString());
+  let sendersUpdateLiquidityEvent = GaugeUpdateLiquidityLimit.load(entityId);
+  fromInputTokenBalances.push(
+    new TokenBalance(gauge.lpToken, fromAccount.id, sendersUpdateLiquidityEvent.working_balance)
+  );
 
   // reward token amounts (CRV + custom tokens) claimable by user
   let fromRewardTokenBalances: TokenBalance[] = [];
@@ -496,13 +543,17 @@ function transferGaugeToken(
   // inputTokenBalance -> number of LP tokens that can be redeemed by receiver's gauge tokens
   // in this case it is working balance of user (takes into account CRV vote boosting)
   let toInputTokenBalances: TokenBalance[] = [];
-  let toInputBalance = gaugeContract.try_working_balances(Address.fromString(toAccount.id));
-  if (!toInputBalance.reverted) {
-    toInputTokenBalances.push(new TokenBalance(gauge.lpToken, toAccount.id, toInputBalance.value));
-  } else {
-    // in case working balance can't be fetched, assume inputTokenBalance is equal to gauge token balance (no boost)
-    toInputTokenBalances.push(new TokenBalance(gauge.lpToken, toAccount.id, toTokenBalance));
-  }
+  // Load UpdateLiquidityLimit event which preceded token transfer
+  entityId = event.transaction.hash
+    .toHexString()
+    .concat("-")
+    .concat(to.toHexString())
+    .concat("-")
+    .concat(event.address.toHexString());
+  let receiversUpdateLiquidityEvent = GaugeUpdateLiquidityLimit.load(entityId);
+  toInputTokenBalances.push(
+    new TokenBalance(gauge.lpToken, toAccount.id, receiversUpdateLiquidityEvent.working_balance)
+  );
 
   // reward token amounts (CRV + custom tokens) claimable by user
   let toRewardTokenBalances: TokenBalance[] = [];
