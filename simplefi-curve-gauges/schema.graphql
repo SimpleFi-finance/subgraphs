@@ -249,6 +249,7 @@ type AccountLiquidity @entity {
   gauge: Gauge!
   account: Account!
   balance: BigInt!
+  workingBalance: BigInt!
   crvReceived: BigInt!
 }
 
