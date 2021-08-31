@@ -211,8 +211,6 @@ export function handleRewardTokenTransfer(event: RewardTokenTransfer): void {
     return;
   }
 
-  let gaugeContract = GaugeContract.bind(Address.fromString(gauge.id));
-
   //// Collect data for position update after reward token has been claimed by user
 
   // user who gets the reward token
