@@ -224,14 +224,14 @@ type GaugeDeposit @entity {
   id: ID!
   gauge: Gauge!
   provider: Account!
-  value: BigDecimal!
+  value: BigInt!
 }
 
 type GaugeWithdraw @entity {
   id: ID!
   gauge: Gauge!
   provider: Account!
-  value: BigDecimal!
+  value: BigInt!
 }
 
 type GaugeUpdateLiquidityLimit @entity {

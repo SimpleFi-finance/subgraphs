@@ -49,8 +49,13 @@ export function handleDeposit(event: Deposit): void {
   );
   deposit.gauge = event.address.toHexString();
   deposit.provider = account.id;
-  deposit.value = event.params.value.toBigDecimal();
+  deposit.value = event.params.value;
   deposit.save();
+
+  // don't update user's position for 0 value deposit
+  if (deposit.value == BigInt.fromI32(0)) {
+    return;
+  }
 
   // load UpdateLiquidityLimit event which preceded deposit
   let transactionHash = event.transaction.hash.toHexString();
@@ -80,8 +85,13 @@ export function handleWithdraw(event: Withdraw): void {
   );
   withdrawal.gauge = event.address.toHexString();
   withdrawal.provider = account.id;
-  withdrawal.value = event.params.value.toBigDecimal();
+  withdrawal.value = event.params.value;
   withdrawal.save();
+
+  // don't update user's position for 0 value withdrawal
+  if (withdrawal.value == BigInt.fromI32(0)) {
+    return;
+  }
 
   // load UpdateLiquidityLimit event which preceded withdrawal
   let transactionHash = event.transaction.hash.toHexString();
