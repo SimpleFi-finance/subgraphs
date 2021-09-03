@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum, store } from "@graphprotocol/graph-ts";
 
 import {
   Deposit,
@@ -22,7 +22,6 @@ import {
   Market,
   AccountLiquidity,
   Account,
-  GaugeTokenTransferToZero,
 } from "../generated/schema";
 
 import {
@@ -44,9 +43,7 @@ export function handleDeposit(event: Deposit): void {
   let account = getOrCreateAccount(event.params.provider);
 
   // save new deposit entity
-  let deposit = new GaugeDeposit(
-    event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
-  );
+  let deposit = new GaugeDeposit(event.transaction.hash.toHexString() + "-" + account.id);
   deposit.gauge = event.address.toHexString();
   deposit.provider = account.id;
   deposit.value = event.params.value;
@@ -70,6 +67,9 @@ export function handleDeposit(event: Deposit): void {
 
   // update user position in market after deposit
   updateUserPosition(gauge, eventEntity, event, true);
+
+  // remove entity so that new one can be created in same transaction for same user/gauge
+  store.remove("GaugeUpdateLiquidityLimit", eventEntity.id);
 }
 
 /**
@@ -80,9 +80,7 @@ export function handleWithdraw(event: Withdraw): void {
   let account = getOrCreateAccount(event.params.provider);
 
   // save new deposit entity
-  let withdrawal = new GaugeWithdraw(
-    event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
-  );
+  let withdrawal = new GaugeWithdraw(event.transaction.hash.toHexString() + "-" + account.id);
   withdrawal.gauge = event.address.toHexString();
   withdrawal.provider = account.id;
   withdrawal.value = event.params.value;
@@ -106,6 +104,9 @@ export function handleWithdraw(event: Withdraw): void {
 
   // update user position in market after withdrawal
   updateUserPosition(gauge, eventEntity, event, false);
+
+  // remove entity so that new one can be created in same transaction for same user/gauge
+  store.remove("GaugeUpdateLiquidityLimit", eventEntity.id);
 }
 
 /**
@@ -130,9 +131,6 @@ export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
     return;
   }
 
-  // handle any pending gauge token tranfers to zero address
-  checkPendingTransferToZero(event, gauge);
-
   // create gauge snapshot
   let transactionHash = event.transaction.hash.toHexString();
   let snapshotId = transactionHash.concat("-").concat(event.logIndex.toHexString());
@@ -146,11 +144,6 @@ export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
   gaugeSnapshot.blockNumber = event.block.number;
   gaugeSnapshot.logIndex = event.logIndex;
   gaugeSnapshot.save();
-
-  // if this was burn event, reset lastTransferToZero
-  if (isWithdraw) {
-    gauge.lastTransferToZero = null;
-  }
 
   // update gauge's LP token total and working supply
   gauge.totalSupply = event.params.original_supply;
@@ -187,18 +180,19 @@ export function handleGaugeTokenTransfer(event: GaugeTokenTransfer): void {
     return;
   }
 
-  // if receiver is zero-address create transferToZero entity and return - position updates are done handle deposit/withdrawal
+  // if receiver is zero address and there is preceding withdrawal entity
+  // -> then don't handle it as it was already done in withdrawal handler
   if (event.params._to.toHexString() == ADDRESS_ZERO) {
-    let transferToZero = new GaugeTokenTransferToZero(event.transaction.hash.toHexString());
-    transferToZero.from = event.params._from;
-    transferToZero.to = event.params._to;
-    transferToZero.value = event.params._value;
-    transferToZero.save();
+    let id = event.transaction.hash
+      .toHexString()
+      .concat("-")
+      .concat(event.params._from.toHexString());
+    let withdrawal = GaugeWithdraw.load(id);
 
-    gauge.lastTransferToZero = transferToZero.id;
-    gauge.save();
-
-    return;
+    if (withdrawal != null && withdrawal.value == event.params._value) {
+      store.remove("GaugeWithdraw", id);
+      return;
+    }
   }
 
   transferGaugeToken(gauge, event, event.params._from, event.params._to, event.params._value);
@@ -354,6 +348,9 @@ export function handleMinted(event: Minted): void {
     rewardTokenBalances,
     null
   );
+
+  // remove entity so that new one can be created in same transaction for same user/gauge
+  store.remove("GaugeUpdateLiquidityLimit", eventEntity.id);
 }
 
 /**
@@ -607,42 +604,10 @@ function transferGaugeToken(
     toRewardTokenBalances,
     transferredFrom
   );
-}
 
-/**
- * Check if there is a pending transfer of gauge tokens to zero address.
- * If yes, and it is not part of deposit/withdraw events, then update sender's position
- * Otherwise positions will be updated in deposit/withdraw handlers
- * @param event
- * @param pool
- * @returns
- */
-function checkPendingTransferToZero(event: ethereum.Event, gauge: Gauge): void {
-  // There's no ongoing gauge token transfer to zero address
-  if (gauge.lastTransferToZero == null) {
-    return;
-  }
-
-  // This LP token transfer to zero address is part of deposit/withdraw event, don't handle it here
-  if (gauge.lastTransferToZero == event.transaction.hash.toHexString()) {
-    return;
-  }
-
-  // It's a manual transfer to zero address, not part of deposit/withdraw events
-  // Update sender's position accordingly
-  let transferTozero = GaugeTokenTransferToZero.load(
-    gauge.lastTransferToZero
-  ) as GaugeTokenTransferToZero;
-  transferGaugeToken(
-    gauge,
-    event,
-    transferTozero.from as Address,
-    transferTozero.to as Address,
-    transferTozero.value
-  );
-
-  gauge.lastTransferToZero = null;
-  gauge.save();
+  // remove entity so that new one can be created in same transaction for same user/gauge
+  store.remove("GaugeUpdateLiquidityLimit", sendersUpdateLiquidityEvent.id);
+  store.remove("GaugeUpdateLiquidityLimit", receiversUpdateLiquidityEvent.id);
 }
 
 /**
