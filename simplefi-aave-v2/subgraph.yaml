@@ -1,0 +1,37 @@
+specVersion: 0.0.2
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: LendingPoolAddressesProviderRegistry
+    source:
+      address: "0x52D306e36E3B6B02c153d0266ff0f85d18BCD413"
+      abi: LendingPoolAddressesProviderRegistry
+      startBlock: 11360925
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Pool
+        - PoolSnapshot
+      abis:
+        - name: ERC20
+          file: ./abis/IERC20.json
+        - name: LendingPoolAddressesProviderRegistry
+          file: ./abis/LendingPoolAddressesProviderRegistry.json
+      eventHandlers:
+        - event: AddressesProviderRegistered(indexed address)
+          handler: handleAddressesProviderRegistered
+        - event: AddressesProviderUnregistered(indexed address)
+          handler: handleAddressesProviderUnregistered
+      file: src/mappings/mapping.ts
+#templates:
