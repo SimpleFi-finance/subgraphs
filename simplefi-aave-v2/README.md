@@ -1,0 +1,25 @@
+total 44M
+-rw-r--r--  1 goran goran 8.8K Dec 17  2018 examples.desktop
+drwxr-xr-x  2 goran goran 4.0K Dec 17  2018 Videos
+drwxr-xr-x  2 goran goran 4.0K Dec 17  2018 Templates
+drwxr-xr-x  2 goran goran 4.0K Dec 17  2018 Public
+drwxr-xr-x  2 goran goran 4.0K Dec 17  2018 Music
+drwxr-xr-x  2 goran goran 4.0K Jun  7  2019 IOTA
+drwxr-xr-x 27 goran goran 4.0K Apr 21  2020 anaconda3
+drwxr-xr-x  2 goran goran 4.0K Jun 22  2020 Desktop
+drwxr-xr-x  6 goran goran 4.0K Jun 22  2020 Jts
+drwxr-xr-x 10 goran goran 4.0K Sep 23  2020 development
+drwxr-xr-x  3 goran goran 4.0K Dec  5  2020 Postman
+drwxr-xr-x  3 goran goran 4.0K Dec 23  2020 backup_repos
+-rw-r--r--  1 goran goran  44M Jan 11  2021 zoom_amd64.deb
+drwxr-xr-x 14 goran goran 4.0K Jul  8 21:43 snap
+drwxr-xr-x  2 goran goran 4.0K Aug 15 14:14 bin
+drwxr-xr-x 10 goran goran 4.0K Aug 16 10:44 Documents
+drwxr-xr-x  3 goran goran 4.0K Sep  2 10:12 Pictures
+drwxr-xr-x 20 goran goran 4.0K Sep  3 14:51 repos
+drwxr-xr-x 25 goran goran  16K Sep  4 14:32 Downloads
+-rw-rw-r--  1 goran goran  26K Sep  4 14:54 common.ts
+-rw-rw-r--  1 goran goran  358 Sep  4 14:58 package-lock.json
+drwxrwxr-x  3 goran goran 4.0K Sep  4 14:58 node_modules
+-rw-rw-r--  1 goran goran  27K Sep  4 15:01 common.js
+-rw-rw-r--  1 goran goran    0 Sep  4 15:01 common.md
