@@ -182,7 +182,7 @@ type Gauge @entity {
   version: GaugeVersion!
 
   " Input token for gauge "
-  lpToken: Token!
+  lpToken: Token
 
   " Total amount of LP tokens deposited to gauge "
   totalSupply: BigInt!
