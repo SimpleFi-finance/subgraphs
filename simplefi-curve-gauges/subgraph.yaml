@@ -131,3 +131,7 @@ templates:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleRewardTokenTransfer
       file: ./src/gauge.ts
+
+graft:
+  base: QmPGQurcpovXHo9aFY4fyHahK7bywF6Mj84nGjKm4SP4EV # Subgraph ID of base subgraph
+  block: 12648630 # Block number

@@ -35,6 +35,8 @@ import {
 
 import { GaugeVersion } from "./constants";
 
+const GAUGE_TYPE_ETHEREUM_MAINNET = "0";
+
 /**
  * When user deposits funds create entity and update user's position
  * @param event
@@ -272,6 +274,12 @@ export function handleRewardTokenTransfer(event: RewardTokenTransfer): void {
  * @param event
  */
 export function handleMinted(event: Minted): void {
+  // get gauge
+  let gauge = Gauge.load(event.params.gauge.toHexString()) as Gauge;
+
+  // only handle CRV minting for mainnet gauges
+  if (gauge.type != GAUGE_TYPE_ETHEREUM_MAINNET) return;
+
   // Load UpdateLiquidityLimit event which preceded minting
   let transactionHash = event.transaction.hash.toHexString();
   let user = event.params.recipient.toHexString();
@@ -285,9 +293,6 @@ export function handleMinted(event: Minted): void {
 
   // user who gets minted CRV tokens
   let account = getOrCreateAccount(event.params.recipient);
-
-  // get gauge
-  let gauge = Gauge.load(event.params.gauge.toHexString()) as Gauge;
 
   // event emits total number of CRV tokens minted for user for this gauge
   let accountLiquidity = getOrCreateAccountLiquidity(account, gauge);
