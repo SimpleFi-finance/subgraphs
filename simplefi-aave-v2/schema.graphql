@@ -168,4 +168,9 @@ type PositionSnapshot @entity {
 
 # Aave protocol entities
 
+type LendingPoolAddressesProvider @entity {
+  id: ID! # {address}
+  address: String!
+}
+
 # END - Aave protocol entities
