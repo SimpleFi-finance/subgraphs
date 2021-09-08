@@ -196,6 +196,7 @@ enum GaugeVersion {
   LIQUIDITY_GAUGE_V1
   LIQUIDITY_GAUGE_V2
   LIQUIDITY_GAUGE_V3
+  LIQUIDITY_GAUGE_ANDRE
 }
 
 type GaugeSnapshot @entity {

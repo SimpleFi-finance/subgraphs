@@ -452,7 +452,10 @@ function collectRewardTokenBalances(
     }
   } else if (gauge.version == GaugeVersion.LIQUIDITY_GAUGE_V1) {
     // do nothing, no reward tokens in V1
-  } else if (gauge.version == GaugeVersion.LIQUIDITY_GAUGE_V2) {
+  } else if (
+    gauge.version == GaugeVersion.LIQUIDITY_GAUGE_V2 ||
+    gauge.version == GaugeVersion.LIQUIDITY_GAUGE_ANDRE
+  ) {
     let rewardTokens = market.rewardTokens as string[];
     for (let i: i32 = 1; i < market.rewardTokens.length; i++) {
       let claimableCustomRewardToken = gaugeContract.try_claimable_reward1(

@@ -268,4 +268,5 @@ export namespace GaugeVersion {
   export const LIQUIDITY_GAUGE_V1 = "LIQUIDITY_GAUGE_V1";
   export const LIQUIDITY_GAUGE_V2 = "LIQUIDITY_GAUGE_V2";
   export const LIQUIDITY_GAUGE_V3 = "LIQUIDITY_GAUGE_V3";
+  export const LIQUIDITY_GAUGE_ANDRE = "LIQUIDITY_GAUGE_ANDRE";
 }

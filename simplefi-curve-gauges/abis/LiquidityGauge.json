@@ -1079,5 +1079,18 @@
     "stateMutability": "view",
     "type": "function",
     "gas": 2416
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "reward_count",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "gas": 3498
   }
 ]
