@@ -167,5 +167,19 @@ type PositionSnapshot @entity {
 # END - Common entities for all protocols
 
 # Sushiswap farm protocol entities
+type SushiFarm @entity {
+  id: ID! # {pid}
+  masterChef: String!
+  lpToken: Token!
+  rewarder: String!
+  allocPoint: BigInt!
+  totalSupply: BigInt!
+  created: BigInt!
+  createdAtBlock: BigInt!
+  createdAtTransaction: Bytes!
+
+  #lastRewardBlock: BigInt!
+  #accSushiPerShare: BigInt!
+}
 
 # END - Sushiswap farm protocol entities
