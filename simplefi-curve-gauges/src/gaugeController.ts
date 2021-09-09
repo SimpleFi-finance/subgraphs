@@ -133,6 +133,12 @@ function determineGaugeVersion(gauge: Gauge, gaugeContract: GaugeContract): void
     return;
   }
 
+  // only LIQUIDITY_GAUGE_ANDRE has reward_count function
+  if (!gaugeContract.try_reward_count().reverted) {
+    gauge.version = GaugeVersion.LIQUIDITY_GAUGE_ANDRE;
+    return;
+  }
+
   // V1 doesn't have reward_contract function nor reward_count
   if (gaugeContract.try_reward_contract().reverted && gaugeContract.try_reward_count().reverted) {
     gauge.version = GaugeVersion.LIQUIDITY_GAUGE_V1;
@@ -142,12 +148,6 @@ function determineGaugeVersion(gauge: Gauge, gaugeContract: GaugeContract): void
   // V2 doesn't have last_claim function
   if (gaugeContract.try_last_claim().reverted) {
     gauge.version = GaugeVersion.LIQUIDITY_GAUGE_V2;
-    return;
-  }
-
-  // only LIQUIDITY_GAUGE_ANDRE has reward_count function
-  if (!gaugeContract.try_reward_count().reverted) {
-    gauge.version = GaugeVersion.LIQUIDITY_GAUGE_ANDRE;
     return;
   }
 
