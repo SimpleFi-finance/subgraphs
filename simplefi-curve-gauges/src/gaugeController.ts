@@ -13,6 +13,7 @@ import { RewardToken, LiquidityGauge } from "../generated/templates";
 import { Gauge, GaugeType, Token } from "../generated/schema";
 
 const MAX_N_TOKENS = 8;
+const CRV_TOKEN = "0xd533a949740bb3306d119cc777fa900ba034cd52";
 
 /**
  * Create new gauge entity and start indexing it
@@ -65,6 +66,10 @@ export function handleNewGauge(event: NewGauge): void {
   let crvTokenAddress = gaugeContract.try_crv_token();
   if (!crvTokenAddress.reverted) {
     let crvToken = getOrCreateERC20Token(event, crvTokenAddress.value);
+    rewardTokens.push(crvToken);
+  } else {
+    // if there's no function to fetch it, use hardcoded CRV address
+    let crvToken = getOrCreateERC20Token(event, Address.fromString(CRV_TOKEN));
     rewardTokens.push(crvToken);
   }
 
