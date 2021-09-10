@@ -22,6 +22,8 @@ dataSources:
           file: ./abis/MasterChefV2.json
         - name: IERC20
           file: ./abis/IERC20.json
+        - name: IRewarder
+          file: ./abis/IRewarder.json
       entities:
         - MasterChefV2
         - Block

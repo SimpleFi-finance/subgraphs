@@ -19,6 +19,7 @@ enum TokenStandard {
 enum ProtocolName {
   UNISWAP_V2
   SUSHISWAP
+  SUSHISWAP_FARM
 }
 
 enum ProtocolType {
