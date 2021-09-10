@@ -168,6 +168,7 @@ type PositionSnapshot @entity {
 # END - Common entities for all protocols
 
 # Sushiswap farm protocol entities
+
 type SushiFarm @entity {
   id: ID! # {pid}
   masterChef: String!
@@ -175,12 +176,55 @@ type SushiFarm @entity {
   rewarder: String!
   allocPoint: BigInt!
   totalSupply: BigInt!
+
   created: BigInt!
   createdAtBlock: BigInt!
   createdAtTransaction: Bytes!
 
-  #lastRewardBlock: BigInt!
-  #accSushiPerShare: BigInt!
+  lastRewardBlock: BigInt!
+  accSushiPerShare: BigInt!
+}
+
+type SushiFarmSnapshot @entity {
+  " trasactionHash-logIndex "
+  id: ID!
+
+  sushiFarm: SushiFarm!
+  allocPoint: BigInt!
+  totalSupply: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  transactionIndexInBlock: BigInt!
+  logIndex: BigInt!
+}
+
+type UserInfo @entity {
+  " usersAddress-farmPID"
+  id: ID!
+
+  " LP token amount the user has provided "
+  amount: BigInt!
+
+  " amount of SUSHI entitled to the user "
+  rewardDebt: BigInt!
+}
+
+type FarmDeposit @entity {
+  " transaction hash + log index "
+  id: ID!
+
+  " farm to which LP tokens are deposited "
+  sushiFarm: SushiFarm!
+
+  " account which performed the deposit "
+  depositer: Account!
+
+  " receiver of `amount` deposit benefit "
+  depositReceiver: Account!
+
+  " LP token amount to deposit "
+  amount: BigInt!
 }
 
 # END - Sushiswap farm protocol entities
