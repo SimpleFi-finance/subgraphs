@@ -47,5 +47,5 @@ dataSources:
           handler: handleLogPoolAddition
         # - event: LogSetPool(indexed uint256,uint256,indexed address,bool)
         #   handler: logSetPool
-        # - event: LogUpdatePool(indexed uint256,uint64,uint256,uint256)
-        #   handler: logUpdatePool
+        - event: LogUpdatePool(indexed uint256,uint64,uint256,uint256)
+          handler: handleLogUpdatePool

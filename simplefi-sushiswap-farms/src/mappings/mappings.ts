@@ -1,6 +1,11 @@
 import { Address, BigInt, log } from "@graphprotocol/graph-ts";
 
-import { MasterChefV2, LogPoolAddition, Deposit } from "../../generated/MasterChefV2/MasterChefV2";
+import {
+  MasterChefV2,
+  LogPoolAddition,
+  Deposit,
+  LogUpdatePool,
+} from "../../generated/MasterChefV2/MasterChefV2";
 
 import { IRewarder } from "../../generated/MasterChefV2/IRewarder";
 
@@ -98,37 +103,10 @@ export function handleDeposit(event: Deposit): void {
     return;
   }
 
-  // create farm snapshot
-  let snapshotId = event.transaction.hash
-    .toHexString()
-    .concat("-")
-    .concat(event.logIndex.toHexString());
-  let farmSnapshot = new SushiFarmSnapshot(snapshotId);
-  farmSnapshot.sushiFarm = sushiFarm.id;
-  farmSnapshot.allocPoint = sushiFarm.allocPoint;
-  farmSnapshot.totalSupply = sushiFarm.totalSupply;
-  farmSnapshot.timestamp = event.block.timestamp;
-  farmSnapshot.transactionHash = event.transaction.hash.toHexString();
-  farmSnapshot.transactionIndexInBlock = event.transaction.index;
-  farmSnapshot.blockNumber = event.block.number;
-  farmSnapshot.logIndex = event.logIndex;
-  farmSnapshot.save();
-
-  // update farm's LP token total supply
-  sushiFarm.totalSupply = sushiFarm.totalSupply.plus(deposit.amount);
-  sushiFarm.save();
-
-  // update market and create market snapshot
+  ////// update user's position
   let masterChef = event.address.toHexString();
   let market = Market.load(masterChef.concat("-").concat(sushiFarm.id)) as Market;
-  updateMarket(
-    event,
-    market,
-    [new TokenBalance(sushiFarm.lpToken, masterChef, sushiFarm.totalSupply)],
-    BigInt.fromI32(0)
-  );
 
-  ////// update user's position
   let userInfo = getOrCreateUserInfo(receiver.id, sushiFarm.id);
   userInfo.amount = userInfo.amount.plus(amount);
   userInfo.rewardDebt = userInfo.rewardDebt.plus(
@@ -164,6 +142,46 @@ export function handleDeposit(event: Deposit): void {
     inputTokenBalances,
     rewardTokenBalances,
     null
+  );
+}
+
+/**
+ *
+ * @param event
+ */
+export function handleLogUpdatePool(event: LogUpdatePool) {
+  let sushiFarm = SushiFarm.load(event.params.pid.toHexString());
+
+  // create farm snapshot
+  let snapshotId = event.transaction.hash
+    .toHexString()
+    .concat("-")
+    .concat(event.logIndex.toHexString());
+  let farmSnapshot = new SushiFarmSnapshot(snapshotId);
+  farmSnapshot.sushiFarm = sushiFarm.id;
+  farmSnapshot.allocPoint = sushiFarm.allocPoint;
+  farmSnapshot.totalSupply = sushiFarm.totalSupply;
+  farmSnapshot.timestamp = event.block.timestamp;
+  farmSnapshot.transactionHash = event.transaction.hash.toHexString();
+  farmSnapshot.transactionIndexInBlock = event.transaction.index;
+  farmSnapshot.blockNumber = event.block.number;
+  farmSnapshot.logIndex = event.logIndex;
+  farmSnapshot.save();
+
+  // update sushifarm
+  sushiFarm.lastRewardBlock = event.params.lastRewardBlock;
+  sushiFarm.totalSupply = event.params.lpSupply;
+  sushiFarm.accSushiPerShare = event.params.accSushiPerShare;
+  sushiFarm.save();
+
+  // update market
+  let masterChef = event.address.toHexString();
+  let market = Market.load(masterChef.concat("-").concat(sushiFarm.id)) as Market;
+  updateMarket(
+    event,
+    market,
+    [new TokenBalance(sushiFarm.lpToken, masterChef, sushiFarm.totalSupply)],
+    BigInt.fromI32(0)
   );
 }
 
