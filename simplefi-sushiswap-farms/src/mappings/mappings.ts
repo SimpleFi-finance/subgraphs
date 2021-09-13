@@ -2,11 +2,12 @@ import { Address, BigInt, log } from "@graphprotocol/graph-ts";
 
 import {
   MasterChefV2,
-  LogPoolAddition,
   Deposit,
+  Withdraw,
+  EmergencyWithdraw,
+  LogPoolAddition,
   LogUpdatePool,
   LogSetPool,
-  Withdraw,
 } from "../../generated/MasterChefV2/MasterChefV2";
 
 import { IRewarder } from "../../generated/MasterChefV2/IRewarder";
@@ -187,6 +188,75 @@ export function handleWithdraw(event: Withdraw): void {
   userInfo.rewardDebt = userInfo.rewardDebt.minus(
     amount.times(sushiFarm.accSushiPerShare).div(oneE12)
   );
+  userInfo.save();
+
+  let outputTokenAmount = BigInt.fromI32(0);
+  let inputTokenAmounts: TokenBalance[] = [new TokenBalance(sushiFarm.lpToken, masterChef, amount)];
+
+  // number of reward tokens claimed by user in this transaction
+  let rewardTokenAmounts: TokenBalance[] = [];
+
+  // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
+  let outputTokenBalance = BigInt.fromI32(0);
+
+  // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
+  let inputTokenBalances: TokenBalance[] = [];
+  inputTokenBalances.push(new TokenBalance(sushiFarm.lpToken, masterChef, userInfo.amount));
+
+  // reward token amounts (CRV + custom tokens) claimable by user
+  let rewardTokenBalances: TokenBalance[] = [];
+  collectRewardTokenBalances(sushiFarm, receiver, rewardTokenBalances, market);
+
+  redeemFromMarket(
+    event,
+    receiver,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
+}
+
+/**
+ *
+ * @param event
+ * @returns
+ */
+export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
+  let sushiFarm = SushiFarm.load(event.params.pid.toString());
+  let user = getOrCreateAccount(event.params.user);
+  let receiver = getOrCreateAccount(event.params.to);
+  let amount = event.params.amount;
+
+  // save new deposit entity
+  let withdrawal = new FarmWithdrawal(
+    event.transaction.hash
+      .toHexString()
+      .concat("-")
+      .concat(event.logIndex.toHexString())
+  );
+  withdrawal.sushiFarm = sushiFarm.id;
+  withdrawal.withdrawer = user.id;
+  withdrawal.withdrawalReceiver = receiver.id;
+  withdrawal.amount = amount;
+  withdrawal.save();
+
+  // don't update user's position for empty emergency withdrawal
+  if (withdrawal.amount == BigInt.fromI32(0)) {
+    return;
+  }
+
+  ////// update user's position
+  let masterChef = event.address.toHexString();
+  let market = Market.load(masterChef.concat("-").concat(sushiFarm.id)) as Market;
+
+  let userInfo = getOrCreateUserInfo(receiver.id, sushiFarm.id);
+  userInfo.amount = BigInt.fromI32(0);
+  userInfo.rewardDebt = BigInt.fromI32(0);
   userInfo.save();
 
   let outputTokenAmount = BigInt.fromI32(0);
