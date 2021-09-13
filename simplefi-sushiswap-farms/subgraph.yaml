@@ -38,14 +38,14 @@ dataSources:
         - event: Deposit(indexed address,indexed uint256,uint256,indexed address)
           handler: handleDeposit
         - event: Withdraw(indexed address,indexed uint256,uint256,indexed address)
-          handler: withdraw
+          handler: handleWithdraw
         # - event: EmergencyWithdraw(indexed address,indexed uint256,uint256,indexed address)
         #   handler: emergencyWithdraw
         # - event: Harvest(indexed address,indexed uint256,uint256)
         #   handler: harvest
         - event: LogPoolAddition(indexed uint256,uint256,indexed address,indexed address)
           handler: handleLogPoolAddition
-        # - event: LogSetPool(indexed uint256,uint256,indexed address,bool)
-        #   handler: logSetPool
+        - event: LogSetPool(indexed uint256,uint256,indexed address,bool)
+          handler: handleLogSetPool
         - event: LogUpdatePool(indexed uint256,uint64,uint256,uint256)
           handler: handleLogUpdatePool

@@ -5,6 +5,7 @@ import {
   LogPoolAddition,
   Deposit,
   LogUpdatePool,
+  LogSetPool,
   Withdraw,
 } from "../../generated/MasterChefV2/MasterChefV2";
 
@@ -83,7 +84,7 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
  * @returns
  */
 export function handleDeposit(event: Deposit): void {
-  let sushiFarm = SushiFarm.load(event.params.pid.toHexString());
+  let sushiFarm = SushiFarm.load(event.params.pid.toString());
   let user = getOrCreateAccount(event.params.user);
   let receiver = getOrCreateAccount(event.params.to);
   let amount = event.params.amount;
@@ -154,7 +155,7 @@ export function handleDeposit(event: Deposit): void {
  * @returns
  */
 export function handleWithdraw(event: Withdraw): void {
-  let sushiFarm = SushiFarm.load(event.params.pid.toHexString());
+  let sushiFarm = SushiFarm.load(event.params.pid.toString());
   let user = getOrCreateAccount(event.params.user);
   let receiver = getOrCreateAccount(event.params.to);
   let amount = event.params.amount;
@@ -224,7 +225,7 @@ export function handleWithdraw(event: Withdraw): void {
  * @param event
  */
 export function handleLogUpdatePool(event: LogUpdatePool) {
-  let sushiFarm = SushiFarm.load(event.params.pid.toHexString());
+  let sushiFarm = SushiFarm.load(event.params.pid.toString());
 
   // create farm snapshot
   let snapshotId = event.transaction.hash
@@ -257,6 +258,21 @@ export function handleLogUpdatePool(event: LogUpdatePool) {
     [new TokenBalance(sushiFarm.lpToken, masterChef, sushiFarm.totalSupply)],
     BigInt.fromI32(0)
   );
+}
+
+/**
+ *
+ * @param event
+ */
+export function handleSetPool(event: LogSetPool) {
+  let sushiFarm = SushiFarm.load(event.params.pid.toString());
+
+  // update sushifarm
+  sushiFarm.allocPoint = event.params.allocPoint;
+  if (event.params.overwrite) {
+    sushiFarm.rewarder = event.params.rewarder.toHexString();
+  }
+  sushiFarm.save();
 }
 
 /**
