@@ -5,6 +5,7 @@ import {
   LogPoolAddition,
   Deposit,
   LogUpdatePool,
+  Withdraw,
 } from "../../generated/MasterChefV2/MasterChefV2";
 
 import { IRewarder } from "../../generated/MasterChefV2/IRewarder";
@@ -13,6 +14,7 @@ import {
   SushiFarm,
   SushiFarmSnapshot,
   FarmDeposit,
+  FarmWithdrawal,
   UserInfo,
   Market,
   Account,
@@ -25,6 +27,7 @@ import {
   getOrCreateAccount,
   updateMarket,
   investInMarket,
+  redeemFromMarket,
   TokenBalance,
   ADDRESS_ZERO,
 } from "../library/common";
@@ -81,7 +84,7 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
  */
 export function handleDeposit(event: Deposit): void {
   let sushiFarm = SushiFarm.load(event.params.pid.toHexString());
-  let sender = getOrCreateAccount(event.params.user);
+  let user = getOrCreateAccount(event.params.user);
   let receiver = getOrCreateAccount(event.params.to);
   let amount = event.params.amount;
 
@@ -93,7 +96,7 @@ export function handleDeposit(event: Deposit): void {
       .concat(event.logIndex.toHexString())
   );
   deposit.sushiFarm = sushiFarm.id;
-  deposit.depositer = sender.id;
+  deposit.depositer = user.id;
   deposit.depositReceiver = receiver.id;
   deposit.amount = amount;
   deposit.save();
@@ -114,7 +117,7 @@ export function handleDeposit(event: Deposit): void {
   );
   userInfo.save();
 
-  let outputTokenAmount = amount;
+  let outputTokenAmount = BigInt.fromI32(0);
   let inputTokenAmounts: TokenBalance[] = [new TokenBalance(sushiFarm.lpToken, masterChef, amount)];
 
   // number of reward tokens claimed by user in this transaction
@@ -132,6 +135,77 @@ export function handleDeposit(event: Deposit): void {
   collectRewardTokenBalances(sushiFarm, receiver, rewardTokenBalances, market);
 
   investInMarket(
+    event,
+    receiver,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
+}
+
+/**
+ *
+ * @param event
+ * @returns
+ */
+export function handleWithdraw(event: Withdraw): void {
+  let sushiFarm = SushiFarm.load(event.params.pid.toHexString());
+  let user = getOrCreateAccount(event.params.user);
+  let receiver = getOrCreateAccount(event.params.to);
+  let amount = event.params.amount;
+
+  // save new deposit entity
+  let withdrawal = new FarmWithdrawal(
+    event.transaction.hash
+      .toHexString()
+      .concat("-")
+      .concat(event.logIndex.toHexString())
+  );
+  withdrawal.sushiFarm = sushiFarm.id;
+  withdrawal.withdrawer = user.id;
+  withdrawal.withdrawalReceiver = receiver.id;
+  withdrawal.amount = amount;
+  withdrawal.save();
+
+  // don't update user's position for 0 value withdrawal
+  if (withdrawal.amount == BigInt.fromI32(0)) {
+    return;
+  }
+
+  ////// update user's position
+  let masterChef = event.address.toHexString();
+  let market = Market.load(masterChef.concat("-").concat(sushiFarm.id)) as Market;
+
+  let userInfo = getOrCreateUserInfo(receiver.id, sushiFarm.id);
+  userInfo.amount = userInfo.amount.minus(amount);
+  userInfo.rewardDebt = userInfo.rewardDebt.minus(
+    amount.times(sushiFarm.accSushiPerShare).div(oneE12)
+  );
+  userInfo.save();
+
+  let outputTokenAmount = BigInt.fromI32(0);
+  let inputTokenAmounts: TokenBalance[] = [new TokenBalance(sushiFarm.lpToken, masterChef, amount)];
+
+  // number of reward tokens claimed by user in this transaction
+  let rewardTokenAmounts: TokenBalance[] = [];
+
+  // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
+  let outputTokenBalance = BigInt.fromI32(0);
+
+  // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
+  let inputTokenBalances: TokenBalance[] = [];
+  inputTokenBalances.push(new TokenBalance(sushiFarm.lpToken, masterChef, userInfo.amount));
+
+  // reward token amounts (CRV + custom tokens) claimable by user
+  let rewardTokenBalances: TokenBalance[] = [];
+  collectRewardTokenBalances(sushiFarm, receiver, rewardTokenBalances, market);
+
+  redeemFromMarket(
     event,
     receiver,
     market,

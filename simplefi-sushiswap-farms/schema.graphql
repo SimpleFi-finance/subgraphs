@@ -227,4 +227,21 @@ type FarmDeposit @entity {
   amount: BigInt!
 }
 
+type FarmWithdrawal @entity {
+  " transaction hash + log index "
+  id: ID!
+
+  " farm from which LP tokens are withdrawn "
+  sushiFarm: SushiFarm!
+
+  " account which performed the withdrawal "
+  withdrawer: Account!
+
+  " receiver of LP tokens "
+  withdrawalReceiver: Account!
+
+  " LP token amount to withdraw "
+  amount: BigInt!
+}
+
 # END - Sushiswap farm protocol entities
