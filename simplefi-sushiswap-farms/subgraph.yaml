@@ -41,8 +41,8 @@ dataSources:
           handler: handleWithdraw
         - event: EmergencyWithdraw(indexed address,indexed uint256,uint256,indexed address)
           handler: handleEmergencyWithdraw
-        # - event: Harvest(indexed address,indexed uint256,uint256)
-        #   handler: harvest
+        - event: Harvest(indexed address,indexed uint256,uint256)
+          handler: handleHarvest
         - event: LogPoolAddition(indexed uint256,uint256,indexed address,indexed address)
           handler: handleLogPoolAddition
         - event: LogSetPool(indexed uint256,uint256,indexed address,bool)

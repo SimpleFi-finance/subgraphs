@@ -5,6 +5,7 @@ import {
   Deposit,
   Withdraw,
   EmergencyWithdraw,
+  Harvest,
   LogPoolAddition,
   LogUpdatePool,
   LogSetPool,
@@ -132,7 +133,7 @@ export function handleDeposit(event: Deposit): void {
   let inputTokenBalances: TokenBalance[] = [];
   inputTokenBalances.push(new TokenBalance(sushiFarm.lpToken, masterChef, userInfo.amount));
 
-  // reward token amounts (CRV + custom tokens) claimable by user
+  // reward token amounts (SUSHI + custom tokens) claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
   collectRewardTokenBalances(sushiFarm, receiver, rewardTokenBalances, market);
 
@@ -203,7 +204,7 @@ export function handleWithdraw(event: Withdraw): void {
   let inputTokenBalances: TokenBalance[] = [];
   inputTokenBalances.push(new TokenBalance(sushiFarm.lpToken, masterChef, userInfo.amount));
 
-  // reward token amounts (CRV + custom tokens) claimable by user
+  // reward token amounts (SUSHI + custom tokens) claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
   collectRewardTokenBalances(sushiFarm, receiver, rewardTokenBalances, market);
 
@@ -272,13 +273,75 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
   let inputTokenBalances: TokenBalance[] = [];
   inputTokenBalances.push(new TokenBalance(sushiFarm.lpToken, masterChef, userInfo.amount));
 
-  // reward token amounts (CRV + custom tokens) claimable by user
+  // reward token amounts (SUSHI + custom tokens) claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
   collectRewardTokenBalances(sushiFarm, receiver, rewardTokenBalances, market);
 
   redeemFromMarket(
     event,
     receiver,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
+}
+
+/**
+ * Harvest
+ * @param event
+ * @returns
+ */
+export function handleHarvest(event: Harvest): void {
+  let sushiFarm = SushiFarm.load(event.params.pid.toString());
+  let harvester = getOrCreateAccount(event.params.user);
+  let harvestedSushiAmount = event.params.amount;
+
+  // don't update user's position for 0 value harvest
+  if (harvestedSushiAmount == BigInt.fromI32(0)) {
+    return;
+  }
+
+  ////// update user's position
+  let masterChef = event.address.toHexString();
+  let market = Market.load(masterChef.concat("-").concat(sushiFarm.id)) as Market;
+
+  let userInfo = getOrCreateUserInfo(harvester.id, sushiFarm.id);
+  userInfo.rewardDebt = userInfo.amount.times(sushiFarm.accSushiPerShare).div(oneE12);
+  userInfo.save();
+
+  let outputTokenAmount = BigInt.fromI32(0);
+
+  // no input tokens received in this transaction, only reward tokens
+  let inputTokenAmounts: TokenBalance[] = [
+    new TokenBalance(sushiFarm.lpToken, masterChef, BigInt.fromI32(0)),
+  ];
+
+  // number of reward tokens claimed by user in this transaction
+  // TODO add rewards other than SUSHI
+  let rewardTokens = market.rewardTokens as string[];
+  let rewardTokenAmounts: TokenBalance[] = [
+    new TokenBalance(rewardTokens[0], masterChef, harvestedSushiAmount),
+  ];
+
+  // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
+  let outputTokenBalance = BigInt.fromI32(0);
+
+  // inputTokenBalance -> number of LP tokens that can be redeemed by account's gauge tokens
+  let inputTokenBalances: TokenBalance[] = [];
+  inputTokenBalances.push(new TokenBalance(sushiFarm.lpToken, masterChef, userInfo.amount));
+
+  // reward token amounts (SUSHI + custom tokens) claimable by user
+  let rewardTokenBalances: TokenBalance[] = [];
+  collectRewardTokenBalances(sushiFarm, harvester, rewardTokenBalances, market);
+
+  redeemFromMarket(
+    event,
+    harvester,
     market,
     outputTokenAmount,
     inputTokenAmounts,
