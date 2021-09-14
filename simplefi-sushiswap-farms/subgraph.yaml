@@ -49,3 +49,32 @@ dataSources:
           handler: handleLogSetPool
         - event: LogUpdatePool(indexed uint256,uint64,uint256,uint256)
           handler: handleLogUpdatePool
+
+templates:
+  - kind: ethereum/contract
+    name: RewardToken
+    network: mainnet
+    source:
+      abi: IERC20
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Gauge
+        - GaugeSnapshot
+      abis:
+        - name: IERC20
+          file: ./abis/IERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleRewardTokenTransfer
+      file: ./src/mappings/mappings.ts

@@ -1,4 +1,4 @@
-import { Address, BigInt, log } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
 
 import {
   MasterChefV2,
@@ -11,6 +11,8 @@ import {
   LogSetPool,
 } from "../../generated/MasterChefV2/MasterChefV2";
 
+import { Transfer } from "../../generated/templates/RewardToken/IERC20";
+
 import { IRewarder } from "../../generated/MasterChefV2/IRewarder";
 
 import {
@@ -22,6 +24,8 @@ import {
   Market,
   Account,
   Token,
+  SushiRewardTransfer,
+  MasterChef,
 } from "../../generated/schema";
 
 import {
@@ -35,6 +39,8 @@ import {
   ADDRESS_ZERO,
 } from "../library/common";
 
+import { RewardToken } from "../../generated/templates";
+
 import { ProtocolName, ProtocolType } from "../library/constants";
 
 let oneE12: BigInt = BigInt.fromI32(10).pow(12);
@@ -44,9 +50,15 @@ let oneE12: BigInt = BigInt.fromI32(10).pow(12);
  * @param event
  */
 export function handleLogPoolAddition(event: LogPoolAddition): void {
+  // create MasterChef entity
+  let masterChef = MasterChef.load(event.address.toHexString());
+  if (masterChef == null) {
+    masterChef = new MasterChef(event.address.toHexString());
+  }
+
   // create and fill SushiFarm entity
   let sushiFarm = new SushiFarm(event.params.pid.toString());
-  sushiFarm.masterChef = event.address.toHexString();
+  sushiFarm.masterChef = masterChef.id;
   sushiFarm.rewarder = event.params.rewarder.toHexString();
   sushiFarm.allocPoint = event.params.allocPoint;
   sushiFarm.created = event.block.timestamp;
@@ -66,7 +78,7 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
   let protocolType = ProtocolType.TOKEN_MANAGEMENT;
   let inputTokens: Token[] = [inputToken];
 
-  let rewardTokens: Token[] = getRewardTokens(sushiFarm);
+  let rewardTokens: Token[] = getRewardTokens(sushiFarm, event);
 
   getOrCreateMarketWithId(
     event,
@@ -121,7 +133,9 @@ export function handleDeposit(event: Deposit): void {
   userInfo.save();
 
   let outputTokenAmount = BigInt.fromI32(0);
-  let inputTokenAmounts: TokenBalance[] = [new TokenBalance(sushiFarm.lpToken, masterChef, amount)];
+  let inputTokenAmounts: TokenBalance[] = [
+    new TokenBalance(sushiFarm.lpToken, deposit.depositReceiver, amount),
+  ];
 
   // number of reward tokens claimed by user in this transaction
   let rewardTokenAmounts: TokenBalance[] = [];
@@ -131,7 +145,9 @@ export function handleDeposit(event: Deposit): void {
 
   // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
   let inputTokenBalances: TokenBalance[] = [];
-  inputTokenBalances.push(new TokenBalance(sushiFarm.lpToken, masterChef, userInfo.amount));
+  inputTokenBalances.push(
+    new TokenBalance(sushiFarm.lpToken, deposit.depositReceiver, userInfo.amount)
+  );
 
   // reward token amounts (SUSHI + custom tokens) claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
@@ -192,7 +208,9 @@ export function handleWithdraw(event: Withdraw): void {
   userInfo.save();
 
   let outputTokenAmount = BigInt.fromI32(0);
-  let inputTokenAmounts: TokenBalance[] = [new TokenBalance(sushiFarm.lpToken, masterChef, amount)];
+  let inputTokenAmounts: TokenBalance[] = [
+    new TokenBalance(sushiFarm.lpToken, withdrawal.withdrawalReceiver, amount),
+  ];
 
   // number of reward tokens claimed by user in this transaction
   let rewardTokenAmounts: TokenBalance[] = [];
@@ -202,7 +220,9 @@ export function handleWithdraw(event: Withdraw): void {
 
   // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
   let inputTokenBalances: TokenBalance[] = [];
-  inputTokenBalances.push(new TokenBalance(sushiFarm.lpToken, masterChef, userInfo.amount));
+  inputTokenBalances.push(
+    new TokenBalance(sushiFarm.lpToken, withdrawal.withdrawalReceiver, userInfo.amount)
+  );
 
   // reward token amounts (SUSHI + custom tokens) claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
@@ -261,7 +281,9 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
   userInfo.save();
 
   let outputTokenAmount = BigInt.fromI32(0);
-  let inputTokenAmounts: TokenBalance[] = [new TokenBalance(sushiFarm.lpToken, masterChef, amount)];
+  let inputTokenAmounts: TokenBalance[] = [
+    new TokenBalance(sushiFarm.lpToken, withdrawal.withdrawalReceiver, amount),
+  ];
 
   // number of reward tokens claimed by user in this transaction
   let rewardTokenAmounts: TokenBalance[] = [];
@@ -271,7 +293,9 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
 
   // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
   let inputTokenBalances: TokenBalance[] = [];
-  inputTokenBalances.push(new TokenBalance(sushiFarm.lpToken, masterChef, userInfo.amount));
+  inputTokenBalances.push(
+    new TokenBalance(sushiFarm.lpToken, withdrawal.withdrawalReceiver, userInfo.amount)
+  );
 
   // reward token amounts (SUSHI + custom tokens) claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
@@ -306,6 +330,10 @@ export function handleHarvest(event: Harvest): void {
     return;
   }
 
+  // get sushi receiver (it doesn't have to be harvester himself) by checking preceding Sushi transfer
+  let transfer = SushiRewardTransfer.load(event.transaction.hash.toHexString());
+  let sushiReceiver = transfer.to;
+
   ////// update user's position
   let masterChef = event.address.toHexString();
   let market = Market.load(masterChef.concat("-").concat(sushiFarm.id)) as Market;
@@ -317,15 +345,13 @@ export function handleHarvest(event: Harvest): void {
   let outputTokenAmount = BigInt.fromI32(0);
 
   // no input tokens received in this transaction, only reward tokens
-  let inputTokenAmounts: TokenBalance[] = [
-    new TokenBalance(sushiFarm.lpToken, masterChef, BigInt.fromI32(0)),
-  ];
+  let inputTokenAmounts: TokenBalance[] = [];
 
   // number of reward tokens claimed by user in this transaction
   // TODO add rewards other than SUSHI
   let rewardTokens = market.rewardTokens as string[];
   let rewardTokenAmounts: TokenBalance[] = [
-    new TokenBalance(rewardTokens[0], masterChef, harvestedSushiAmount),
+    new TokenBalance(rewardTokens[0], sushiReceiver, harvestedSushiAmount),
   ];
 
   // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
@@ -333,7 +359,7 @@ export function handleHarvest(event: Harvest): void {
 
   // inputTokenBalance -> number of LP tokens that can be redeemed by account's gauge tokens
   let inputTokenBalances: TokenBalance[] = [];
-  inputTokenBalances.push(new TokenBalance(sushiFarm.lpToken, masterChef, userInfo.amount));
+  inputTokenBalances.push(new TokenBalance(sushiFarm.lpToken, userInfo.id, userInfo.amount));
 
   // reward token amounts (SUSHI + custom tokens) claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
@@ -409,19 +435,48 @@ export function handleSetPool(event: LogSetPool) {
 }
 
 /**
+ * Save Sushi transfer from MasterChef to user
+ * @param event
+ */
+export function handleRewardTokenTransfer(event: Transfer) {
+  // we're only interested in transfers where sender is the masterchef
+  let from = getOrCreateAccount(event.params.from);
+  let masterChef = MasterChef.load(from.id);
+  if (masterChef == null) {
+    return;
+  }
+
+  let receiver = getOrCreateAccount(event.params.to);
+  let transfer = new SushiRewardTransfer(event.transaction.hash.toHexString());
+  transfer.from = from.id;
+  transfer.to = receiver.id;
+  transfer.value = event.params.value;
+  transfer.save();
+}
+
+/**
  * Get reward tokens of a pool by fetching sushi token address and additionally fetch
- * extra reward tokens by calling pendingTokens function of rewarder contract
+ * extra reward tokens by calling pendingTokens function of rewarder contract.
+ * Additionaly, start indexing reward tokens based on ERC20 template.
  * @param sushiFarm
  * @returns
  */
-function getRewardTokens(sushiFarm: SushiFarm): Token[] {
+function getRewardTokens(sushiFarm: SushiFarm, event: ethereum.Event): Token[] {
   let tokens: Token[] = [];
   let masterChef = MasterChefV2.bind(Address.fromString(sushiFarm.masterChef));
 
-  // get sushi address
-  let sushiToken = masterChef.try_SUSHI();
-  if (!sushiToken.reverted) {
-    tokens.push(new Token(sushiToken.value.toHexString()));
+  // get sushi address, store it and start indexer if needed
+  let sushi = masterChef.try_SUSHI();
+  if (!sushi.reverted) {
+    let sushiAddress = sushi.value;
+
+    let token = Token.load(sushiAddress.toHexString());
+    if (token == null) {
+      // start indexing SUSHI events
+      RewardToken.create(sushiAddress);
+    }
+
+    tokens.push(getOrCreateERC20Token(event, sushiAddress));
   }
 
   // get extra reward tokens

@@ -244,4 +244,28 @@ type FarmWithdrawal @entity {
   amount: BigInt!
 }
 
+type SushiRewardTransfer @entity {
+  " transactionHash-receiver "
+  id: ID!
+
+  " sender is the MasterChef when Sushi is rewardedd "
+  from: Account!
+
+  " receiver of Sushi reward "
+  to: Account
+
+  " amount of rewarded Sushi "
+  value: BigInt!
+}
+
+type MasterChef @entity {
+  "  contract address "
+  id: ID!
+  #startBlock: BigInt!
+  #sushiPerBlock: BigInt!
+  #totalAllocPoint: BigInt!
+  #bonusEndBlock: BigInt!
+  #poolLength: BigInt!
+}
+
 # END - Sushiswap farm protocol entities
