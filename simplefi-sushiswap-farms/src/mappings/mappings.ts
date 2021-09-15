@@ -52,10 +52,24 @@ let oneE12: BigInt = BigInt.fromI32(10).pow(12);
  * @param event
  */
 export function handleLogPoolAddition(event: LogPoolAddition): void {
-  // create MasterChef entity
   let masterChef = MasterChef.load(event.address.toHexString());
+
+  // create MasterChef entity and store Sushi token address
   if (masterChef == null) {
     masterChef = new MasterChef(event.address.toHexString());
+
+    // get sushi address, store it and start indexer if needed
+    let masterChefContract = MasterChefV2.bind(event.address);
+    let sushi = masterChefContract.SUSHI();
+
+    let token = Token.load(sushi.toHexString());
+    if (token == null) {
+      // start indexing SUSHI events
+      RewardToken.create(sushi);
+    }
+    let sushiToken = getOrCreateERC20Token(event, sushi);
+    masterChef.sushi = sushiToken.id;
+    masterChef.save();
   }
 
   // create Rewarder entity
@@ -473,30 +487,19 @@ export function handleRewardTokenTransfer(event: Transfer) {
 
 /**
  * Get reward tokens of a pool by fetching sushi token address and additionally fetch
- * extra reward tokens by calling pendingTokens function of rewarder contract.
- * Additionaly, start indexing reward tokens based on ERC20 template.
+ * extra reward tokens by calling `pendingTokens` function of rewarder contract.
+ * Additionaly, start indexing extra reward tokens based on ERC20 template.
  * @param sushiFarm
  * @returns
  */
 function getRewardTokens(sushiFarm: SushiFarm, event: ethereum.Event): Token[] {
   let tokens: Token[] = [];
-  let masterChef = MasterChefV2.bind(Address.fromString(sushiFarm.masterChef));
+  let masterChef = MasterChef.load(sushiFarm.masterChef);
 
-  // get sushi address, store it and start indexer if needed
-  let sushi = masterChef.try_SUSHI();
-  if (!sushi.reverted) {
-    let sushiAddress = sushi.value;
+  // add Sushi
+  tokens.push(getOrCreateERC20Token(event, Address.fromString(masterChef.sushi)));
 
-    let token = Token.load(sushiAddress.toHexString());
-    if (token == null) {
-      // start indexing SUSHI events
-      RewardToken.create(sushiAddress);
-    }
-
-    tokens.push(getOrCreateERC20Token(event, sushiAddress));
-  }
-
-  // get extra reward tokens
+  // get extra reward tokens by querying Rewarder contract
   let rewarder = IRewarder.bind(Address.fromString(sushiFarm.rewarder));
   let result = rewarder.try_pendingTokens(
     BigInt.fromString(sushiFarm.id),

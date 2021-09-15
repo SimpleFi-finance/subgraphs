@@ -278,6 +278,10 @@ type ExtraRewardTokenTransfer @entity {
 type MasterChef @entity {
   " contract address "
   id: ID!
+
+  " address of sushi token"
+  sushi: Token!
+
   #startBlock: BigInt!
   #sushiPerBlock: BigInt!
   #totalAllocPoint: BigInt!
