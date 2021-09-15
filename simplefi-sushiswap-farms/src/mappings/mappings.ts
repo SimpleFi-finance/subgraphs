@@ -449,15 +449,15 @@ export function handleSetPool(event: LogSetPool) {
 }
 
 /**
- * Save Sushi transfer from MasterChef to user
+ * Save reward token Transfer events, so they can be processed later as part of Harvest.
  * @param event
  */
 export function handleRewardTokenTransfer(event: Transfer) {
   let from = getOrCreateAccount(event.params.from);
 
-  // if sender is MasterChef then it is Sushi reward transfer
+  // if it is Sushi transfer and sender is MasterChef then store it as reward transfer
   let masterChef = MasterChef.load(from.id);
-  if (masterChef != null) {
+  if (masterChef != null && event.address.toHexString() == masterChef.sushi) {
     let receiver = getOrCreateAccount(event.params.to);
     let transfer = new SushiRewardTransfer(event.transaction.hash.toHexString());
     transfer.from = from.id;
