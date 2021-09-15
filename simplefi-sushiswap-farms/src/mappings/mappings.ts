@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum, store } from "@graphprotocol/graph-ts";
 
 import {
   MasterChefV2,
@@ -380,39 +380,6 @@ export function handleHarvest(event: Harvest): void {
 }
 
 /**
- * Get info about harvested Sushi and other reward tokens by looking at Transfer events which preceded
- * the Harvest event.
- * @param event
- * @param rewardTokenAmounts
- * @param rewardTokens
- * @param harvestedSushiAmount
- */
-function getHarvestedRewards(
-  event: Harvest,
-  market: Market,
-  rewardTokenAmounts: TokenBalance[],
-  harvestedSushiAmount: BigInt
-) {
-  let rewardTokens = market.rewardTokens as string[];
-
-  // get sushi receiver (it doesn't have to be harvester himself) by checking preceding Sushi transfer
-  let sushiTransfer = SushiRewardTransfer.load(event.transaction.hash.toHexString());
-  let sushiReceiver = sushiTransfer.to;
-  // store amount of harvested Sushi
-  rewardTokenAmounts.push(new TokenBalance(rewardTokens[0], sushiReceiver, harvestedSushiAmount));
-
-  // get and store extra token rewards, if any
-  let tx = event.transaction.hash.toHexString();
-  for (let i: i32 = 1; i < rewardTokens.length; i++) {
-    let token = rewardTokens[i];
-    let transfer = ExtraRewardTokenTransfer.load(tx + "-" + token);
-
-    let rewardReceiver = transfer.to;
-    rewardTokenAmounts.push(new TokenBalance(token, rewardReceiver, transfer.value));
-  }
-}
-
-/**
  *
  * @param event
  */
@@ -587,4 +554,43 @@ function collectRewardTokenBalances(
 ) {
   // fetch claimable amount of sushi
   // fetch claimable a
+}
+
+/**
+ * Get info about harvested Sushi and other reward tokens by looking at Transfer events which preceded
+ * the Harvest event.
+ * @param event
+ * @param rewardTokenAmounts
+ * @param rewardTokens
+ * @param harvestedSushiAmount
+ */
+function getHarvestedRewards(
+  event: Harvest,
+  market: Market,
+  rewardTokenAmounts: TokenBalance[],
+  harvestedSushiAmount: BigInt
+): void {
+  let rewardTokens = market.rewardTokens as string[];
+
+  // get sushi receiver (it doesn't have to be harvester himself) by checking preceding Sushi transfer
+  let sushiEventEntityId = event.transaction.hash.toHexString();
+  let sushiTransfer = SushiRewardTransfer.load(sushiEventEntityId);
+  let sushiReceiver = sushiTransfer.to;
+  // store amount of harvested Sushi
+  rewardTokenAmounts.push(new TokenBalance(rewardTokens[0], sushiReceiver, harvestedSushiAmount));
+  // remove entity so that new one can be created in same transaction
+  store.remove("SushiRewardTransfer", sushiEventEntityId);
+
+  // get and store extra token rewards, if any
+  let tx = event.transaction.hash.toHexString();
+  for (let i: i32 = 1; i < rewardTokens.length; i++) {
+    let token = rewardTokens[i];
+    let transfer = ExtraRewardTokenTransfer.load(tx + "-" + token);
+
+    let rewardReceiver = transfer.to;
+    rewardTokenAmounts.push(new TokenBalance(token, rewardReceiver, transfer.value));
+
+    // remove entity so that new one can be created in same transaction for same token
+    store.remove("ExtraRewardTokenTransfer", tx + "-" + token);
+  }
 }
