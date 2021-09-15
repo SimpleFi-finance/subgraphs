@@ -173,7 +173,7 @@ export function handleDeposit(event: Deposit): void {
 
   // reward token amounts (SUSHI + custom tokens) claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
-  collectRewardTokenBalances(sushiFarm, receiver, rewardTokenBalances, market);
+  collectRewardTokenBalances(sushiFarm, user, rewardTokenBalances, market);
 
   investInMarket(
     event,
@@ -200,7 +200,7 @@ export function handleWithdraw(event: Withdraw): void {
   let receiver = getOrCreateAccount(event.params.to);
   let amount = event.params.amount;
 
-  // save new deposit entity
+  // save new withdrawal entity
   let withdrawal = new FarmWithdrawal(
     event.transaction.hash
       .toHexString()
@@ -248,7 +248,7 @@ export function handleWithdraw(event: Withdraw): void {
 
   // reward token amounts (SUSHI + custom tokens) claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
-  collectRewardTokenBalances(sushiFarm, receiver, rewardTokenBalances, market);
+  collectRewardTokenBalances(sushiFarm, user, rewardTokenBalances, market);
 
   redeemFromMarket(
     event,
@@ -321,7 +321,7 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
 
   // reward token amounts (SUSHI + custom tokens) claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
-  collectRewardTokenBalances(sushiFarm, receiver, rewardTokenBalances, market);
+  collectRewardTokenBalances(sushiFarm, user, rewardTokenBalances, market);
 
   redeemFromMarket(
     event,
@@ -543,7 +543,7 @@ function getOrCreateUserInfo(user: string, farmPid: string): UserInfo {
 }
 
 /**
- *
+ * Get claimable reward token amounts (Sushi + extra reward tokens) using contract calls
  * @param sushiFarm
  * @param receiver
  * @param rewardTokenBalances
@@ -551,12 +551,37 @@ function getOrCreateUserInfo(user: string, farmPid: string): UserInfo {
  */
 function collectRewardTokenBalances(
   sushiFarm: SushiFarm,
-  receiver: Account,
+  account: Account,
   rewardTokenBalances: TokenBalance[],
   market: Market
 ) {
+  let rewardTokens = market.rewardTokens as string[];
+
   // fetch claimable amount of sushi
-  // fetch claimable a
+  let masterChefContract = MasterChefV2.bind(Address.fromString(sushiFarm.masterChef));
+  let sushiAmount = masterChefContract.try_pendingSushi(
+    BigInt.fromString(sushiFarm.id),
+    Address.fromString(account.id)
+  );
+  rewardTokenBalances.push(new TokenBalance(rewardTokens[0], account.id, sushiAmount.value));
+
+  // fetch claimable amount of extra reward tokens
+  let rewarder = IRewarder.bind(Address.fromString(sushiFarm.rewarder));
+  let result = rewarder.try_pendingTokens(
+    BigInt.fromString(sushiFarm.id),
+    Address.fromString(account.id),
+    BigInt.fromI32(0)
+  );
+  if (!result.reverted) {
+    let extraRewardTokens: Address[] = result.value.value0;
+    let amounts: BigInt[] = result.value.value1;
+    for (let i: i32 = 0; i < extraRewardTokens.length; i++) {
+      // add
+      rewardTokenBalances.push(
+        new TokenBalance(extraRewardTokens[i].toHexString(), account.id, amounts[i])
+      );
+    }
+  }
 }
 
 /**
