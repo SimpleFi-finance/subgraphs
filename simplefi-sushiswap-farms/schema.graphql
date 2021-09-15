@@ -173,7 +173,7 @@ type SushiFarm @entity {
   id: ID! # {pid}
   masterChef: String!
   lpToken: Token!
-  rewarder: String!
+  rewarder: Rewarder
   allocPoint: BigInt!
   totalSupply: BigInt!
 
@@ -248,7 +248,7 @@ type SushiRewardTransfer @entity {
   " transactionHash-receiver "
   id: ID!
 
-  " sender is the MasterChef when Sushi is rewardedd "
+  " sender is the MasterChef when Sushi is rewarded "
   from: Account!
 
   " receiver of Sushi reward "
@@ -258,14 +258,36 @@ type SushiRewardTransfer @entity {
   value: BigInt!
 }
 
+type ExtraRewardTokenTransfer @entity {
+  " transactionHash-tokenAddress "
+  id: ID!
+
+  " token rewarded in addition to Sushi "
+  rewardToken: Token!
+
+  " sender is the Rewarder contract "
+  from: Account!
+
+  " receiver of token reward "
+  to: Account
+
+  " amount of rewarded tokens "
+  value: BigInt!
+}
+
 type MasterChef @entity {
-  "  contract address "
+  " contract address "
   id: ID!
   #startBlock: BigInt!
   #sushiPerBlock: BigInt!
   #totalAllocPoint: BigInt!
   #bonusEndBlock: BigInt!
   #poolLength: BigInt!
+}
+
+type Rewarder @entity {
+  " contract address "
+  id: ID!
 }
 
 # END - Sushiswap farm protocol entities

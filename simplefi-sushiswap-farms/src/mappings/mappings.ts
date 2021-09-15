@@ -25,7 +25,9 @@ import {
   Account,
   Token,
   SushiRewardTransfer,
+  ExtraRewardTokenTransfer,
   MasterChef,
+  Rewarder,
 } from "../../generated/schema";
 
 import {
@@ -56,10 +58,16 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
     masterChef = new MasterChef(event.address.toHexString());
   }
 
+  // create Rewarder entity
+  let rewarder = Rewarder.load(event.params.rewarder.toHexString());
+  if (rewarder == null) {
+    rewarder = new Rewarder(event.params.rewarder.toHexString());
+  }
+
   // create and fill SushiFarm entity
   let sushiFarm = new SushiFarm(event.params.pid.toString());
   sushiFarm.masterChef = masterChef.id;
-  sushiFarm.rewarder = event.params.rewarder.toHexString();
+  sushiFarm.rewarder = rewarder.id;
   sushiFarm.allocPoint = event.params.allocPoint;
   sushiFarm.created = event.block.timestamp;
   sushiFarm.createdAtBlock = event.block.number;
@@ -329,11 +337,6 @@ export function handleHarvest(event: Harvest): void {
   if (harvestedSushiAmount == BigInt.fromI32(0)) {
     return;
   }
-
-  // get sushi receiver (it doesn't have to be harvester himself) by checking preceding Sushi transfer
-  let transfer = SushiRewardTransfer.load(event.transaction.hash.toHexString());
-  let sushiReceiver = transfer.to;
-
   ////// update user's position
   let masterChef = event.address.toHexString();
   let market = Market.load(masterChef.concat("-").concat(sushiFarm.id)) as Market;
@@ -348,11 +351,8 @@ export function handleHarvest(event: Harvest): void {
   let inputTokenAmounts: TokenBalance[] = [];
 
   // number of reward tokens claimed by user in this transaction
-  // TODO add rewards other than SUSHI
-  let rewardTokens = market.rewardTokens as string[];
-  let rewardTokenAmounts: TokenBalance[] = [
-    new TokenBalance(rewardTokens[0], sushiReceiver, harvestedSushiAmount),
-  ];
+  let rewardTokenAmounts: TokenBalance[] = [];
+  getHarvestedRewards(event, market, rewardTokenAmounts, harvestedSushiAmount);
 
   // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
   let outputTokenBalance = BigInt.fromI32(0);
@@ -377,6 +377,39 @@ export function handleHarvest(event: Harvest): void {
     rewardTokenBalances,
     null
   );
+}
+
+/**
+ * Get info about harvested Sushi and other reward tokens by looking at Transfer events which preceded
+ * the Harvest event.
+ * @param event
+ * @param rewardTokenAmounts
+ * @param rewardTokens
+ * @param harvestedSushiAmount
+ */
+function getHarvestedRewards(
+  event: Harvest,
+  market: Market,
+  rewardTokenAmounts: TokenBalance[],
+  harvestedSushiAmount: BigInt
+) {
+  let rewardTokens = market.rewardTokens as string[];
+
+  // get sushi receiver (it doesn't have to be harvester himself) by checking preceding Sushi transfer
+  let sushiTransfer = SushiRewardTransfer.load(event.transaction.hash.toHexString());
+  let sushiReceiver = sushiTransfer.to;
+  // store amount of harvested Sushi
+  rewardTokenAmounts.push(new TokenBalance(rewardTokens[0], sushiReceiver, harvestedSushiAmount));
+
+  // get and store extra token rewards, if any
+  let tx = event.transaction.hash.toHexString();
+  for (let i: i32 = 1; i < rewardTokens.length; i++) {
+    let token = rewardTokens[i];
+    let transfer = ExtraRewardTokenTransfer.load(tx + "-" + token);
+
+    let rewardReceiver = transfer.to;
+    rewardTokenAmounts.push(new TokenBalance(token, rewardReceiver, transfer.value));
+  }
 }
 
 /**
@@ -439,19 +472,36 @@ export function handleSetPool(event: LogSetPool) {
  * @param event
  */
 export function handleRewardTokenTransfer(event: Transfer) {
-  // we're only interested in transfers where sender is the masterchef
   let from = getOrCreateAccount(event.params.from);
+
+  // if sender is MasterChef then it is Sushi reward transfer
   let masterChef = MasterChef.load(from.id);
-  if (masterChef == null) {
+  if (masterChef != null) {
+    let receiver = getOrCreateAccount(event.params.to);
+    let transfer = new SushiRewardTransfer(event.transaction.hash.toHexString());
+    transfer.from = from.id;
+    transfer.to = receiver.id;
+    transfer.value = event.params.value;
+    transfer.save();
     return;
   }
 
-  let receiver = getOrCreateAccount(event.params.to);
-  let transfer = new SushiRewardTransfer(event.transaction.hash.toHexString());
-  transfer.from = from.id;
-  transfer.to = receiver.id;
-  transfer.value = event.params.value;
-  transfer.save();
+  // if sender is Rewarder contract then it is extra token reward transfer
+  let rewarder = Rewarder.load(from.id);
+  if (rewarder != null) {
+    let receiver = getOrCreateAccount(event.params.to);
+
+    let tx = event.transaction.hash.toHexString();
+    let token = event.address.toHexString();
+
+    let transfer = new ExtraRewardTokenTransfer(tx + "-" + token);
+    transfer.rewardToken = token;
+    transfer.from = from.id;
+    transfer.to = receiver.id;
+    transfer.value = event.params.value;
+    transfer.save();
+    return;
+  }
 }
 
 /**
@@ -482,14 +532,21 @@ function getRewardTokens(sushiFarm: SushiFarm, event: ethereum.Event): Token[] {
   // get extra reward tokens
   let rewarder = IRewarder.bind(Address.fromString(sushiFarm.rewarder));
   let result = rewarder.try_pendingTokens(
-    BigInt.fromI32(0),
+    BigInt.fromString(sushiFarm.id),
     Address.fromString(ADDRESS_ZERO),
     BigInt.fromI32(0)
   );
   if (!result.reverted) {
     let extraRewardTokens: Address[] = result.value.value0;
     for (let i: i32 = 0; i < extraRewardTokens.length; i++) {
-      tokens.push(new Token(extraRewardTokens[i].toHexString()));
+      let tokenAddress = extraRewardTokens[i];
+      let token = Token.load(tokenAddress.toHexString());
+      if (token == null) {
+        // start indexing transfer events
+        RewardToken.create(tokenAddress);
+      }
+
+      tokens.push(getOrCreateERC20Token(event, tokenAddress));
     }
   }
 
@@ -515,6 +572,13 @@ function getOrCreateUserInfo(user: string, farmPid: string): UserInfo {
   return userInfo;
 }
 
+/**
+ *
+ * @param sushiFarm
+ * @param receiver
+ * @param rewardTokenBalances
+ * @param market
+ */
 function collectRewardTokenBalances(
   sushiFarm: SushiFarm,
   receiver: Account,
