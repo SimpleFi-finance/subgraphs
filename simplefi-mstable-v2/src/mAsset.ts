@@ -201,9 +201,6 @@ function handleUpdateSwap(event: ethereum.Event, mAsset: MAssetEntity, swap: Swa
     return
   }
 
-  // TODO convert it to non scaled fee
-  let outputBAssetFee = swap.scaledFee as BigInt
-
   let oldBAssetBalances: TokenBalance[] = mAsset.bAssetBalances.map<TokenBalance>(tbs => TokenBalance.fromString(tbs))
   let newBAssetBalances: TokenBalance[] = []
   for (let i = 0; i < oldBAssetBalances.length; i++) {
@@ -213,7 +210,7 @@ function handleUpdateSwap(event: ethereum.Event, mAsset: MAssetEntity, swap: Swa
       balance = balance.plus(swap.inputAmount as BigInt)
     }
     if (obb.tokenAddress == swap.outputBAsset) {
-      balance = balance.minus(swap.outputAmount as BigInt).minus(outputBAssetFee)
+      balance = balance.minus(swap.outputAmount as BigInt)
     }
     newBAssetBalances.push(new TokenBalance(obb.tokenAddress, mAsset.id, balance))
   }
@@ -429,7 +426,6 @@ export function handleSwapped(event: Swapped): void {
   swap.inputBAsset = event.params.input.toHexString()
   swap.outputBAsset = event.params.output.toHexString()
   swap.outputAmount = event.params.outputAmount
-  swap.scaledFee = event.params.scaledFee
   swap.eventLogIndex = event.logIndex
   swap.transactionLogIndex = event.transactionLogIndex
   swap.save()

@@ -193,7 +193,6 @@ type Redeem @entity {
   mAssetQuantity: BigInt
   bAssets: [String!]!
   bAssetQuantities: [BigInt!]!
-  scaledFee: BigInt
   eventLogIndex: BigInt
   transactionLogIndex: BigInt
   redeemEventApplied: Boolean!
@@ -207,7 +206,6 @@ type Swap @entity {
   outputBAsset: String
   inputAmount: BigInt
   outputAmount: BigInt
-  scaledFee: BigInt
   eventLogIndex: BigInt
   transactionLogIndex: BigInt
   swapEventApplied: Boolean!
