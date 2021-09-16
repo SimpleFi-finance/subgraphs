@@ -77,6 +77,7 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
   let rewarder = Rewarder.load(rewarderAddress);
   if (rewarder == null) {
     rewarder = new Rewarder(rewarderAddress);
+    rewarder.save();
   }
 
   // create and fill SushiFarm entity
@@ -538,6 +539,7 @@ function getOrCreateUserInfo(user: string, farmPid: string): UserInfo {
     userInfo = new UserInfo(id);
     userInfo.amount = BigInt.fromI32(0);
     userInfo.rewardDebt = BigInt.fromI32(0);
+    userInfo.save();
   }
 
   return userInfo;
