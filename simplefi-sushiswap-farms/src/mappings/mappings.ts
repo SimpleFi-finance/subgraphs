@@ -48,7 +48,7 @@ import { ProtocolName, ProtocolType } from "../library/constants";
 let oneE12: BigInt = BigInt.fromI32(10).pow(12);
 
 /**
- *
+ * Handle creation of new Sushi farm.
  * @param event
  */
 export function handleLogPoolAddition(event: LogPoolAddition): void {
@@ -96,12 +96,11 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
   sushiFarm.save();
 
   // create market representing the farm
-  let marketId = sushiFarm.masterChef.concat("-").concat(sushiFarm.id);
+  let marketId = sushiFarm.masterChef + "-" + sushiFarm.id;
   let marketAddress = Address.fromString(sushiFarm.masterChef);
   let protocolName = ProtocolName.SUSHISWAP_FARM;
   let protocolType = ProtocolType.TOKEN_MANAGEMENT;
   let inputTokens: Token[] = [inputToken];
-
   let rewardTokens: Token[] = getRewardTokens(sushiFarm, event);
 
   getOrCreateMarketWithId(
@@ -117,7 +116,8 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
 }
 
 /**
- *
+ * User deposits his LP tokens to farm. Receiver of deposit benefits doesn't have to necessarily be
+ * account which triggered the Deposit.
  * @param event
  * @returns
  */
@@ -129,10 +129,7 @@ export function handleDeposit(event: Deposit): void {
 
   // save new deposit entity
   let deposit = new FarmDeposit(
-    event.transaction.hash
-      .toHexString()
-      .concat("-")
-      .concat(event.logIndex.toHexString())
+    event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
   );
   deposit.transactionHash = event.transaction.hash.toHexString();
   deposit.sushiFarm = sushiFarm.id;
@@ -146,10 +143,7 @@ export function handleDeposit(event: Deposit): void {
     return;
   }
 
-  ////// update user's position
-  let masterChef = event.address.toHexString();
-  let market = Market.load(masterChef.concat("-").concat(sushiFarm.id)) as Market;
-
+  // increase user's balance of provided LP tokens and amount of rewards entitled to user
   let userInfo = getOrCreateUserInfo(receiver.id, sushiFarm.id);
   userInfo.amount = userInfo.amount.plus(amount);
   userInfo.rewardDebt = userInfo.rewardDebt.plus(
@@ -157,7 +151,15 @@ export function handleDeposit(event: Deposit): void {
   );
   userInfo.save();
 
+  ////// update user's position
+
+  let masterChef = event.address.toHexString();
+  let market = Market.load(masterChef + "-" + sushiFarm.id) as Market;
+
+  // sushi farms don't have output token
   let outputTokenAmount = BigInt.fromI32(0);
+
+  // user deposited `amount` LP tokens
   let inputTokenAmounts: TokenBalance[] = [
     new TokenBalance(sushiFarm.lpToken, deposit.depositReceiver, amount),
   ];
@@ -193,7 +195,8 @@ export function handleDeposit(event: Deposit): void {
 }
 
 /**
- *
+ * In Withdraw user gets his LP tokens back from farm and potentially rewards. Receiver doesn't have
+ * to necessarily be account which triggered the Withdraw.
  * @param event
  * @returns
  */
@@ -205,10 +208,7 @@ export function handleWithdraw(event: Withdraw): void {
 
   // save new withdrawal entity
   let withdrawal = new FarmWithdrawal(
-    event.transaction.hash
-      .toHexString()
-      .concat("-")
-      .concat(event.logIndex.toHexString())
+    event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
   );
   withdrawal.transactionHash = event.transaction.hash.toHexString();
   withdrawal.sushiFarm = sushiFarm.id;
@@ -222,10 +222,7 @@ export function handleWithdraw(event: Withdraw): void {
     return;
   }
 
-  ////// update user's position
-  let masterChef = event.address.toHexString();
-  let market = Market.load(masterChef.concat("-").concat(sushiFarm.id)) as Market;
-
+  // decrease user's balance of provided LP tokens and amount of rewards entitled to user
   let userInfo = getOrCreateUserInfo(receiver.id, sushiFarm.id);
   userInfo.amount = userInfo.amount.minus(amount);
   userInfo.rewardDebt = userInfo.rewardDebt.minus(
@@ -233,7 +230,15 @@ export function handleWithdraw(event: Withdraw): void {
   );
   userInfo.save();
 
+  ////// update user's position
+
+  let masterChef = event.address.toHexString();
+  let market = Market.load(masterChef + "-" + sushiFarm.id) as Market;
+
+  // sushi farms don't have output token
   let outputTokenAmount = BigInt.fromI32(0);
+
+  // user withdrew `amount` LP tokens
   let inputTokenAmounts: TokenBalance[] = [
     new TokenBalance(sushiFarm.lpToken, withdrawal.withdrawalReceiver, amount),
   ];
@@ -269,7 +274,8 @@ export function handleWithdraw(event: Withdraw): void {
 }
 
 /**
- *
+ * In EmergencyWithdraw user gets his LP tokens back from farm, but no rewards. Receiver doesn't have
+ * to necessarily be account which triggered the EmergencyWithdraw
  * @param event
  * @returns
  */
@@ -279,12 +285,9 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
   let receiver = getOrCreateAccount(event.params.to);
   let amount = event.params.amount;
 
-  // save new deposit entity
+  // save new withdrawal entity
   let withdrawal = new FarmWithdrawal(
-    event.transaction.hash
-      .toHexString()
-      .concat("-")
-      .concat(event.logIndex.toHexString())
+    event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
   );
   withdrawal.transactionHash = event.transaction.hash.toHexString();
   withdrawal.sushiFarm = sushiFarm.id;
@@ -299,15 +302,20 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
   }
 
   ////// update user's position
-  let masterChef = event.address.toHexString();
-  let market = Market.load(masterChef.concat("-").concat(sushiFarm.id)) as Market;
 
+  let masterChef = event.address.toHexString();
+  let market = Market.load(masterChef + "-" + sushiFarm.id) as Market;
+
+  // LP token balance and claimable rewards are resetted to 0 in EmergencyWithdraw
   let userInfo = getOrCreateUserInfo(receiver.id, sushiFarm.id);
   userInfo.amount = BigInt.fromI32(0);
   userInfo.rewardDebt = BigInt.fromI32(0);
   userInfo.save();
 
+  // no output token in sushi farms
   let outputTokenAmount = BigInt.fromI32(0);
+
+  // LP tokens go to receiver
   let inputTokenAmounts: TokenBalance[] = [
     new TokenBalance(sushiFarm.lpToken, withdrawal.withdrawalReceiver, amount),
   ];
@@ -343,7 +351,8 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
 }
 
 /**
- * Harvest
+ * Harvest means claiming the Sushi rewards as well as other reward tokens. Receiver of the rewards
+ * doesn't have to be necessarily user who triggered the harvest.
  * @param event
  * @returns
  */
@@ -356,14 +365,18 @@ export function handleHarvest(event: Harvest): void {
   if (harvestedSushiAmount == BigInt.fromI32(0)) {
     return;
   }
-  ////// update user's position
-  let masterChef = event.address.toHexString();
-  let market = Market.load(masterChef.concat("-").concat(sushiFarm.id)) as Market;
 
+  // updated user's rewardDebt which tracks total amount of claimed Sushi tokens
   let userInfo = getOrCreateUserInfo(harvester.id, sushiFarm.id);
-  userInfo.rewardDebt = userInfo.amount.times(sushiFarm.accSushiPerShare).div(oneE12);
+  userInfo.rewardDebt = userInfo.rewardDebt.plus(harvestedSushiAmount);
   userInfo.save();
 
+  ////// update user's position
+
+  let masterChef = event.address.toHexString();
+  let market = Market.load(masterChef + "-" + sushiFarm.id) as Market;
+
+  // sushi farms don't have output token
   let outputTokenAmount = BigInt.fromI32(0);
 
   // no input tokens received in this transaction, only reward tokens
@@ -376,7 +389,7 @@ export function handleHarvest(event: Harvest): void {
   // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
   let outputTokenBalance = BigInt.fromI32(0);
 
-  // inputTokenBalance -> number of LP tokens that can be redeemed by account's gauge tokens
+  // inputTokenBalance -> number of LP tokens that can be redeemed by user
   let inputTokenBalances: TokenBalance[] = [];
   inputTokenBalances.push(new TokenBalance(sushiFarm.lpToken, userInfo.id, userInfo.amount));
 
@@ -399,17 +412,14 @@ export function handleHarvest(event: Harvest): void {
 }
 
 /**
- *
+ * Updates farm's supply of LP tokens, as well as farm reward parameters.
  * @param event
  */
 export function handleLogUpdatePool(event: LogUpdatePool): void {
   let sushiFarm = SushiFarm.load(event.params.pid.toString()) as SushiFarm;
 
   // create farm snapshot
-  let snapshotId = event.transaction.hash
-    .toHexString()
-    .concat("-")
-    .concat(event.logIndex.toHexString());
+  let snapshotId = event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString();
   let farmSnapshot = new SushiFarmSnapshot(snapshotId);
   farmSnapshot.sushiFarm = sushiFarm.id;
   farmSnapshot.allocPoint = sushiFarm.allocPoint;
@@ -429,7 +439,7 @@ export function handleLogUpdatePool(event: LogUpdatePool): void {
 
   // update market
   let masterChef = event.address.toHexString();
-  let market = Market.load(masterChef.concat("-").concat(sushiFarm.id)) as Market;
+  let market = Market.load(masterChef + "-" + sushiFarm.id) as Market;
   updateMarket(
     event,
     market,
@@ -439,7 +449,7 @@ export function handleLogUpdatePool(event: LogUpdatePool): void {
 }
 
 /**
- *
+ * Event updates allocPoint and potentially the rewarder contract.
  * @param event
  */
 export function handleLogSetPool(event: LogSetPool): void {
@@ -531,13 +541,13 @@ function getRewardTokens(sushiFarm: SushiFarm, event: ethereum.Event): Token[] {
 }
 
 /**
- * Create UserInfo entity
+ * Create UserInfo entity which tracks how many LP tokens user provided and how many Sushi rewards he claimed
  * @param user
  * @param farmPid
  * @returns
  */
 function getOrCreateUserInfo(user: string, farmPid: string): UserInfo {
-  let id = user.concat("-").concat(farmPid);
+  let id = user + "-" + farmPid;
   let userInfo = UserInfo.load(id) as UserInfo;
 
   if (userInfo == null) {
@@ -553,7 +563,7 @@ function getOrCreateUserInfo(user: string, farmPid: string): UserInfo {
 }
 
 /**
- * Get claimable reward token amounts (Sushi + extra reward tokens) using contract calls
+ * Get claimable reward token amounts. For Sushi calculate it, for other reward tokens use contract call
  * @param sushiFarm
  * @param receiver
  * @param rewardTokenBalances
@@ -567,17 +577,15 @@ function collectRewardTokenBalances(
 ): void {
   let rewardTokens = market.rewardTokens as string[];
 
-  // fetch claimable amount of sushi
-  let masterChefContract = MasterChefV2.bind(Address.fromString(sushiFarm.masterChef));
-  let sushiAmount = masterChefContract.try_pendingSushi(
-    BigInt.fromString(sushiFarm.id),
-    Address.fromString(account.id)
-  );
-  if (!sushiAmount.reverted) {
-    rewardTokenBalances.push(new TokenBalance(rewardTokens[0], account.id, sushiAmount.value));
-  }
+  // calculate claimable amount of sushi
+  let userInfo = UserInfo.load(account.id + "-" + sushiFarm.id);
+  let claimableSushi = userInfo.amount
+    .times(sushiFarm.accSushiPerShare)
+    .div(oneE12)
+    .minus(userInfo.rewardDebt);
+  rewardTokenBalances.push(new TokenBalance(rewardTokens[0], account.id, claimableSushi));
 
-  // fetch claimable amount of extra reward tokens
+  // fetch claimable amount of extra reward tokens using rewarder contract call
   let rewarder = IRewarder.bind(Address.fromString(sushiFarm.rewarder));
   let result = rewarder.try_pendingTokens(
     BigInt.fromString(sushiFarm.id),
@@ -588,7 +596,7 @@ function collectRewardTokenBalances(
     let extraRewardTokens: Address[] = result.value.value0;
     let amounts: BigInt[] = result.value.value1;
     for (let i: i32 = 0; i < extraRewardTokens.length; i++) {
-      // add
+      // add claimable reward balance
       rewardTokenBalances.push(
         new TokenBalance(extraRewardTokens[i].toHexString(), account.id, amounts[i])
       );
