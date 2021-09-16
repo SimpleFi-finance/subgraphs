@@ -203,6 +203,12 @@ type UserInfo @entity {
   " usersAddress-farmPID"
   id: ID!
 
+  " user taking positions in farm "
+  user: Account!
+
+  " farm to which user position belongs to "
+  farm: SushiFarm!
+
   " LP token amount the user has provided "
   amount: BigInt!
 
@@ -211,8 +217,11 @@ type UserInfo @entity {
 }
 
 type FarmDeposit @entity {
-  " transaction hash + log index "
+  " transactionHash-logIndex "
   id: ID!
+
+  " transaction in which deposit took place "
+  transactionHash: String!
 
   " farm to which LP tokens are deposited "
   sushiFarm: SushiFarm!
@@ -228,8 +237,11 @@ type FarmDeposit @entity {
 }
 
 type FarmWithdrawal @entity {
-  " transaction hash + log index "
+  " transactionHash-logIndex "
   id: ID!
+
+  " transaction in which withdrawal took place "
+  transactionHash: String!
 
   " farm from which LP tokens are withdrawn "
   sushiFarm: SushiFarm!
@@ -248,6 +260,9 @@ type SushiRewardTransfer @entity {
   " transactionHash-receiver "
   id: ID!
 
+  " transaction in which transfer took place "
+  transactionHash: String!
+
   " sender is the MasterChef when Sushi is rewarded "
   from: Account!
 
@@ -261,6 +276,9 @@ type SushiRewardTransfer @entity {
 type ExtraRewardTokenTransfer @entity {
   " transactionHash-tokenAddress "
   id: ID!
+
+  " transaction in which transfer took place "
+  transactionHash: String!
 
   " token rewarded in addition to Sushi "
   rewardToken: Token!

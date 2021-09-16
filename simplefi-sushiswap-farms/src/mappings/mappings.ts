@@ -134,6 +134,7 @@ export function handleDeposit(event: Deposit): void {
       .concat("-")
       .concat(event.logIndex.toHexString())
   );
+  deposit.transactionHash = event.transaction.hash.toHexString();
   deposit.sushiFarm = sushiFarm.id;
   deposit.depositer = user.id;
   deposit.depositReceiver = receiver.id;
@@ -209,6 +210,7 @@ export function handleWithdraw(event: Withdraw): void {
       .concat("-")
       .concat(event.logIndex.toHexString())
   );
+  withdrawal.transactionHash = event.transaction.hash.toHexString();
   withdrawal.sushiFarm = sushiFarm.id;
   withdrawal.withdrawer = user.id;
   withdrawal.withdrawalReceiver = receiver.id;
@@ -284,6 +286,7 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
       .concat("-")
       .concat(event.logIndex.toHexString())
   );
+  withdrawal.transactionHash = event.transaction.hash.toHexString();
   withdrawal.sushiFarm = sushiFarm.id;
   withdrawal.withdrawer = user.id;
   withdrawal.withdrawalReceiver = receiver.id;
@@ -465,6 +468,7 @@ export function handleRewardTokenTransfer(event: Transfer): void {
     transfer.from = from.id;
     transfer.to = receiver.id;
     transfer.value = event.params.value;
+    transfer.transactionHash = event.transaction.hash.toHexString();
     transfer.save();
     return;
   }
@@ -482,6 +486,7 @@ export function handleRewardTokenTransfer(event: Transfer): void {
     transfer.from = from.id;
     transfer.to = receiver.id;
     transfer.value = event.params.value;
+    transfer.transactionHash = tx;
     transfer.save();
     return;
   }
@@ -539,6 +544,8 @@ function getOrCreateUserInfo(user: string, farmPid: string): UserInfo {
     userInfo = new UserInfo(id);
     userInfo.amount = BigInt.fromI32(0);
     userInfo.rewardDebt = BigInt.fromI32(0);
+    userInfo.user = id;
+    userInfo.farm = farmPid;
     userInfo.save();
   }
 
@@ -566,7 +573,9 @@ function collectRewardTokenBalances(
     BigInt.fromString(sushiFarm.id),
     Address.fromString(account.id)
   );
-  rewardTokenBalances.push(new TokenBalance(rewardTokens[0], account.id, sushiAmount.value));
+  if (!sushiAmount.reverted) {
+    rewardTokenBalances.push(new TokenBalance(rewardTokens[0], account.id, sushiAmount.value));
+  }
 
   // fetch claimable amount of extra reward tokens
   let rewarder = IRewarder.bind(Address.fromString(sushiFarm.rewarder));
@@ -606,17 +615,25 @@ function getHarvestedRewards(
   // get sushi receiver (it doesn't have to be harvester himself) by checking preceding Sushi transfer
   let sushiEventEntityId = event.transaction.hash.toHexString();
   let sushiTransfer = SushiRewardTransfer.load(sushiEventEntityId);
-  let sushiReceiver = sushiTransfer.to;
-  // store amount of harvested Sushi
-  rewardTokenAmounts.push(new TokenBalance(rewardTokens[0], sushiReceiver, harvestedSushiAmount));
-  // remove entity so that new one can be created in same transaction
-  store.remove("SushiRewardTransfer", sushiEventEntityId);
+  if (sushiTransfer != null) {
+    let sushiReceiver = sushiTransfer.to;
+
+    // store amount of harvested Sushi
+    rewardTokenAmounts.push(new TokenBalance(rewardTokens[0], sushiReceiver, harvestedSushiAmount));
+    // remove entity so that new one can be created in same transaction
+    store.remove("SushiRewardTransfer", sushiEventEntityId);
+  }
 
   // get and store extra token rewards, if any
   let tx = event.transaction.hash.toHexString();
   for (let i: i32 = 1; i < rewardTokens.length; i++) {
     let token = rewardTokens[i];
     let transfer = ExtraRewardTokenTransfer.load(tx + "-" + token);
+
+    // if there was no reward token transfer preceding the Harvest event, don't handle it
+    if (transfer == null) {
+      continue;
+    }
 
     let rewardReceiver = transfer.to;
     rewardTokenAmounts.push(new TokenBalance(token, rewardReceiver, transfer.value));
