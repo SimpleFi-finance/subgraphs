@@ -120,7 +120,7 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
  * @returns
  */
 export function handleDeposit(event: Deposit): void {
-  let sushiFarm = SushiFarm.load(event.params.pid.toString());
+  let sushiFarm = SushiFarm.load(event.params.pid.toString()) as SushiFarm;
   let user = getOrCreateAccount(event.params.user);
   let receiver = getOrCreateAccount(event.params.to);
   let amount = event.params.amount;
@@ -195,7 +195,7 @@ export function handleDeposit(event: Deposit): void {
  * @returns
  */
 export function handleWithdraw(event: Withdraw): void {
-  let sushiFarm = SushiFarm.load(event.params.pid.toString());
+  let sushiFarm = SushiFarm.load(event.params.pid.toString()) as SushiFarm;
   let user = getOrCreateAccount(event.params.user);
   let receiver = getOrCreateAccount(event.params.to);
   let amount = event.params.amount;
@@ -270,7 +270,7 @@ export function handleWithdraw(event: Withdraw): void {
  * @returns
  */
 export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
-  let sushiFarm = SushiFarm.load(event.params.pid.toString());
+  let sushiFarm = SushiFarm.load(event.params.pid.toString()) as SushiFarm;
   let user = getOrCreateAccount(event.params.user);
   let receiver = getOrCreateAccount(event.params.to);
   let amount = event.params.amount;
@@ -343,7 +343,7 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
  * @returns
  */
 export function handleHarvest(event: Harvest): void {
-  let sushiFarm = SushiFarm.load(event.params.pid.toString());
+  let sushiFarm = SushiFarm.load(event.params.pid.toString()) as SushiFarm;
   let harvester = getOrCreateAccount(event.params.user);
   let harvestedSushiAmount = event.params.amount;
 
@@ -397,8 +397,8 @@ export function handleHarvest(event: Harvest): void {
  *
  * @param event
  */
-export function handleLogUpdatePool(event: LogUpdatePool) {
-  let sushiFarm = SushiFarm.load(event.params.pid.toString());
+export function handleLogUpdatePool(event: LogUpdatePool): void {
+  let sushiFarm = SushiFarm.load(event.params.pid.toString()) as SushiFarm;
 
   // create farm snapshot
   let snapshotId = event.transaction.hash
@@ -437,8 +437,8 @@ export function handleLogUpdatePool(event: LogUpdatePool) {
  *
  * @param event
  */
-export function handleSetPool(event: LogSetPool) {
-  let sushiFarm = SushiFarm.load(event.params.pid.toString());
+export function handleSetPool(event: LogSetPool): void {
+  let sushiFarm = SushiFarm.load(event.params.pid.toString()) as SushiFarm;
 
   // update sushifarm
   sushiFarm.allocPoint = event.params.allocPoint;
@@ -452,11 +452,11 @@ export function handleSetPool(event: LogSetPool) {
  * Save reward token Transfer events, so they can be processed later as part of Harvest.
  * @param event
  */
-export function handleRewardTokenTransfer(event: Transfer) {
+export function handleRewardTokenTransfer(event: Transfer): void {
   let from = getOrCreateAccount(event.params.from);
 
   // if it is Sushi transfer and sender is MasterChef then store it as reward transfer
-  let masterChef = MasterChef.load(from.id);
+  let masterChef = MasterChef.load(from.id) as MasterChef;
   if (masterChef != null && event.address.toHexString() == masterChef.sushi) {
     let receiver = getOrCreateAccount(event.params.to);
     let transfer = new SushiRewardTransfer(event.transaction.hash.toHexString());
@@ -468,7 +468,7 @@ export function handleRewardTokenTransfer(event: Transfer) {
   }
 
   // if sender is Rewarder contract then it is extra token reward transfer
-  let rewarder = Rewarder.load(from.id);
+  let rewarder = Rewarder.load(from.id) as Rewarder;
   if (rewarder != null) {
     let receiver = getOrCreateAccount(event.params.to);
 
@@ -554,7 +554,7 @@ function collectRewardTokenBalances(
   account: Account,
   rewardTokenBalances: TokenBalance[],
   market: Market
-) {
+): void {
   let rewardTokens = market.rewardTokens as string[];
 
   // fetch claimable amount of sushi
