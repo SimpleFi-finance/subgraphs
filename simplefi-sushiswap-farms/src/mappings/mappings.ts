@@ -73,9 +73,10 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
   }
 
   // create Rewarder entity
-  let rewarder = Rewarder.load(event.params.rewarder.toHexString());
+  let rewarderAddress = event.params.rewarder.toHexString();
+  let rewarder = Rewarder.load(rewarderAddress);
   if (rewarder == null) {
-    rewarder = new Rewarder(event.params.rewarder.toHexString());
+    rewarder = new Rewarder(rewarderAddress);
   }
 
   // create and fill SushiFarm entity
@@ -437,7 +438,7 @@ export function handleLogUpdatePool(event: LogUpdatePool): void {
  *
  * @param event
  */
-export function handleSetPool(event: LogSetPool): void {
+export function handleLogSetPool(event: LogSetPool): void {
   let sushiFarm = SushiFarm.load(event.params.pid.toString()) as SushiFarm;
 
   // update sushifarm
