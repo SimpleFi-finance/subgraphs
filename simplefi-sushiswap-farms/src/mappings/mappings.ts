@@ -362,6 +362,14 @@ export function handleHarvest(event: Harvest): void {
   let harvester = getOrCreateAccount(event.params.user);
   let harvestedSushiAmount = event.params.amount;
 
+  // if there are no unprocessed reward transfers then don't do anything, as it means they were already
+  // handled in handleWithdraw
+  let masterChef = event.address.toHexString();
+  let market = Market.load(masterChef + "-" + sushiFarm.id) as Market;
+  if (!isThereUnprocessedRewardTransfer(market, event)) {
+    return;
+  }
+
   // don't update user's position for 0 value harvest
   if (harvestedSushiAmount == BigInt.fromI32(0)) {
     return;
@@ -373,9 +381,6 @@ export function handleHarvest(event: Harvest): void {
   userInfo.save();
 
   ////// update user's position
-
-  let masterChef = event.address.toHexString();
-  let market = Market.load(masterChef + "-" + sushiFarm.id) as Market;
 
   // sushi farms don't have output token
   let outputTokenAmount = BigInt.fromI32(0);
@@ -651,4 +656,35 @@ function getHarvestedRewards(
     // remove entity so that new one can be created in same transaction for same token
     store.remove("ExtraRewardTokenTransfer", tx + "-" + token);
   }
+}
+
+/**
+ * Function returns true if there's at least one reward transfer entity stored. If all reward transfers
+ * are already processed then there will be no stored entites (they are deleted upon processing in
+ * withdraw or harvest) and function will return false.
+ * @param market
+ * @param event
+ */
+function isThereUnprocessedRewardTransfer(market: Market, event: Harvest): boolean {
+  // check if there's unprocessed Sushi reward transfer
+  let sushiEventEntityId = event.transaction.hash.toHexString();
+  let sushiTransfer = SushiRewardTransfer.load(sushiEventEntityId);
+  if (sushiTransfer != null) {
+    return true;
+  }
+
+  // check if there's unprocessed extra reward token transfer
+  let rewardTokens = market.rewardTokens as string[];
+  let tx = event.transaction.hash.toHexString();
+  for (let i: i32 = 1; i < rewardTokens.length; i++) {
+    let token = rewardTokens[i];
+    let transfer = ExtraRewardTokenTransfer.load(tx + "-" + token);
+
+    // if there was no reward token transfer preceding the Harvest event, don't handle it
+    if (transfer != null) {
+      return true;
+    }
+  }
+
+  return false;
 }
