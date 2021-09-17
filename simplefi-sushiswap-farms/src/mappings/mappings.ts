@@ -45,7 +45,8 @@ import { RewardToken } from "../../generated/templates";
 
 import { ProtocolName, ProtocolType } from "../library/constants";
 
-let oneE12: BigInt = BigInt.fromI32(10).pow(12);
+// hard-coded as in contract
+let ACC_SUSHI_PRECISION: BigInt = BigInt.fromI32(10).pow(12);
 
 /**
  * Handle creation of new Sushi farm.
@@ -91,7 +92,7 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
   sushiFarm.totalSupply = BigInt.fromI32(0);
   let inputToken = getOrCreateERC20Token(event, event.params.lpToken);
   sushiFarm.lpToken = inputToken.id;
-  sushiFarm.lastRewardBlock = BigInt.fromI32(0);
+  sushiFarm.lastRewardBlock = event.block.number;
   sushiFarm.accSushiPerShare = BigInt.fromI32(0);
   sushiFarm.save();
 
@@ -147,7 +148,7 @@ export function handleDeposit(event: Deposit): void {
   let userInfo = getOrCreateUserInfo(deposit.depositReceiver, sushiFarm.id);
   userInfo.amount = userInfo.amount.plus(amount);
   userInfo.rewardDebt = userInfo.rewardDebt.plus(
-    amount.times(sushiFarm.accSushiPerShare).div(oneE12)
+    amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION)
   );
   userInfo.save();
 
@@ -226,7 +227,7 @@ export function handleWithdraw(event: Withdraw): void {
   let userInfo = getOrCreateUserInfo(user.id, sushiFarm.id);
   userInfo.amount = userInfo.amount.minus(amount);
   userInfo.rewardDebt = userInfo.rewardDebt.minus(
-    amount.times(sushiFarm.accSushiPerShare).div(oneE12)
+    amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION)
   );
   userInfo.save();
 
@@ -587,7 +588,7 @@ function collectRewardTokenBalances(
   let userInfo = UserInfo.load(account.id + "-" + sushiFarm.id);
   let claimableSushi = userInfo.amount
     .times(sushiFarm.accSushiPerShare)
-    .div(oneE12)
+    .div(ACC_SUSHI_PRECISION)
     .minus(userInfo.rewardDebt);
   rewardTokenBalances.push(new TokenBalance(rewardTokens[0], account.id, claimableSushi));
 
@@ -659,9 +660,9 @@ function getHarvestedRewards(
 }
 
 /**
- * Function returns true if there's at least one reward transfer entity stored. If all reward transfers
- * are already processed then there will be no stored entites (they are deleted upon processing in
- * withdraw or harvest) and function will return false.
+ * Function returns true if there's at least one reward transfer entity stored for current transaction.
+ * If all reward transfers in this tx are already processed then there will be no stored entites (they
+ * are deleted upon processing in withdraw or harvest) and function will return false.
  * @param market
  * @param event
  */
