@@ -554,7 +554,7 @@ function getOrCreateUserInfo(user: string, farmPid: string): UserInfo {
     userInfo = new UserInfo(id);
     userInfo.amount = BigInt.fromI32(0);
     userInfo.rewardDebt = BigInt.fromI32(0);
-    userInfo.user = id;
+    userInfo.user = user;
     userInfo.farm = farmPid;
     userInfo.save();
   }
