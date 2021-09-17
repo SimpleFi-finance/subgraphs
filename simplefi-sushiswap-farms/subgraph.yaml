@@ -49,6 +49,9 @@ dataSources:
           handler: handleLogSetPool
         - event: LogUpdatePool(indexed uint256,uint64,uint256,uint256)
           handler: handleLogUpdatePool
+      callHandlers:
+        - function: migrate(uint256)
+          handler: handleMigrate
 
 templates:
   - kind: ethereum/contract

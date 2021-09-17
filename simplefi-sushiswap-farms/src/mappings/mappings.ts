@@ -9,6 +9,7 @@ import {
   LogPoolAddition,
   LogUpdatePool,
   LogSetPool,
+  MigrateCall,
 } from "../../generated/MasterChefV2/MasterChefV2";
 
 import { Transfer } from "../../generated/templates/RewardToken/IERC20";
@@ -47,6 +48,43 @@ import { ProtocolName, ProtocolType } from "../library/constants";
 
 // hard-coded as in contract
 let ACC_SUSHI_PRECISION: BigInt = BigInt.fromI32(10).pow(12);
+
+/**
+ * When LP token of farm is migrated use contract call to MasterChef to fetch and store new LP token.
+ * @param call
+ */
+export function handleMigrate(call: MigrateCall): void {
+  let sushiFarmPid = call.inputs._pid;
+  let sushiFarm = SushiFarm.load(sushiFarmPid.toString()) as SushiFarm;
+
+  let masterChefContract = MasterChefV2.bind(Address.fromString(sushiFarm.masterChef));
+  let newLpToken = masterChefContract.try_lpToken(sushiFarmPid);
+
+  if (!newLpToken.reverted) {
+    // create "fake" event so it can be passed to `getOrCreateERC20Token`
+    let fakeEvent = new ethereum.Event();
+    fakeEvent.block = call.block;
+    let transaction = new ethereum.Transaction();
+    transaction.hash = call.block.hash;
+    fakeEvent.transaction = transaction;
+    fakeEvent.logIndex = call.block.number;
+
+    // save new LP token
+    sushiFarm.lpToken = getOrCreateERC20Token(fakeEvent, newLpToken.value).id;
+    sushiFarm.save();
+
+    // update market with LP token (balance stays the same)
+    let market = Market.load(sushiFarm.masterChef + "-" + sushiFarm.id) as Market;
+    let newTokenInputBalances: TokenBalance[] = [
+      new TokenBalance(sushiFarm.lpToken, sushiFarm.masterChef, sushiFarm.totalSupply),
+    ];
+
+    market.inputTokens = [sushiFarm.lpToken];
+    market.save();
+
+    updateMarket(fakeEvent, market, newTokenInputBalances, market.outputTokenTotalSupply);
+  }
+}
 
 /**
  * Handle creation of new Sushi farm.
@@ -456,7 +494,7 @@ export function handleLogUpdatePool(event: LogUpdatePool): void {
 }
 
 /**
- * Event updates allocPoint and potentially the rewarder contract.
+ * Updates farm's allocPoint and potentially the rewarder contract.
  * @param event
  */
 export function handleLogSetPool(event: LogSetPool): void {
