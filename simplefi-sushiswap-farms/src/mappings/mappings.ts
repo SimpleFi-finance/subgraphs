@@ -144,7 +144,7 @@ export function handleDeposit(event: Deposit): void {
   }
 
   // increase user's balance of provided LP tokens and amount of rewards entitled to user
-  let userInfo = getOrCreateUserInfo(receiver.id, sushiFarm.id);
+  let userInfo = getOrCreateUserInfo(deposit.depositReceiver, sushiFarm.id);
   userInfo.amount = userInfo.amount.plus(amount);
   userInfo.rewardDebt = userInfo.rewardDebt.plus(
     amount.times(sushiFarm.accSushiPerShare).div(oneE12)
@@ -170,7 +170,7 @@ export function handleDeposit(event: Deposit): void {
   // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
   let outputTokenBalance = BigInt.fromI32(0);
 
-  // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
+  // inputTokenBalance -> number of LP tokens that can be redeemed by user
   let inputTokenBalances: TokenBalance[] = [];
   inputTokenBalances.push(
     new TokenBalance(sushiFarm.lpToken, deposit.depositReceiver, userInfo.amount)
@@ -178,7 +178,7 @@ export function handleDeposit(event: Deposit): void {
 
   // reward token amounts (SUSHI + custom tokens) claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
-  collectRewardTokenBalances(sushiFarm, user, rewardTokenBalances, market);
+  collectRewardTokenBalances(sushiFarm, receiver, rewardTokenBalances, market);
 
   investInMarket(
     event,
@@ -223,7 +223,7 @@ export function handleWithdraw(event: Withdraw): void {
   }
 
   // decrease user's balance of provided LP tokens and amount of rewards entitled to user
-  let userInfo = getOrCreateUserInfo(receiver.id, sushiFarm.id);
+  let userInfo = getOrCreateUserInfo(user.id, sushiFarm.id);
   userInfo.amount = userInfo.amount.minus(amount);
   userInfo.rewardDebt = userInfo.rewardDebt.minus(
     amount.times(sushiFarm.accSushiPerShare).div(oneE12)
@@ -245,11 +245,12 @@ export function handleWithdraw(event: Withdraw): void {
 
   // number of reward tokens claimed by user in this transaction
   let rewardTokenAmounts: TokenBalance[] = [];
+  getHarvestedRewards(event, market, rewardTokenAmounts);
 
   // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
   let outputTokenBalance = BigInt.fromI32(0);
 
-  // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
+  // inputTokenBalance -> number of LP tokens that can be redeemed by user
   let inputTokenBalances: TokenBalance[] = [];
   inputTokenBalances.push(
     new TokenBalance(sushiFarm.lpToken, withdrawal.withdrawalReceiver, userInfo.amount)
@@ -326,7 +327,7 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
   // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
   let outputTokenBalance = BigInt.fromI32(0);
 
-  // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
+  // inputTokenBalance -> number of LP tokens that can be redeemed by user
   let inputTokenBalances: TokenBalance[] = [];
   inputTokenBalances.push(
     new TokenBalance(sushiFarm.lpToken, withdrawal.withdrawalReceiver, userInfo.amount)
@@ -384,7 +385,7 @@ export function handleHarvest(event: Harvest): void {
 
   // number of reward tokens claimed by user in this transaction
   let rewardTokenAmounts: TokenBalance[] = [];
-  getHarvestedRewards(event, market, rewardTokenAmounts, harvestedSushiAmount);
+  getHarvestedRewards(event, market, rewardTokenAmounts);
 
   // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
   let outputTokenBalance = BigInt.fromI32(0);
@@ -613,10 +614,9 @@ function collectRewardTokenBalances(
  * @param harvestedSushiAmount
  */
 function getHarvestedRewards(
-  event: Harvest,
+  event: ethereum.Event,
   market: Market,
-  rewardTokenAmounts: TokenBalance[],
-  harvestedSushiAmount: BigInt
+  rewardTokenAmounts: TokenBalance[]
 ): void {
   let rewardTokens = market.rewardTokens as string[];
 
@@ -625,9 +625,10 @@ function getHarvestedRewards(
   let sushiTransfer = SushiRewardTransfer.load(sushiEventEntityId);
   if (sushiTransfer != null) {
     let sushiReceiver = sushiTransfer.to;
+    let sushiAmount = sushiTransfer.value;
 
     // store amount of harvested Sushi
-    rewardTokenAmounts.push(new TokenBalance(rewardTokens[0], sushiReceiver, harvestedSushiAmount));
+    rewardTokenAmounts.push(new TokenBalance(rewardTokens[0], sushiReceiver, sushiAmount));
     // remove entity so that new one can be created in same transaction
     store.remove("SushiRewardTransfer", sushiEventEntityId);
   }
@@ -644,7 +645,8 @@ function getHarvestedRewards(
     }
 
     let rewardReceiver = transfer.to;
-    rewardTokenAmounts.push(new TokenBalance(token, rewardReceiver, transfer.value));
+    let rewardTokenAmount = transfer.value;
+    rewardTokenAmounts.push(new TokenBalance(token, rewardReceiver, rewardTokenAmount));
 
     // remove entity so that new one can be created in same transaction for same token
     store.remove("ExtraRewardTokenTransfer", tx + "-" + token);
