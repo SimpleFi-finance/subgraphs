@@ -200,7 +200,7 @@ export function handleDeposit(event: Deposit): void {
 
   // user deposited `amount` LP tokens
   let inputTokenAmounts: TokenBalance[] = [
-    new TokenBalance(sushiFarm.lpToken, deposit.depositReceiver, amount),
+    new TokenBalance(sushiFarm.lpToken, deposit.depositer, amount),
   ];
 
   // number of reward tokens claimed by user in this transaction
@@ -262,7 +262,7 @@ export function handleWithdraw(event: Withdraw): void {
   }
 
   // decrease user's balance of provided LP tokens and amount of rewards entitled to user
-  let userInfo = getOrCreateUserInfo(user.id, sushiFarm.id);
+  let userInfo = getOrCreateUserInfo(withdrawal.withdrawer, sushiFarm.id);
   userInfo.amount = userInfo.amount.minus(amount);
   userInfo.rewardDebt = userInfo.rewardDebt.minus(
     amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION)
@@ -277,7 +277,7 @@ export function handleWithdraw(event: Withdraw): void {
   // sushi farms don't have output token
   let outputTokenAmount = BigInt.fromI32(0);
 
-  // user withdrew `amount` LP tokens
+  // withdrawalReceiver received `amount` LP tokens
   let inputTokenAmounts: TokenBalance[] = [
     new TokenBalance(sushiFarm.lpToken, withdrawal.withdrawalReceiver, amount),
   ];
@@ -289,10 +289,10 @@ export function handleWithdraw(event: Withdraw): void {
   // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
   let outputTokenBalance = BigInt.fromI32(0);
 
-  // inputTokenBalance -> number of LP tokens that can be redeemed by user
+  // inputTokenBalance -> number of LP tokens that can be redeemed by withdrawer
   let inputTokenBalances: TokenBalance[] = [];
   inputTokenBalances.push(
-    new TokenBalance(sushiFarm.lpToken, withdrawal.withdrawalReceiver, userInfo.amount)
+    new TokenBalance(sushiFarm.lpToken, withdrawal.withdrawer, userInfo.amount)
   );
 
   // reward token amounts (SUSHI + custom tokens) claimable by user
@@ -301,7 +301,7 @@ export function handleWithdraw(event: Withdraw): void {
 
   redeemFromMarket(
     event,
-    receiver,
+    user,
     market,
     outputTokenAmount,
     inputTokenAmounts,
