@@ -261,18 +261,29 @@ export function handleWithdraw(event: Withdraw): void {
     return;
   }
 
-  // decrease user's balance of provided LP tokens and amount of rewards entitled to user
+  let masterChef = event.address.toHexString();
+  let market = Market.load(masterChef + "-" + sushiFarm.id) as Market;
   let userInfo = getOrCreateUserInfo(withdrawal.withdrawer, sushiFarm.id);
-  userInfo.amount = userInfo.amount.minus(amount);
-  userInfo.rewardDebt = userInfo.rewardDebt.minus(
-    amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION)
-  );
+
+  // if there are preceding reward transfers then this event is part of WithdrawAndHarvest function,
+  // otherwise it is part of just a Withdraw function
+  if (isThereUnprocessedRewardTransfer(market, event)) {
+    let accSushi = userInfo.amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION);
+    userInfo.rewardDebt = accSushi.minus(
+      amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION)
+    );
+    userInfo.amount = userInfo.amount.minus(amount);
+  } else {
+    // decrease user's balance of provided LP tokens and amount of rewards entitled to user
+    userInfo.amount = userInfo.amount.minus(amount);
+    userInfo.rewardDebt = userInfo.rewardDebt.minus(
+      amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION)
+    );
+  }
+
   userInfo.save();
 
   ////// update user's position
-
-  let masterChef = event.address.toHexString();
-  let market = Market.load(masterChef + "-" + sushiFarm.id) as Market;
 
   // sushi farms don't have output token
   let outputTokenAmount = BigInt.fromI32(0);
@@ -704,7 +715,7 @@ function getHarvestedRewards(
  * @param market
  * @param event
  */
-function isThereUnprocessedRewardTransfer(market: Market, event: Harvest): boolean {
+function isThereUnprocessedRewardTransfer(market: Market, event: ethereum.Event): boolean {
   // check if there's unprocessed Sushi reward transfer
   let sushiEventEntityId = event.transaction.hash.toHexString();
   let sushiTransfer = SushiRewardTransfer.load(sushiEventEntityId);
