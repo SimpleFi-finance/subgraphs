@@ -170,32 +170,66 @@ type PositionSnapshot @entity {
 # Sushiswap farm protocol entities
 
 type SushiFarm @entity {
-  id: ID! # {pid}
+  " pid assigned by masterchef "
+  id: ID!
+
+  " masterchef contract address "
   masterChef: String!
+
+  " sushi LP token which is farm's input token "
   lpToken: Token!
+
+  " contract which tracks and distributes extra reward tokens  "
   rewarder: Rewarder
+
+  " amount of sushi to distribute per block. "
   allocPoint: BigInt!
+
+  " total amount of LP tokens provided to farm "
   totalSupply: BigInt!
 
-  created: BigInt!
-  createdAtBlock: BigInt!
-  createdAtTransaction: Bytes!
-
+  " last block number where sushi distribution occurs. "
   lastRewardBlock: BigInt!
+
+  " accumulated amount of sushi per share"
   accSushiPerShare: BigInt!
+
+  " creation timestamp "
+  created: BigInt!
+
+  " creation block number "
+  createdAtBlock: BigInt!
+
+  " creation transaction "
+  createdAtTransaction: Bytes!
 }
 
 type SushiFarmSnapshot @entity {
   " trasactionHash-logIndex "
   id: ID!
 
+  " farm of which snapshot is taken "
   sushiFarm: SushiFarm!
+
+  " amount of sushi to distribute per block. "
   allocPoint: BigInt!
+
+  " total amount of LP tokens provided to farm "
   totalSupply: BigInt!
+
+  " snapshot timestamp "
   timestamp: BigInt!
+
+  " block number in which snapshot is taken "
   blockNumber: BigInt!
+
+  " transaction in which snapshot is taken "
   transactionHash: String!
+
+  " index of transaction in block "
   transactionIndexInBlock: BigInt!
+
+  " snapshot log index "
   logIndex: BigInt!
 }
 
@@ -299,12 +333,6 @@ type MasterChef @entity {
 
   " address of sushi token"
   sushi: Token!
-
-  #startBlock: BigInt!
-  #sushiPerBlock: BigInt!
-  #totalAllocPoint: BigInt!
-  #bonusEndBlock: BigInt!
-  #poolLength: BigInt!
 }
 
 type Rewarder @entity {
