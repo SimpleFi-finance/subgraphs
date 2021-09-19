@@ -427,7 +427,7 @@ export function handleHarvest(event: Harvest): void {
 
   // updated user's rewardDebt which tracks total amount of claimed Sushi tokens
   let userInfo = getOrCreateUserInfo(harvester.id, sushiFarm.id);
-  userInfo.rewardDebt = userInfo.rewardDebt.plus(harvestedSushiAmount);
+  userInfo.rewardDebt = userInfo.amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION);
   userInfo.save();
 
   ////// update user's position
