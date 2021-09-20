@@ -113,6 +113,8 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
     let sushiToken = getOrCreateERC20Token(event, sushi);
     masterChef.sushi = sushiToken.id;
     masterChef.numberOfFarms = BigInt.fromI32(0);
+    masterChef.totalAllocPoint = BigInt.fromI32(0);
+    masterChef.sushiPerBlock = masterChefContract.sushiPerBlock();
     masterChef.save();
   }
 
@@ -142,6 +144,7 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
 
   // numberOfFarms++
   masterChef.numberOfFarms = masterChef.numberOfFarms.plus(BigInt.fromI32(1));
+  masterChef.totalAllocPoint = masterChef.totalAllocPoint.plus(sushiFarm.allocPoint);
   masterChef.save();
 
   // create market representing the farm
@@ -522,6 +525,13 @@ export function handleLogUpdatePool(event: LogUpdatePool): void {
 export function handleLogSetPool(event: LogSetPool): void {
   let masterChef = event.address.toHexString();
   let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
+
+  // update totalalloc of MasterChef
+  let masterChefEntity = MasterChef.load(masterChef) as MasterChef;
+  masterChefEntity.totalAllocPoint = masterChefEntity.totalAllocPoint
+    .minus(sushiFarm.allocPoint)
+    .plus(event.params.allocPoint);
+  masterChefEntity.save();
 
   // update sushifarm
   sushiFarm.allocPoint = event.params.allocPoint;

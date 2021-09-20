@@ -42,6 +42,8 @@ dataSources:
       callHandlers:
         - function: add(uint256,address,bool)
           handler: handleAdd
+        - function: updatePool(uint256)
+          handler: handleUpdatePool
         # - function: migrate(uint256)
         #   handler: handleMigrate
 

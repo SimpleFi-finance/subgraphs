@@ -345,6 +345,18 @@ type MasterChef @entity {
 
   " total number of farms/pools this masterChef is tracking "
   numberOfFarms: BigInt!
+
+  " sum of all allocation points in all farms "
+  totalAllocPoint: BigInt!
+
+  " sushi tokens created per block "
+  sushiPerBlock: BigInt!
+
+  " block number when bonus Sushi period ends "
+  bonusEndBlock: BigInt
+
+  " bonus muliplier for early sushi makers "
+  bonusMultiplier: BigInt
 }
 
 type Rewarder @entity {
