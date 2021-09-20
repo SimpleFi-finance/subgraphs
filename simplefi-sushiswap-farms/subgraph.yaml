@@ -16,7 +16,7 @@ dataSources:
       kind: ethereum/events
       apiVersion: 0.0.4
       language: wasm/assemblyscript
-      file: ./src/mappings/mappings.ts
+      file: ./src/mappings/masterChefV2.ts
       abis:
         - name: MasterChefV2
           file: ./abis/MasterChefV2.json
@@ -80,4 +80,4 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleRewardTokenTransfer
-      file: ./src/mappings/mappings.ts
+      file: ./src/mappings/masterChefV2.ts
