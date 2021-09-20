@@ -54,8 +54,9 @@ let ACC_SUSHI_PRECISION: BigInt = BigInt.fromI32(10).pow(12);
  * @param call
  */
 export function handleMigrate(call: MigrateCall): void {
+  let masterChef = call.to.toHexString();
   let sushiFarmPid = call.inputs._pid;
-  let sushiFarm = SushiFarm.load(sushiFarmPid.toString()) as SushiFarm;
+  let sushiFarm = SushiFarm.load(masterChef + "-" + sushiFarmPid.toString()) as SushiFarm;
 
   let masterChefContract = MasterChefV2.bind(Address.fromString(sushiFarm.masterChef));
   let newLpToken = masterChefContract.try_lpToken(sushiFarmPid);
@@ -74,7 +75,7 @@ export function handleMigrate(call: MigrateCall): void {
     sushiFarm.save();
 
     // update market with LP token (balance stays the same)
-    let market = Market.load(sushiFarm.masterChef + "-" + sushiFarm.id) as Market;
+    let market = Market.load(sushiFarm.id) as Market;
     let newTokenInputBalances: TokenBalance[] = [
       new TokenBalance(sushiFarm.lpToken, sushiFarm.masterChef, sushiFarm.totalSupply),
     ];
@@ -96,6 +97,7 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
   // create MasterChef entity and store Sushi token address
   if (masterChef == null) {
     masterChef = new MasterChef(event.address.toHexString());
+    masterChef.version = BigInt.fromI32(2);
 
     // get sushi address, store it and start indexer if needed
     let masterChefContract = MasterChefV2.bind(event.address);
@@ -120,7 +122,7 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
   }
 
   // create and fill SushiFarm entity
-  let sushiFarm = new SushiFarm(event.params.pid.toString());
+  let sushiFarm = new SushiFarm(masterChef.id + "-" + event.params.pid.toString());
   sushiFarm.masterChef = masterChef.id;
   sushiFarm.rewarder = rewarder.id;
   sushiFarm.allocPoint = event.params.allocPoint;
@@ -161,7 +163,8 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
  * @returns
  */
 export function handleDeposit(event: Deposit): void {
-  let sushiFarm = SushiFarm.load(event.params.pid.toString()) as SushiFarm;
+  let masterChef = event.address.toHexString();
+  let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
   let user = getOrCreateAccount(event.params.user);
   let receiver = getOrCreateAccount(event.params.to);
   let amount = event.params.amount;
@@ -192,8 +195,7 @@ export function handleDeposit(event: Deposit): void {
 
   ////// update user's position
 
-  let masterChef = event.address.toHexString();
-  let market = Market.load(masterChef + "-" + sushiFarm.id) as Market;
+  let market = Market.load(sushiFarm.id) as Market;
 
   // sushi farms don't have output token
   let outputTokenAmount = BigInt.fromI32(0);
@@ -240,7 +242,8 @@ export function handleDeposit(event: Deposit): void {
  * @returns
  */
 export function handleWithdraw(event: Withdraw): void {
-  let sushiFarm = SushiFarm.load(event.params.pid.toString()) as SushiFarm;
+  let masterChef = event.address.toHexString();
+  let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
   let user = getOrCreateAccount(event.params.user);
   let receiver = getOrCreateAccount(event.params.to);
   let amount = event.params.amount;
@@ -261,8 +264,7 @@ export function handleWithdraw(event: Withdraw): void {
     return;
   }
 
-  let masterChef = event.address.toHexString();
-  let market = Market.load(masterChef + "-" + sushiFarm.id) as Market;
+  let market = Market.load(sushiFarm.id) as Market;
   let userInfo = getOrCreateUserInfo(withdrawal.withdrawer, sushiFarm.id);
 
   // if there are preceding reward transfers then this event is part of WithdrawAndHarvest function,
@@ -331,7 +333,8 @@ export function handleWithdraw(event: Withdraw): void {
  * @returns
  */
 export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
-  let sushiFarm = SushiFarm.load(event.params.pid.toString()) as SushiFarm;
+  let masterChef = event.address.toHexString();
+  let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
   let user = getOrCreateAccount(event.params.user);
   let receiver = getOrCreateAccount(event.params.to);
   let amount = event.params.amount;
@@ -354,8 +357,7 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
 
   ////// update user's position
 
-  let masterChef = event.address.toHexString();
-  let market = Market.load(masterChef + "-" + sushiFarm.id) as Market;
+  let market = Market.load(sushiFarm.id) as Market;
 
   // LP token balance and claimable rewards are resetted to 0 in EmergencyWithdraw
   let userInfo = getOrCreateUserInfo(receiver.id, sushiFarm.id);
@@ -408,14 +410,14 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
  * @returns
  */
 export function handleHarvest(event: Harvest): void {
-  let sushiFarm = SushiFarm.load(event.params.pid.toString()) as SushiFarm;
+  let masterChef = event.address.toHexString();
+  let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
   let harvester = getOrCreateAccount(event.params.user);
   let harvestedSushiAmount = event.params.amount;
 
   // if there are no unprocessed reward transfers then don't do anything, as it means they were already
   // handled in handleWithdraw
-  let masterChef = event.address.toHexString();
-  let market = Market.load(masterChef + "-" + sushiFarm.id) as Market;
+  let market = Market.load(sushiFarm.id) as Market;
   if (!isThereUnprocessedRewardTransfer(market, event)) {
     return;
   }
@@ -472,7 +474,8 @@ export function handleHarvest(event: Harvest): void {
  * @param event
  */
 export function handleLogUpdatePool(event: LogUpdatePool): void {
-  let sushiFarm = SushiFarm.load(event.params.pid.toString()) as SushiFarm;
+  let masterChef = event.address.toHexString();
+  let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
 
   // create farm snapshot
   let snapshotId = event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString();
@@ -494,8 +497,7 @@ export function handleLogUpdatePool(event: LogUpdatePool): void {
   sushiFarm.save();
 
   // update market
-  let masterChef = event.address.toHexString();
-  let market = Market.load(masterChef + "-" + sushiFarm.id) as Market;
+  let market = Market.load(sushiFarm.id) as Market;
   updateMarket(
     event,
     market,
@@ -509,7 +511,8 @@ export function handleLogUpdatePool(event: LogUpdatePool): void {
  * @param event
  */
 export function handleLogSetPool(event: LogSetPool): void {
-  let sushiFarm = SushiFarm.load(event.params.pid.toString()) as SushiFarm;
+  let masterChef = event.address.toHexString();
+  let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
 
   // update sushifarm
   sushiFarm.allocPoint = event.params.allocPoint;

@@ -170,11 +170,11 @@ type PositionSnapshot @entity {
 # Sushiswap farm protocol entities
 
 type SushiFarm @entity {
-  " pid assigned by masterchef "
+  " masterchef-farmPid "
   id: ID!
 
   " masterchef contract address "
-  masterChef: String!
+  masterChef: MasterChef!
 
   " sushi LP token which is farm's input token "
   lpToken: Token!
@@ -330,6 +330,9 @@ type ExtraRewardTokenTransfer @entity {
 type MasterChef @entity {
   " contract address "
   id: ID!
+
+  " masterchef contract version "
+  version: BigInt!
 
   " address of sushi token"
   sushi: Token!
