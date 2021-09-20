@@ -48,6 +48,8 @@ dataSources:
           handler: handleSet
         - function: migrate(uint256)
           handler: handleMigrate
+        - function: massUpdatePools()
+          handler: handleMassUpdatePools
 
   # Controls pools (farms) and SUSHI issuance - V2 version
   - name: MasterChefV2

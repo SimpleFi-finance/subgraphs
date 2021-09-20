@@ -33,6 +33,7 @@ import {
 import { getOrCreateUserInfo } from "../library/masterChefUtils";
 
 import { ProtocolName, ProtocolType } from "../library/constants";
+import { MassUpdatePoolsCall } from "../../generated/MasterChefV2/MasterChefV2";
 
 // hard-coded as in contract
 let ACC_SUSHI_PRECISION: BigInt = BigInt.fromI32(10).pow(12);
@@ -448,6 +449,15 @@ export function handleMigrate(call: MigrateCall): void {
 
     updateMarket(fakeEvent, market, newTokenInputBalances, market.outputTokenTotalSupply);
   }
+}
+
+/**
+ * Update reward variables of each farm
+ * @param call
+ */
+export function handleMassUpdatePools(call: MassUpdatePoolsCall): void {
+  let masterChef = MasterChefEntity.load(call.to.toHexString()) as MasterChefEntity;
+  massUpdateFarms(masterChef, call.block);
 }
 
 /**
