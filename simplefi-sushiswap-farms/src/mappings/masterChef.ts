@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 
 import {
   MasterChef,
@@ -6,6 +6,8 @@ import {
   Deposit,
   Withdraw,
   EmergencyWithdraw,
+  SetCall,
+  UpdatePoolCall,
 } from "../../generated/MasterChef/MasterChef";
 
 import {
@@ -30,8 +32,6 @@ import {
 import { getOrCreateUserInfo } from "../library/masterChefUtils";
 
 import { ProtocolName, ProtocolType } from "../library/constants";
-
-import { UpdatePoolCall } from "../../generated/MasterChefV2/MasterChefV2";
 
 // hard-coded as in contract
 let ACC_SUSHI_PRECISION: BigInt = BigInt.fromI32(10).pow(12);
@@ -380,8 +380,33 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
  */
 export function handleUpdatePool(call: UpdatePoolCall): void {
   let masterChef = call.to.toHexString();
-  let sushiFarm = SushiFarm.load(masterChef + "-" + call.inputs.pid.toString()) as SushiFarm;
+  let sushiFarm = SushiFarm.load(masterChef + "-" + call.inputs._pid.toString()) as SushiFarm;
   updateFarm(sushiFarm, call.block);
+}
+
+/**
+ * Updates farm's allocPoint and potentially the rewarder contract.
+ * @param event
+ */
+export function handleSetPool(call: SetCall): void {
+  let masterChef = call.to.toHexString();
+  let masterChefEntity = MasterChefEntity.load(masterChef) as MasterChefEntity;
+  let sushiFarm = SushiFarm.load(masterChef + "-" + call.inputs._pid.toString()) as SushiFarm;
+
+  // update all farms
+  if (call.inputs._withUpdate) {
+    massUpdateFarms(masterChefEntity, call.block);
+  }
+
+  // update totalalloc of MasterChef
+  masterChefEntity.totalAllocPoint = masterChefEntity.totalAllocPoint
+    .minus(sushiFarm.allocPoint)
+    .plus(call.inputs._allocPoint);
+  masterChefEntity.save();
+
+  // update sushifarm
+  sushiFarm.allocPoint = call.inputs._allocPoint;
+  sushiFarm.save();
 }
 
 /**
