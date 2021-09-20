@@ -8,6 +8,7 @@ import {
   EmergencyWithdraw,
   SetCall,
   UpdatePoolCall,
+  MigrateCall,
 } from "../../generated/MasterChef/MasterChef";
 
 import {
@@ -407,6 +408,46 @@ export function handleSetPool(call: SetCall): void {
   // update sushifarm
   sushiFarm.allocPoint = call.inputs._allocPoint;
   sushiFarm.save();
+}
+
+/**
+ * When LP token of farm is migrated use contract call to MasterChef to fetch and store new LP token.
+ * @param call
+ */
+export function handleMigrate(call: MigrateCall): void {
+  let masterChef = call.to.toHexString();
+  let sushiFarmPid = call.inputs._pid;
+  let sushiFarm = SushiFarm.load(masterChef + "-" + sushiFarmPid.toString()) as SushiFarm;
+
+  let masterChefContract = MasterChef.bind(Address.fromString(sushiFarm.masterChef));
+  let poolInfo = masterChefContract.try_poolInfo(sushiFarmPid);
+
+  if (!poolInfo.reverted) {
+    let newLpToken = poolInfo.value.value0;
+
+    // create "fake" event so it can be passed to `getOrCreateERC20Token`
+    let fakeEvent = new ethereum.Event();
+    fakeEvent.block = call.block;
+    let transaction = new ethereum.Transaction();
+    transaction.hash = call.block.hash;
+    fakeEvent.transaction = transaction;
+    fakeEvent.logIndex = call.block.number;
+
+    // save new LP token
+    sushiFarm.lpToken = getOrCreateERC20Token(fakeEvent, newLpToken).id;
+    sushiFarm.save();
+
+    // update market with LP token (balance stays the same)
+    let market = Market.load(sushiFarm.id) as Market;
+    let newTokenInputBalances: TokenBalance[] = [
+      new TokenBalance(sushiFarm.lpToken, sushiFarm.masterChef, sushiFarm.totalSupply),
+    ];
+
+    market.inputTokens = [sushiFarm.lpToken];
+    market.save();
+
+    updateMarket(fakeEvent, market, newTokenInputBalances, market.outputTokenTotalSupply);
+  }
 }
 
 /**
