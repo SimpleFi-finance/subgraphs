@@ -270,7 +270,7 @@ type FarmDeposit @entity {
   depositer: Account!
 
   " receiver of `amount` deposit benefit "
-  depositReceiver: Account!
+  depositReceiver: Account
 
   " LP token amount to deposit "
   amount: BigInt!
@@ -290,7 +290,7 @@ type FarmWithdrawal @entity {
   withdrawer: Account!
 
   " receiver of LP tokens "
-  withdrawalReceiver: Account!
+  withdrawalReceiver: Account
 
   " LP token amount to withdraw "
   amount: BigInt!

@@ -32,6 +32,8 @@ import {
   ADDRESS_ZERO,
 } from "../library/common";
 
+import { getOrCreateUserInfo } from "../library/masterChefUtils";
+
 import { RewardToken } from "../../generated/templates";
 
 import { ProtocolName, ProtocolType } from "../library/constants";
@@ -115,4 +117,90 @@ export function handleAdd(call: AddCall): void {
  * @param event
  * @returns
  */
-export function handleDeposit(event: Deposit): void {}
+export function handleDeposit(event: Deposit): void {
+  let masterChef = event.address.toHexString();
+  let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
+  let user = getOrCreateAccount(event.params.user);
+  let amount = event.params.amount;
+
+  // save new deposit entity
+  let deposit = new FarmDeposit(
+    event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
+  );
+  deposit.transactionHash = event.transaction.hash.toHexString();
+  deposit.sushiFarm = sushiFarm.id;
+  deposit.depositer = user.id;
+  deposit.amount = amount;
+  deposit.save();
+
+  // don't update user's position for 0 value deposit
+  if (deposit.amount == BigInt.fromI32(0)) {
+    return;
+  }
+
+  // calculate harvested Sushi amount
+  let userInfo = getOrCreateUserInfo(user.id, sushiFarm.id);
+  let harvestedSushi = userInfo.amount
+    .times(sushiFarm.accSushiPerShare)
+    .div(ACC_SUSHI_PRECISION)
+    .minus(userInfo.rewardDebt);
+
+  // increase user's balance of provided LP tokens and amount of rewards entitled to user
+  userInfo.amount = userInfo.amount.plus(amount);
+  userInfo.rewardDebt = userInfo.amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION);
+  userInfo.save();
+
+  ////// update market LP supply
+
+  // update sushifarm
+  sushiFarm.totalSupply = sushiFarm.totalSupply.plus(amount);
+  sushiFarm.save();
+
+  // update market
+  let market = Market.load(sushiFarm.id) as Market;
+  updateMarket(
+    event,
+    market,
+    [new TokenBalance(sushiFarm.lpToken, masterChef, sushiFarm.totalSupply)],
+    BigInt.fromI32(0)
+  );
+
+  ////// update user's position
+
+  // sushi farms don't have output token
+  let outputTokenAmount = BigInt.fromI32(0);
+
+  // user deposited `amount` LP tokens
+  let inputTokenAmounts: TokenBalance[] = [new TokenBalance(sushiFarm.lpToken, user.id, amount)];
+
+  // number of Sushi tokens user received in this transaction
+  let rewardTokenAmounts: TokenBalance[] = [];
+  let rewardTokens = market.rewardTokens as string[];
+  rewardTokenAmounts.push(new TokenBalance(rewardTokens[0], user.id, harvestedSushi));
+
+  // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
+  let outputTokenBalance = BigInt.fromI32(0);
+
+  // inputTokenBalance -> number of LP tokens that can be redeemed by user
+  let inputTokenBalances: TokenBalance[] = [];
+  inputTokenBalances.push(new TokenBalance(sushiFarm.lpToken, user.id, userInfo.amount));
+
+  // Sushi amount claimable by user - at this point it is 0 as all the pending reward Sushi has just
+  // been transferred to user
+  let rewardTokenBalances: TokenBalance[] = [
+    new TokenBalance(rewardTokens[0], user.id, BigInt.fromI32(0)),
+  ];
+
+  investInMarket(
+    event,
+    user,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
+}
