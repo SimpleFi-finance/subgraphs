@@ -363,20 +363,20 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
     return;
   }
 
-  ////// update user's position
-
-  let market = Market.load(sushiFarm.id) as Market;
-
   // LP token balance and claimable rewards are resetted to 0 in EmergencyWithdraw
-  let userInfo = getOrCreateUserInfo(receiver.id, sushiFarm.id);
+  let userInfo = getOrCreateUserInfo(withdrawal.withdrawer, sushiFarm.id);
   userInfo.amount = BigInt.fromI32(0);
   userInfo.rewardDebt = BigInt.fromI32(0);
   userInfo.save();
 
+  ////// update user's position
+
+  let market = Market.load(sushiFarm.id) as Market;
+
   // no output token in sushi farms
   let outputTokenAmount = BigInt.fromI32(0);
 
-  // LP tokens go to receiver
+  // withdrawalReceiver received `amount` LP tokens
   let inputTokenAmounts: TokenBalance[] = [
     new TokenBalance(sushiFarm.lpToken, withdrawal.withdrawalReceiver, amount),
   ];
@@ -390,7 +390,7 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
   // inputTokenBalance -> number of LP tokens that can be redeemed by user
   let inputTokenBalances: TokenBalance[] = [];
   inputTokenBalances.push(
-    new TokenBalance(sushiFarm.lpToken, withdrawal.withdrawalReceiver, userInfo.amount)
+    new TokenBalance(sushiFarm.lpToken, withdrawal.withdrawer, userInfo.amount)
   );
 
   // reward token amounts (SUSHI + custom tokens) claimable by user
@@ -399,7 +399,7 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
 
   redeemFromMarket(
     event,
-    receiver,
+    user,
     market,
     outputTokenAmount,
     inputTokenAmounts,

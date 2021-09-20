@@ -1,10 +1,12 @@
 import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 
-import { MasterChef, AddCall, Deposit, Withdraw } from "../../generated/MasterChef/MasterChef";
-
-import { Transfer } from "../../generated/templates/RewardToken/IERC20";
-
-import { IRewarder } from "../../generated/MasterChefV2/IRewarder";
+import {
+  MasterChef,
+  AddCall,
+  Deposit,
+  Withdraw,
+  EmergencyWithdraw,
+} from "../../generated/MasterChef/MasterChef";
 
 import {
   SushiFarm,
@@ -15,10 +17,7 @@ import {
   Market,
   Account,
   Token,
-  SushiRewardTransfer,
-  ExtraRewardTokenTransfer,
   MasterChef as MasterChefEntity,
-  Rewarder,
 } from "../../generated/schema";
 
 import {
@@ -270,6 +269,86 @@ export function handleWithdraw(event: Withdraw): void {
 
   // Sushi amount claimable by user - at this point it is 0 as all the pending reward Sushi has just
   // been transferred to user
+  let rewardTokenBalances: TokenBalance[] = [
+    new TokenBalance(rewardTokens[0], user.id, BigInt.fromI32(0)),
+  ];
+
+  redeemFromMarket(
+    event,
+    user,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
+}
+
+/**
+ * In EmergencyWithdraw user gets his LP tokens back from farm, but no rewards.
+ * @param event
+ * @returns
+ */
+export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
+  let masterChef = event.address.toHexString();
+  let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
+  let user = getOrCreateAccount(event.params.user);
+  let amount = event.params.amount;
+
+  // save new withdrawal entity
+  let withdrawal = new FarmWithdrawal(
+    event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
+  );
+  withdrawal.transactionHash = event.transaction.hash.toHexString();
+  withdrawal.sushiFarm = sushiFarm.id;
+  withdrawal.withdrawer = user.id;
+  withdrawal.amount = amount;
+  withdrawal.save();
+
+  // LP token balance and claimable rewards are resetted to 0 in EmergencyWithdraw
+  let userInfo = getOrCreateUserInfo(user.id, sushiFarm.id);
+  userInfo.amount = BigInt.fromI32(0);
+  userInfo.rewardDebt = BigInt.fromI32(0);
+  userInfo.save();
+
+  ////// update market LP supply
+
+  // update sushifarm
+  sushiFarm.totalSupply = sushiFarm.totalSupply.minus(amount);
+  sushiFarm.save();
+
+  // update market
+  let market = Market.load(sushiFarm.id) as Market;
+  updateMarket(
+    event,
+    market,
+    [new TokenBalance(sushiFarm.lpToken, masterChef, sushiFarm.totalSupply)],
+    BigInt.fromI32(0)
+  );
+
+  ////// update user's position
+
+  // no output token in sushi farms
+  let outputTokenAmount = BigInt.fromI32(0);
+
+  // user received `amount` LP tokens
+  let inputTokenAmounts: TokenBalance[] = [new TokenBalance(sushiFarm.lpToken, user.id, amount)];
+
+  // number of reward tokens claimed by user in this transaction
+  let rewardTokenAmounts: TokenBalance[] = [];
+
+  // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
+  let outputTokenBalance = BigInt.fromI32(0);
+
+  // inputTokenBalance -> number of LP tokens that can be redeemed by user
+  let inputTokenBalances: TokenBalance[] = [];
+  inputTokenBalances.push(new TokenBalance(sushiFarm.lpToken, user.id, userInfo.amount));
+
+  // Sushi amount claimable by user - at this point it is 0 because of emergency withdrawal
+  let rewardTokens = market.rewardTokens as string[];
   let rewardTokenBalances: TokenBalance[] = [
     new TokenBalance(rewardTokens[0], user.id, BigInt.fromI32(0)),
   ];
