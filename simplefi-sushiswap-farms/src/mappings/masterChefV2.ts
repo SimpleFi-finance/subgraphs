@@ -110,6 +110,7 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
     }
     let sushiToken = getOrCreateERC20Token(event, sushi);
     masterChef.sushi = sushiToken.id;
+    masterChef.numberOfFarms = BigInt.fromI32(0);
     masterChef.save();
   }
 
@@ -123,6 +124,7 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
 
   // create and fill SushiFarm entity
   let sushiFarm = new SushiFarm(masterChef.id + "-" + event.params.pid.toString());
+  sushiFarm.farmPid = event.params.pid;
   sushiFarm.masterChef = masterChef.id;
   sushiFarm.rewarder = rewarder.id;
   sushiFarm.allocPoint = event.params.allocPoint;
@@ -136,8 +138,12 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
   sushiFarm.accSushiPerShare = BigInt.fromI32(0);
   sushiFarm.save();
 
+  // numberOfFarms++
+  masterChef.numberOfFarms = masterChef.numberOfFarms.plus(BigInt.fromI32(1));
+  masterChef.save();
+
   // create market representing the farm
-  let marketId = sushiFarm.masterChef + "-" + sushiFarm.id;
+  let marketId = sushiFarm.id;
   let marketAddress = Address.fromString(sushiFarm.masterChef);
   let protocolName = ProtocolName.SUSHISWAP_FARM;
   let protocolType = ProtocolType.TOKEN_MANAGEMENT;
@@ -480,6 +486,7 @@ export function handleLogUpdatePool(event: LogUpdatePool): void {
   // create farm snapshot
   let snapshotId = event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString();
   let farmSnapshot = new SushiFarmSnapshot(snapshotId);
+  farmSnapshot.farmPid = event.params.pid;
   farmSnapshot.sushiFarm = sushiFarm.id;
   farmSnapshot.allocPoint = sushiFarm.allocPoint;
   farmSnapshot.totalSupply = sushiFarm.totalSupply;
@@ -578,7 +585,7 @@ function getRewardTokens(sushiFarm: SushiFarm, event: ethereum.Event): Token[] {
   // get extra reward tokens by querying Rewarder contract
   let rewarder = IRewarder.bind(Address.fromString(sushiFarm.rewarder));
   let result = rewarder.try_pendingTokens(
-    BigInt.fromString(sushiFarm.id),
+    sushiFarm.farmPid,
     Address.fromString(ADDRESS_ZERO),
     BigInt.fromI32(0)
   );
@@ -605,8 +612,8 @@ function getRewardTokens(sushiFarm: SushiFarm, event: ethereum.Event): Token[] {
  * @param farmPid
  * @returns
  */
-function getOrCreateUserInfo(user: string, farmPid: string): UserInfo {
-  let id = user + "-" + farmPid;
+function getOrCreateUserInfo(user: string, farmId: string): UserInfo {
+  let id = user + "-" + farmId;
   let userInfo = UserInfo.load(id) as UserInfo;
 
   if (userInfo == null) {
@@ -614,7 +621,7 @@ function getOrCreateUserInfo(user: string, farmPid: string): UserInfo {
     userInfo.amount = BigInt.fromI32(0);
     userInfo.rewardDebt = BigInt.fromI32(0);
     userInfo.user = user;
-    userInfo.farm = farmPid;
+    userInfo.farm = farmId;
     userInfo.save();
   }
 
@@ -647,7 +654,7 @@ function collectRewardTokenBalances(
   // fetch claimable amount of extra reward tokens using rewarder contract call
   let rewarder = IRewarder.bind(Address.fromString(sushiFarm.rewarder));
   let result = rewarder.try_pendingTokens(
-    BigInt.fromString(sushiFarm.id),
+    sushiFarm.farmPid,
     Address.fromString(account.id),
     BigInt.fromI32(0)
   );

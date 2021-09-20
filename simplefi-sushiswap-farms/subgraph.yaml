@@ -39,9 +39,11 @@ dataSources:
         #   handler: handleWithdraw
         # - event: EmergencyWithdraw(indexed address,indexed uint256,uint256,indexed address)
         #   handler: handleEmergencyWithdraw
-      # callHandlers:
-      #   - function: migrate(uint256)
-      #     handler: handleMigrate
+      callHandlers:
+        - function: add(uint256,address,bool)
+          handler: handleAdd
+        # - function: migrate(uint256)
+        #   handler: handleMigrate
 
   # Controls pools (farms) and SUSHI issuance - V2 version
   - name: MasterChefV2

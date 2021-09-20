@@ -173,6 +173,9 @@ type SushiFarm @entity {
   " masterchef-farmPid "
   id: ID!
 
+  " pid of the farm/pool assigned by the masterChef "
+  farmPid: BigInt!
+
   " masterchef contract address "
   masterChef: MasterChef!
 
@@ -207,6 +210,9 @@ type SushiFarm @entity {
 type SushiFarmSnapshot @entity {
   " trasactionHash-logIndex "
   id: ID!
+
+  " pid of the farm/pool assigned by the masterChef "
+  farmPid: BigInt!
 
   " farm of which snapshot is taken "
   sushiFarm: SushiFarm!
@@ -336,6 +342,9 @@ type MasterChef @entity {
 
   " address of sushi token"
   sushi: Token!
+
+  " total number of farms/pools this masterChef is tracking "
+  numberOfFarms: BigInt!
 }
 
 type Rewarder @entity {
