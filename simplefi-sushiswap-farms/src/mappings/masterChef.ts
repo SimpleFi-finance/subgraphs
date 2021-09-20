@@ -390,7 +390,7 @@ export function handleUpdatePool(call: UpdatePoolCall): void {
  * Updates farm's allocPoint and potentially the rewarder contract.
  * @param event
  */
-export function handleSetPool(call: SetCall): void {
+export function handleSet(call: SetCall): void {
   let masterChef = call.to.toHexString();
   let masterChefEntity = MasterChefEntity.load(masterChef) as MasterChefEntity;
   let sushiFarm = SushiFarm.load(masterChef + "-" + call.inputs._pid.toString()) as SushiFarm;
