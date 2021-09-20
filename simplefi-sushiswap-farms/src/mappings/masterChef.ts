@@ -1,6 +1,6 @@
-import { Address, BigInt, ethereum, store } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 
-import { MasterChef, AddCall, Deposit } from "../../generated/MasterChef/MasterChef";
+import { MasterChef, AddCall, Deposit, Withdraw } from "../../generated/MasterChef/MasterChef";
 
 import { Transfer } from "../../generated/templates/RewardToken/IERC20";
 
@@ -113,7 +113,7 @@ export function handleAdd(call: AddCall): void {
 }
 
 /**
- * User deposits his LP tokens to farm
+ * User deposits his LP tokens to farm and gets pending Sushi reward
  * @param event
  * @returns
  */
@@ -132,11 +132,6 @@ export function handleDeposit(event: Deposit): void {
   deposit.depositer = user.id;
   deposit.amount = amount;
   deposit.save();
-
-  // don't update user's position for 0 value deposit
-  if (deposit.amount == BigInt.fromI32(0)) {
-    return;
-  }
 
   // calculate harvested Sushi amount
   let userInfo = getOrCreateUserInfo(user.id, sushiFarm.id);
@@ -192,6 +187,94 @@ export function handleDeposit(event: Deposit): void {
   ];
 
   investInMarket(
+    event,
+    user,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
+}
+
+/**
+ * In Withdraw user gets his LP tokens back from farm and pending Sushi rewards
+ * @param event
+ * @returns
+ */
+export function handleWithdraw(event: Withdraw): void {
+  let masterChef = event.address.toHexString();
+  let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
+  let user = getOrCreateAccount(event.params.user);
+  let amount = event.params.amount;
+
+  // save new withdrawal entity
+  let withdrawal = new FarmWithdrawal(
+    event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
+  );
+  withdrawal.transactionHash = event.transaction.hash.toHexString();
+  withdrawal.sushiFarm = sushiFarm.id;
+  withdrawal.withdrawer = user.id;
+  withdrawal.amount = amount;
+  withdrawal.save();
+
+  // calculate harvested Sushi amount
+  let userInfo = getOrCreateUserInfo(user.id, sushiFarm.id);
+  let harvestedSushi = userInfo.amount
+    .times(sushiFarm.accSushiPerShare)
+    .div(ACC_SUSHI_PRECISION)
+    .minus(userInfo.rewardDebt);
+
+  // decrease user's balance of provided LP tokens and amount of rewards entitled to user
+  userInfo.amount = userInfo.amount.minus(amount);
+  userInfo.rewardDebt = userInfo.amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION);
+  userInfo.save();
+
+  ////// update market LP supply
+
+  // update sushifarm
+  sushiFarm.totalSupply = sushiFarm.totalSupply.minus(amount);
+  sushiFarm.save();
+
+  // update market
+  let market = Market.load(sushiFarm.id) as Market;
+  updateMarket(
+    event,
+    market,
+    [new TokenBalance(sushiFarm.lpToken, masterChef, sushiFarm.totalSupply)],
+    BigInt.fromI32(0)
+  );
+
+  ////// update user's position
+
+  // sushi farms don't have output token
+  let outputTokenAmount = BigInt.fromI32(0);
+
+  // user received `amount` LP tokens
+  let inputTokenAmounts: TokenBalance[] = [new TokenBalance(sushiFarm.lpToken, user.id, amount)];
+
+  // number of reward tokens claimed by user in this transaction
+  let rewardTokenAmounts: TokenBalance[] = [];
+  let rewardTokens = market.rewardTokens as string[];
+  rewardTokenAmounts.push(new TokenBalance(rewardTokens[0], user.id, harvestedSushi));
+
+  // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
+  let outputTokenBalance = BigInt.fromI32(0);
+
+  // inputTokenBalance -> number of LP tokens that can be redeemed by withdrawer
+  let inputTokenBalances: TokenBalance[] = [];
+  inputTokenBalances.push(new TokenBalance(sushiFarm.lpToken, user.id, userInfo.amount));
+
+  // Sushi amount claimable by user - at this point it is 0 as all the pending reward Sushi has just
+  // been transferred to user
+  let rewardTokenBalances: TokenBalance[] = [
+    new TokenBalance(rewardTokens[0], user.id, BigInt.fromI32(0)),
+  ];
+
+  redeemFromMarket(
     event,
     user,
     market,
