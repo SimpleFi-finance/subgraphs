@@ -26,6 +26,32 @@ dataSources:
         - function: initialize(string,string,address,(address,address,bool,uint8)[],(uint256,(uint128,uint128)))
           handler: handleInitialize
       file: ./src/mBTC.ts
+  - kind: ethereum/contract
+    name: iMBTC
+    network: mainnet
+    source:
+      address: "0x1C728F1bda86CD8d19f56E36eb9e24ED3E572A39"
+      abi: IMAsset
+      startBlock: 11840524
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - MAsset
+      abis:
+        - name: AssetProxy
+          file: ./abis/AssetProxy.json
+        - name: MAsset
+          file: ./abis/MAsset.json
+        - name: IMAsset
+          file: ./abis/IMAsset.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+      callHandlers:
+        - function: initialize(address,string,string)
+          handler: handleInitialize
+      file: ./src/imBTC.ts
 templates:
   - kind: ethereum/contract
     name: MAsset
@@ -62,3 +88,31 @@ templates:
         - function: swap(address,address,uint256,uint256,address)
           handler: handleSwapCall
       file: ./src/mAsset.ts
+  - kind: ethereum/contract
+    name: IMAsset
+    network: mainnet
+    source:
+      abi: IMAsset
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - MAsset
+      abis:
+        - name: AssetProxy
+          file: ./abis/AssetProxy.json
+        - name: MAsset
+          file: ./abis/MAsset.json
+        - name: IMAsset
+          file: ./abis/IMAsset.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+      eventHandlers:
+        - event: ExchangeRateUpdated(uint256,uint256)
+          handler: handleEchangeRateUpdated
+        - event: SavingsDeposited(indexed address,uint256,uint256)
+          handler: handleSavingDeposited
+        - event: CreditsRedeemed(indexed address,uint256,uint256)
+          handler: handleCreditsRedeemed
+      file: ./src/imAsset.ts

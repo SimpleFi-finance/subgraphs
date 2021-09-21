@@ -212,4 +212,20 @@ type Swap @entity {
   swapCallApplied: Boolean!
 }
 
+# Interest bearing mAsset
+type IMAsset @entity {
+  id: ID! #{IMasset address}
+  mAsset: MAsset!
+  totalSavings: BigInt!
+  totalSupply: BigInt!
+  exchangeRate: BigInt!
+}
+
+type AccountLiquidityIMAsset @entity {
+  id: ID! # {imAssetAddress}{accoutnAddress}
+  imAsset: IMAsset!
+  account: Account!
+  balance: BigInt!
+}
+
 # END - MStable protocol entities
