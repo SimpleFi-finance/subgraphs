@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum, store } from "@graphprotocol/graph-ts";
+import { BigInt } from "@graphprotocol/graph-ts";
 
 import { UserInfo } from "../../generated/schema";
 

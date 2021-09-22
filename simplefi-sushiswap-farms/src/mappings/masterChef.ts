@@ -39,7 +39,7 @@ import { MassUpdatePoolsCall } from "../../generated/MasterChefV2/MasterChefV2";
 let ACC_SUSHI_PRECISION: BigInt = BigInt.fromI32(10).pow(12);
 
 /**
- *
+ * Call handler for creation of new SushiFarm
  * @param call
  */
 export function handleAdd(call: AddCall): void {
@@ -48,6 +48,7 @@ export function handleAdd(call: AddCall): void {
   // "fake" event containing block info
   let event = new ethereum.Event();
   event.block = call.block;
+  event.transaction = call.transaction;
 
   // create MasterChef entity and store Sushi token address
   if (masterChef == null) {
@@ -69,49 +70,14 @@ export function handleAdd(call: AddCall): void {
     masterChef.save();
   }
 
-  // create and fill SushiFarm entity
-  let sushiFarm = new SushiFarm(masterChef.id + "-" + masterChef.numberOfFarms.toString());
-  sushiFarm.farmPid = masterChef.numberOfFarms;
-  sushiFarm.masterChef = masterChef.id;
-  sushiFarm.allocPoint = call.inputs._allocPoint;
-  sushiFarm.created = call.block.timestamp;
-  sushiFarm.createdAtBlock = call.block.number;
-  sushiFarm.createdAtTransaction = call.transaction.hash;
-  sushiFarm.totalSupply = BigInt.fromI32(0);
-  let inputToken = getOrCreateERC20Token(event, call.inputs._lpToken);
-  sushiFarm.lpToken = inputToken.id;
-  sushiFarm.lastRewardBlock = call.block.number;
-  sushiFarm.accSushiPerShare = BigInt.fromI32(0);
-  sushiFarm.save();
-
   // update all farms reward variables
   if (call.inputs._withUpdate) {
     massUpdateFarms(masterChef, call.block);
   }
 
-  // numberOfFarms++
-  masterChef.numberOfFarms = masterChef.numberOfFarms.plus(BigInt.fromI32(1));
-  masterChef.totalAllocPoint = masterChef.totalAllocPoint.plus(sushiFarm.allocPoint);
-  masterChef.save();
-
-  // create market representing the farm
-  let marketId = sushiFarm.id;
-  let marketAddress = Address.fromString(sushiFarm.masterChef);
-  let protocolName = ProtocolName.SUSHISWAP_FARM;
-  let protocolType = ProtocolType.TOKEN_MANAGEMENT;
-  let inputTokens: Token[] = [inputToken];
-  let rewardTokens: Token[] = [getOrCreateERC20Token(event, Address.fromString(masterChef.sushi))];
-
-  getOrCreateMarketWithId(
-    event,
-    marketId,
-    marketAddress,
-    protocolName,
-    protocolType,
-    inputTokens,
-    null,
-    rewardTokens
-  );
+  // create SushiFarm entity
+  let farmId = masterChef.id + "-" + masterChef.numberOfFarms.toString();
+  getOrCreateSushiFarm(masterChef, call, event, farmId);
 }
 
 /**
@@ -120,8 +86,9 @@ export function handleAdd(call: AddCall): void {
  * @returns
  */
 export function handleDeposit(event: Deposit): void {
-  let masterChef = event.address.toHexString();
-  let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
+  let masterChef = MasterChefEntity.load(event.address.toHexString()) as MasterChefEntity;
+  let farmId = masterChef.id + "-" + event.params.pid.toString();
+  let sushiFarm = getOrCreateSushiFarm(masterChef, null, event, farmId);
   let user = getOrCreateAccount(event.params.user);
   let amount = event.params.amount;
 
@@ -161,7 +128,7 @@ export function handleDeposit(event: Deposit): void {
   updateMarket(
     event,
     market,
-    [new TokenBalance(sushiFarm.lpToken, masterChef, sushiFarm.totalSupply)],
+    [new TokenBalance(sushiFarm.lpToken, masterChef.id, sushiFarm.totalSupply)],
     BigInt.fromI32(0)
   );
 
@@ -211,8 +178,9 @@ export function handleDeposit(event: Deposit): void {
  * @returns
  */
 export function handleWithdraw(event: Withdraw): void {
-  let masterChef = event.address.toHexString();
-  let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
+  let masterChef = MasterChefEntity.load(event.address.toHexString()) as MasterChefEntity;
+  let farmId = masterChef.id + "-" + event.params.pid.toString();
+  let sushiFarm = getOrCreateSushiFarm(masterChef, null, event, farmId);
   let user = getOrCreateAccount(event.params.user);
   let amount = event.params.amount;
 
@@ -252,7 +220,7 @@ export function handleWithdraw(event: Withdraw): void {
   updateMarket(
     event,
     market,
-    [new TokenBalance(sushiFarm.lpToken, masterChef, sushiFarm.totalSupply)],
+    [new TokenBalance(sushiFarm.lpToken, masterChef.id, sushiFarm.totalSupply)],
     BigInt.fromI32(0)
   );
 
@@ -302,8 +270,9 @@ export function handleWithdraw(event: Withdraw): void {
  * @returns
  */
 export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
-  let masterChef = event.address.toHexString();
-  let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
+  let masterChef = MasterChefEntity.load(event.address.toHexString()) as MasterChefEntity;
+  let farmId = masterChef.id + "-" + event.params.pid.toString();
+  let sushiFarm = getOrCreateSushiFarm(masterChef, null, event, farmId);
   let user = getOrCreateAccount(event.params.user);
   let amount = event.params.amount;
 
@@ -334,7 +303,7 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
   updateMarket(
     event,
     market,
-    [new TokenBalance(sushiFarm.lpToken, masterChef, sushiFarm.totalSupply)],
+    [new TokenBalance(sushiFarm.lpToken, masterChef.id, sushiFarm.totalSupply)],
     BigInt.fromI32(0)
   );
 
@@ -524,4 +493,83 @@ function massUpdateFarms(masterChef: MasterChefEntity, block: ethereum.Block): v
     let sushiFarm = SushiFarm.load(masterChef.id + "-" + pid.toString()) as SushiFarm;
     updateFarm(sushiFarm, block);
   }
+}
+
+/**
+ * Fetch existing farm, or create a new one if it doesn't exist. Additionally create new market
+ * representing trhe farm and update MasterChef entity.
+ * @param masterChef
+ * @param call
+ * @param event
+ * @returns
+ */
+function getOrCreateSushiFarm(
+  masterChef: MasterChefEntity,
+  call: AddCall,
+  event: ethereum.Event,
+  farmId: string
+): SushiFarm {
+  // load and return it if exists
+  let sushiFarm = SushiFarm.load(farmId);
+  if (sushiFarm != null) {
+    return sushiFarm as SushiFarm;
+  }
+
+  // create new SushiFarm entity
+  sushiFarm = new SushiFarm(farmId);
+  sushiFarm.farmPid = masterChef.numberOfFarms;
+  sushiFarm.masterChef = masterChef.id;
+  sushiFarm.created = event.block.timestamp;
+  sushiFarm.createdAtBlock = event.block.number;
+  sushiFarm.createdAtTransaction = event.transaction.hash;
+  sushiFarm.totalSupply = BigInt.fromI32(0);
+  sushiFarm.lastRewardBlock = event.block.number;
+  sushiFarm.accSushiPerShare = BigInt.fromI32(0);
+
+  let inputToken: Token = null;
+  if (call != null) {
+    // `call` is provided when AddCall handler creates new farm
+    // in that case use the call params to fill entity
+    inputToken = getOrCreateERC20Token(event, call.inputs._lpToken);
+    sushiFarm.lpToken = inputToken.id;
+    sushiFarm.allocPoint = call.inputs._allocPoint;
+  } else {
+    // `call` is not provided in edge cases where deposit/withdraw handler is called before the farm entity exists
+    // in that case use MasterChef contract calls to fetch LP token and allocPoint
+    let masterChefContract = MasterChef.bind(Address.fromString(sushiFarm.masterChef));
+    let poolInfo = masterChefContract.try_poolInfo(masterChef.numberOfFarms);
+    if (!poolInfo.reverted) {
+      inputToken = getOrCreateERC20Token(event, poolInfo.value.value0);
+      sushiFarm.lpToken = inputToken.id;
+      sushiFarm.allocPoint = poolInfo.value.value1;
+    }
+  }
+
+  sushiFarm.save();
+
+  // numberOfFarms++
+  masterChef.numberOfFarms = masterChef.numberOfFarms.plus(BigInt.fromI32(1));
+  masterChef.totalAllocPoint = masterChef.totalAllocPoint.plus(sushiFarm.allocPoint);
+  masterChef.save();
+
+  // create market representing the farm
+  let marketId = sushiFarm.id;
+  let marketAddress = Address.fromString(sushiFarm.masterChef);
+  let protocolName = ProtocolName.SUSHISWAP_FARM;
+  let protocolType = ProtocolType.TOKEN_MANAGEMENT;
+  let inputTokens: Token[] = [inputToken];
+  let rewardTokens: Token[] = [getOrCreateERC20Token(event, Address.fromString(masterChef.sushi))];
+
+  getOrCreateMarketWithId(
+    event,
+    marketId,
+    marketAddress,
+    protocolName,
+    protocolType,
+    inputTokens,
+    null,
+    rewardTokens
+  );
+
+  return sushiFarm as SushiFarm;
 }
