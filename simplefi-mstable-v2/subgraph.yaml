@@ -52,6 +52,34 @@ dataSources:
         - function: initialize(address,string,string)
           handler: handleInitialize
       file: ./src/imBTC.ts
+  - kind: ethereum/contract
+    name: viMBTC
+    network: mainnet
+    source:
+      address: "0xce128488b560632056d9811dd24a59688dd33dc4"
+      abi: VIMAsset
+      startBlock: 12146634
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - MAsset
+      abis:
+        - name: AssetProxy
+          file: ./abis/AssetProxy.json
+        - name: MAsset
+          file: ./abis/MAsset.json
+        - name: IMAsset
+          file: ./abis/IMAsset.json
+        - name: VIMAsset
+          file: ./abis/VIMAsset.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+      callHandlers:
+        - function: initialize(address,string,string)
+          handler: handleInitialize
+      file: ./src/vimBTC.ts
 templates:
   - kind: ethereum/contract
     name: MAsset
@@ -116,3 +144,35 @@ templates:
         - event: CreditsRedeemed(indexed address,uint256,uint256)
           handler: handleCreditsRedeemed
       file: ./src/imAsset.ts
+  - kind: ethereum/contract
+    name: VIMAsset
+    network: mainnet
+    source:
+      abi: VIMAsset
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - MAsset
+      abis:
+        - name: AssetProxy
+          file: ./abis/AssetProxy.json
+        - name: MAsset
+          file: ./abis/MAsset.json
+        - name: IMAsset
+          file: ./abis/IMAsset.json
+        - name: VIMAsset
+          file: ./abis/VIMAsset.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+      eventHandlers:
+        - event: RewardAdded(uint256)
+          handler: handleRewardAdded
+        - event: Staked(indexed address,uint256,address)
+          handler: handleStaked
+        - event: RewardPaid(indexed address,uint256)
+          handler: handleRewardPaid
+        - event: Withdrawn(indexed address,uint256)
+          handler: handleWithdrawn
+      file: ./src/vimAsset.ts

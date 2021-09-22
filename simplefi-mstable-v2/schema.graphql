@@ -228,4 +228,21 @@ type AccountLiquidityIMAsset @entity {
   balance: BigInt!
 }
 
+# Interest bearing mAsset
+type VIMAsset @entity {
+  id: ID! #{IMasset address}
+  imAsset: IMAsset!
+  rewardToken: String!
+  imAssetBalance: BigInt!
+  rewardBalance: BigInt!
+  totalSupply: BigInt!
+}
+
+type AccountLiquidityVIMAsset @entity {
+  id: ID! # {imAssetAddress}{accoutnAddress}
+  vimAsset: VIMAsset!
+  account: Account!
+  balance: BigInt!
+}
+
 # END - MStable protocol entities
