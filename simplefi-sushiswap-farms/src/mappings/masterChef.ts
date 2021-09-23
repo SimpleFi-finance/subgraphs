@@ -77,7 +77,12 @@ export function handleAdd(call: AddCall): void {
 
   // create SushiFarm entity
   let farmId = masterChef.id + "-" + masterChef.numberOfFarms.toString();
-  getOrCreateSushiFarm(masterChef, call, event, farmId);
+  let sushiFarm = getOrCreateSushiFarm(masterChef, call, event, farmId);
+
+  // numberOfFarms++
+  masterChef.numberOfFarms = masterChef.numberOfFarms.plus(BigInt.fromI32(1));
+  masterChef.totalAllocPoint = masterChef.totalAllocPoint.plus(sushiFarm.allocPoint);
+  masterChef.save();
 }
 
 /**
@@ -546,11 +551,6 @@ function getOrCreateSushiFarm(
   }
 
   sushiFarm.save();
-
-  // numberOfFarms++
-  masterChef.numberOfFarms = masterChef.numberOfFarms.plus(BigInt.fromI32(1));
-  masterChef.totalAllocPoint = masterChef.totalAllocPoint.plus(sushiFarm.allocPoint);
-  masterChef.save();
 
   // create market representing the farm
   let marketId = sushiFarm.id;
