@@ -39,7 +39,7 @@ export function handleInitialize(call: InitializeCall): void {
   let rewardToken = getOrCreateERC20Token(fakeEvent, mta)
 
   // Create market
-  getOrCreateMarket(
+  let market = getOrCreateMarket(
     fakeEvent,
     vimAssetAddress,
     ProtocolName.MSTABLE,
@@ -48,6 +48,9 @@ export function handleInitialize(call: InitializeCall): void {
     outputToken,
     [rewardToken]
   )
+
+  outputToken.mintedByMarket = market.id
+  outputToken.save()
 
   // Create basket manager proxy listener
   VIMAssetTemplate.create(vimAssetAddress)

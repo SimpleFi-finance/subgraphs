@@ -36,7 +36,7 @@ export function handleInitialize(call: InitializeCall): void {
   let outputToken = getOrCreateERC20Token(fakeEvent, imAssetAddress)
 
   // Create market
-  getOrCreateMarket(
+  let market = getOrCreateMarket(
     fakeEvent,
     imAssetAddress,
     ProtocolName.MSTABLE,
@@ -45,6 +45,9 @@ export function handleInitialize(call: InitializeCall): void {
     outputToken,
     []
   )
+
+  outputToken.mintedByMarket = market.id
+  outputToken.save()
 
   // Create basket manager proxy listener
   IMAssetTemplate.create(imAssetAddress)

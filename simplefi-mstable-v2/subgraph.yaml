@@ -80,6 +80,54 @@ dataSources:
         - function: initialize(address,string,string)
           handler: handleInitialize
       file: ./src/vimBTC.ts
+  - kind: ethereum/contract
+    name: fpmBTCHBTC
+    network: mainnet
+    source:
+      address: "0xbb128bc208c45b3dd277e001f88e1c6648060c64"
+      abi: FeederPool
+      startBlock: 12146645
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - MAsset
+      abis:
+        - name: AssetProxy
+          file: ./abis/AssetProxy.json
+        - name: FeederPool
+          file: ./abis/FeederPool.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+      callHandlers:
+        - function: initialize(string,string,(address,address,bool,uint8),(address,address,bool,uint8),address[],(uint256,(uint128,uint128)))
+          handler: handleInitialize
+      file: ./src/fpmBTCHBTC.ts
+  - kind: ethereum/contract
+    name: fpmBTCTBTC
+    network: mainnet
+    source:
+      address: "0xa88328ed84c31c98d81237c354cc852a5022b9ea"
+      abi: FeederPool
+      startBlock: 12146670
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - MAsset
+      abis:
+        - name: AssetProxy
+          file: ./abis/AssetProxy.json
+        - name: FeederPool
+          file: ./abis/FeederPool.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+      callHandlers:
+        - function: initialize(string,string,(address,address,bool,uint8),(address,address,bool,uint8),address[],(uint256,(uint128,uint128)))
+          handler: handleInitialize
+      file: ./src/fpmBTCTBTC.ts
 templates:
   - kind: ethereum/contract
     name: MAsset
@@ -176,3 +224,36 @@ templates:
         - event: Withdrawn(indexed address,uint256)
           handler: handleWithdrawn
       file: ./src/vimAsset.ts
+  - kind: ethereum/contract
+    name: FeederPool
+    network: mainnet
+    source:
+      abi: FeederPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - MAsset
+      abis:
+        - name: FeederPool
+          file: ./abis/FeederPool.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+      eventHandlers:
+        - event: Minted(indexed address,address,uint256,address,uint256)
+          handler: handleMinted
+        - event: MintedMulti(indexed address,address,uint256,address[],uint256[])
+          handler: handleMintedMulti
+        - event: Redeemed(indexed address,address,uint256,address,uint256,uint256)
+          handler: handleRedeemed
+        - event: RedeemedMulti(indexed address,address,uint256,address[],uint256[],uint256)
+          handler: handleRedeemedMulti
+        - event: Swapped(indexed address,address,address,uint256,uint256,address)
+          handler: handleSwapped
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      callHandlers:
+        - function: swap(address,address,uint256,uint256,address)
+          handler: handleSwapCall
+      file: ./src/feederPool.ts

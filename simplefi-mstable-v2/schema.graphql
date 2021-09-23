@@ -245,4 +245,45 @@ type AccountLiquidityVIMAsset @entity {
   balance: BigInt!
 }
 
+type FeederPool @entity {
+  id: ID! # {proxy contract address}
+  impl: String! # {impl contract address}
+  mAsset: String!
+  fAsset: String!
+  mAssetBalance: BigInt!
+  fAssetBalance: BigInt!
+  totalSupply: BigInt!
+  lastTransferToZero: Redeem
+}
+
+type AccountLiquidityFP @entity {
+  id: ID! # {mAssetAddress}{accoutnAddress}
+  mAsset: FeederPool!
+  account: Account!
+  balance: BigInt!
+}
+
+type FPSwap @entity {
+  id: ID! # {mAssetAddress}{transaction hash}
+  mAsset: FeederPool!
+  inputBAsset: String
+  outputBAsset: String
+  inputAmount: BigInt
+  outputAmount: BigInt
+  eventLogIndex: BigInt
+  transactionLogIndex: BigInt
+  swapEventApplied: Boolean!
+  swapCallApplied: Boolean!
+}
+
+type FPTransferToZero @entity {
+  id: ID! # {mAssetAddress}{transaction hash}
+  mAsset: FeederPool!
+  redeemer: String
+  recipient: String
+  mAssetQuantity: BigInt
+  eventLogIndex: BigInt
+  transactionLogIndex: BigInt
+}
+
 # END - MStable protocol entities

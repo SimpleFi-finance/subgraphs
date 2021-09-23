@@ -171,12 +171,12 @@ function handleRedeem(
     } else {
       inputTokenBalance = nbb.balance.times(accountLiquidity.balance).div(mAsset.totalSupply)
     }
-    inputTokenBalances.push(new TokenBalance(nbb.tokenAddress, recipient, inputTokenBalance))
+    inputTokenBalances.push(new TokenBalance(nbb.tokenAddress, account.id, inputTokenBalance))
   }
 
   let inputTokenAmounts: TokenBalance[] = []
   for (let i = 0; i < bAssets.length; i++) {
-    inputTokenAmounts.push(new TokenBalance(bAssets[i], redeemer.toHexString(), bAssetQuantities[i]))
+    inputTokenAmounts.push(new TokenBalance(bAssets[i], recipient, bAssetQuantities[i]))
   }
 
   let market = MarketEntity.load(mAsset.id) as MarketEntity
