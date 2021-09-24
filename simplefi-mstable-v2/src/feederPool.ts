@@ -218,9 +218,13 @@ function handleUpdateSwap(event: ethereum.Event, feederPool: FeederPoolEntity, s
 }
 
 function handleMintMultiFromCollectInterest(event: MintedMulti, feederPool: FeederPoolEntity): void {
+  let mAssetQuantity = BigInt.fromI32(0)
+  let fAssetQuantity = BigInt.fromI32(0)
   let inputQuantities = event.params.inputQuantities
-  let mAssetQuantity = inputQuantities[0]
-  let fAssetQuantity = inputQuantities[1]
+  if (inputQuantities.length > 0) {
+    mAssetQuantity = inputQuantities[0]
+    fAssetQuantity = inputQuantities[1]
+  }
 
   // update mAsset and market
   let oldTotalSupply = feederPool.totalSupply
