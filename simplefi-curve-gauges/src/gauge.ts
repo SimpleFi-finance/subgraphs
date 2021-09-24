@@ -243,11 +243,8 @@ export function handleRewardTokenTransfer(event: RewardTokenTransfer): void {
   let accountGaugeTokenBalance = accountLiquidity.balance;
 
   // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
-  // in this case it is working balance of user (takes into account CRV vote boosting)
   let inputTokenBalances: TokenBalance[] = [];
-  inputTokenBalances.push(
-    new TokenBalance(gauge.lpToken, account.id, accountLiquidity.workingBalance)
-  );
+  inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, accountGaugeTokenBalance));
 
   // update reward token amounts (CRV + custom tokens) claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
@@ -331,10 +328,8 @@ export function handleMinted(event: Minted): void {
   let accountGaugeTokenBalance = accountLiquidity.balance;
 
   // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
-  // in this case it is working balance of user (takes into account CRV vote boosting)
   let inputTokenBalances: TokenBalance[] = [];
-
-  inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, eventEntity.working_balance));
+  inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, accountGaugeTokenBalance));
 
   // update reward token amounts (CRV + custom tokens) claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
@@ -531,11 +526,8 @@ function transferGaugeToken(
   let fromTokenBalance = fromAccountLiquidity.balance;
 
   // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
-  // in this case it is working balance of user (takes into account CRV vote boosting)
   let fromInputTokenBalances: TokenBalance[] = [];
-  fromInputTokenBalances.push(
-    new TokenBalance(gauge.lpToken, fromAccount.id, fromAccountLiquidity.workingBalance)
-  );
+  fromInputTokenBalances.push(new TokenBalance(gauge.lpToken, fromAccount.id, fromTokenBalance));
 
   // reward token amounts (CRV + custom tokens) claimable by user
   let fromRewardTokenBalances: TokenBalance[] = [];
@@ -586,11 +578,8 @@ function transferGaugeToken(
   let toTokenBalance = toAccountLiquidity.balance;
 
   // inputTokenBalance -> number of LP tokens that can be redeemed by receiver's gauge tokens
-  // in this case it is working balance of user (takes into account CRV vote boosting)
   let toInputTokenBalances: TokenBalance[] = [];
-  toInputTokenBalances.push(
-    new TokenBalance(gauge.lpToken, toAccount.id, toAccountLiquidity.workingBalance)
-  );
+  toInputTokenBalances.push(new TokenBalance(gauge.lpToken, toAccount.id, toTokenBalance));
 
   // reward token amounts (CRV + custom tokens) claimable by user
   let toRewardTokenBalances: TokenBalance[] = [];
@@ -653,11 +642,8 @@ function updateUserPosition(
   let outputTokenBalance = accountLiquidity.balance;
 
   // inputTokenBalance -> number of LP tokens that can be redeemed by accounts's gauge tokens
-  // in this case it is working balance of user (takes into account CRV vote boosting)
   let inputTokenBalances: TokenBalance[] = [];
-  inputTokenBalances.push(
-    new TokenBalance(gauge.lpToken, account.id, accountLiquidity.workingBalance)
-  );
+  inputTokenBalances.push(new TokenBalance(gauge.lpToken, account.id, outputTokenBalance));
 
   // reward token amounts (CRV + custom tokens) claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
