@@ -79,10 +79,12 @@ export function handleAdd(call: AddCall): void {
   let farmId = masterChef.id + "-" + masterChef.numberOfFarms.toString();
   let sushiFarm = getOrCreateSushiFarm(masterChef, call, event, farmId);
 
-  // numberOfFarms++
-  masterChef.numberOfFarms = masterChef.numberOfFarms.plus(BigInt.fromI32(1));
-  masterChef.totalAllocPoint = masterChef.totalAllocPoint.plus(sushiFarm.allocPoint);
-  masterChef.save();
+  if (sushiFarm != null) {
+    // numberOfFarms++
+    masterChef.numberOfFarms = masterChef.numberOfFarms.plus(BigInt.fromI32(1));
+    masterChef.totalAllocPoint = masterChef.totalAllocPoint.plus(sushiFarm.allocPoint);
+    masterChef.save();
+  }
 }
 
 /**
@@ -520,6 +522,13 @@ function getOrCreateSushiFarm(
     return sushiFarm as SushiFarm;
   }
 
+  // check if farm really exists in MasterChef's storage
+  let masterChefContract = MasterChef.bind(Address.fromString(masterChef.id));
+  let poolInfo = masterChefContract.try_poolInfo(masterChef.numberOfFarms);
+  if (poolInfo.reverted) {
+    return null;
+  }
+
   // create new SushiFarm entity
   sushiFarm = new SushiFarm(farmId);
   sushiFarm.farmPid = masterChef.numberOfFarms;
@@ -541,13 +550,9 @@ function getOrCreateSushiFarm(
   } else {
     // `call` is not provided in edge cases where deposit/withdraw handler is called before the farm entity exists
     // in that case use MasterChef contract calls to fetch LP token and allocPoint
-    let masterChefContract = MasterChef.bind(Address.fromString(sushiFarm.masterChef));
-    let poolInfo = masterChefContract.try_poolInfo(masterChef.numberOfFarms);
-    if (!poolInfo.reverted) {
-      inputToken = getOrCreateERC20Token(event, poolInfo.value.value0);
-      sushiFarm.lpToken = inputToken.id;
-      sushiFarm.allocPoint = poolInfo.value.value1;
-    }
+    inputToken = getOrCreateERC20Token(event, poolInfo.value.value0);
+    sushiFarm.lpToken = inputToken.id;
+    sushiFarm.allocPoint = poolInfo.value.value1;
   }
 
   sushiFarm.save();
