@@ -24,12 +24,13 @@ import {
 
 
 function getOrCreateMint(event: ethereum.Event, pair: PairEntity): MintEntity {
-  let mint = MintEntity.load(event.transaction.hash.toHexString())
+  let mintId = pair.id.concat("-").concat(event.transaction.hash.toHexString())
+  let mint = MintEntity.load(mintId)
   if (mint != null) {
     return mint as MintEntity
   }
 
-  mint = new MintEntity(event.transaction.hash.toHexString())
+  mint = new MintEntity(mintId)
   mint.pair = pair.id
   mint.transferEventApplied = false
   mint.syncEventApplied = false
@@ -39,12 +40,13 @@ function getOrCreateMint(event: ethereum.Event, pair: PairEntity): MintEntity {
 }
 
 function getOrCreateBurn(event: ethereum.Event, pair: PairEntity): BurnEntity {
-  let burn = BurnEntity.load(event.transaction.hash.toHexString())
+  let burnId = pair.id.concat("-").concat(event.transaction.hash.toHexString())
+  let burn = BurnEntity.load(burnId)
   if (burn != null) {
     return burn as BurnEntity
   }
 
-  burn = new BurnEntity(event.transaction.hash.toHexString())
+  burn = new BurnEntity(burnId)
   burn.transferToPairEventApplied = false
   burn.transferToZeroEventApplied = false
   burn.syncEventApplied = false
@@ -238,7 +240,8 @@ function checkIncompleteBurnFromLastTransaction(event: ethereum.Event, pair: Pai
   }
 
   // New transaction processing has started without completing burn event
-  let burn = BurnEntity.load(pair.lastIncompleteBurn)
+  let burnId = pair.id.concat("-").concat(pair.lastIncompleteBurn)
+  let burn = BurnEntity.load(burnId)
   // Check if transfer to pair happened as an incomplete burn
   if (burn != null && burn.to != null && burn.liquityAmount != null && burn.transferToPairEventApplied) {
     let from = burn.to as string
@@ -352,7 +355,8 @@ export function handleSync(event: Sync): void {
 
   let isSyncOnly = true
 
-  let possibleMint = MintEntity.load(transactionHash)
+  let mintId = pair.id.concat("-").concat(transactionHash)
+  let possibleMint = MintEntity.load(mintId)
   if (possibleMint != null) {
     isSyncOnly = false
     let mint = possibleMint as MintEntity
@@ -365,7 +369,8 @@ export function handleSync(event: Sync): void {
     createOrUpdatePositionOnMint(event, pair, mint)
   }
 
-  let possibleBurn = BurnEntity.load(transactionHash)
+  let burnId = pair.id.concat("-").concat(transactionHash)
+  let possibleBurn = BurnEntity.load(burnId)
   if (possibleBurn != null) {
     isSyncOnly = false
     let burn = possibleBurn as BurnEntity
