@@ -108,8 +108,8 @@ function handleMint(
   inputTokenBalances.push(new TokenBalance(feederPool.fAsset, account.id, afAssetBalance))
 
   let inputTokenAmounts: TokenBalance[] = []
-  inputTokenBalances.push(new TokenBalance(feederPool.mAsset, minter, mAssetQuantity))
-  inputTokenBalances.push(new TokenBalance(feederPool.fAsset, minter, fpAssetQuantity))
+  inputTokenAmounts.push(new TokenBalance(feederPool.mAsset, minter, mAssetQuantity))
+  inputTokenAmounts.push(new TokenBalance(feederPool.fAsset, minter, fpAssetQuantity))
 
   let market = MarketEntity.load(feederPool.id) as MarketEntity
 
@@ -169,8 +169,8 @@ function handleRedeem(
   inputTokenBalances.push(new TokenBalance(feederPool.fAsset, account.id, afAssetBalance))
 
   let inputTokenAmounts: TokenBalance[] = []
-  inputTokenBalances.push(new TokenBalance(feederPool.mAsset, recipient, mAssetQuantity))
-  inputTokenBalances.push(new TokenBalance(feederPool.fAsset, recipient, fpAssetQuantity))
+  inputTokenAmounts.push(new TokenBalance(feederPool.mAsset, recipient, mAssetQuantity))
+  inputTokenAmounts.push(new TokenBalance(feederPool.fAsset, recipient, fpAssetQuantity))
 
   let market = MarketEntity.load(feederPool.id) as MarketEntity
 

@@ -21,9 +21,8 @@ import {
 
 function getRewardBalance(vimAssetAddress: Address, user: Address): BigInt {
   let contract = VIMAsset.bind(vimAssetAddress)
-  let earned = contract.earned(user)
   let unclaimed = contract.unclaimedRewards(user)
-  return earned.plus(unclaimed.value0)
+  return unclaimed.value0
 }
 
 function getOrCreateLiquidity(vimAsset: VIMAssetEntity, accountAddress: Address): AccountLiquidityVIMAssetEntity {
