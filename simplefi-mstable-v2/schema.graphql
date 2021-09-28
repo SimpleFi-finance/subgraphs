@@ -1,3 +1,5 @@
+# Common entities for all protocols
+
 enum Blockchain {
   ETHEREUM
   BSC
@@ -16,6 +18,7 @@ enum TokenStandard {
 
 enum ProtocolName {
   UNISWAP_V2
+  MSTABLE
 }
 
 enum ProtocolType {
@@ -160,3 +163,127 @@ type PositionSnapshot @entity {
   rewardTokenBalances: [String!]!   # TokenBalance string format
   transferredTo: [String!]!         # TokenBalance string format
 }
+
+# MStable protocol entities
+
+type MAsset @entity {
+  id: ID! # {proxy contract address}
+  impl: String! # {impl contract address}
+  basketManager: String!
+  bAssets: [String!]!
+  forgeValidator: String!
+  bAssetBalances: [String!]!
+  totalSupply: BigInt!
+  swapFee: BigInt!
+  lastTransferToZero: Redeem
+}
+
+type AccountLiquidity @entity {
+  id: ID! # {mAssetAddress}{accoutnAddress}
+  mAsset: MAsset!
+  account: Account!
+  balance: BigInt!
+}
+
+type Redeem @entity {
+  id: ID! # {mAssetAddress}{transaction hash}
+  mAsset: MAsset!
+  redeemer: String
+  recipient: String
+  mAssetQuantity: BigInt
+  bAssets: [String!]!
+  bAssetQuantities: [BigInt!]!
+  eventLogIndex: BigInt
+  transactionLogIndex: BigInt
+  redeemEventApplied: Boolean!
+  decreaseVaultCallApplied: Boolean!
+}
+
+type Swap @entity {
+  id: ID! # {mAssetAddress}{transaction hash}
+  mAsset: MAsset!
+  inputBAsset: String
+  outputBAsset: String
+  inputAmount: BigInt
+  outputAmount: BigInt
+  eventLogIndex: BigInt
+  transactionLogIndex: BigInt
+  swapEventApplied: Boolean!
+  swapCallApplied: Boolean!
+}
+
+# Interest bearing mAsset
+type IMAsset @entity {
+  id: ID! #{IMasset address}
+  mAsset: MAsset!
+  totalSavings: BigInt!
+  totalSupply: BigInt!
+  exchangeRate: BigInt!
+}
+
+type AccountLiquidityIMAsset @entity {
+  id: ID! # {imAssetAddress}{accoutnAddress}
+  imAsset: IMAsset!
+  account: Account!
+  balance: BigInt!
+}
+
+# Interest bearing mAsset
+type VIMAsset @entity {
+  id: ID! #{IMasset address}
+  imAsset: IMAsset!
+  rewardToken: String!
+  imAssetBalance: BigInt!
+  rewardBalance: BigInt!
+  totalSupply: BigInt!
+}
+
+type AccountLiquidityVIMAsset @entity {
+  id: ID! # {imAssetAddress}{accoutnAddress}
+  vimAsset: VIMAsset!
+  account: Account!
+  balance: BigInt!
+}
+
+type FeederPool @entity {
+  id: ID! # {proxy contract address}
+  impl: String! # {impl contract address}
+  mAsset: String!
+  fAsset: String!
+  mAssetBalance: BigInt!
+  fAssetBalance: BigInt!
+  totalSupply: BigInt!
+  lastTransferToZero: Redeem
+}
+
+type AccountLiquidityFP @entity {
+  id: ID! # {mAssetAddress}{accoutnAddress}
+  mAsset: FeederPool!
+  account: Account!
+  balance: BigInt!
+}
+
+type FPSwap @entity {
+  id: ID! # {mAssetAddress}{transaction hash}
+  mAsset: FeederPool!
+  inputBAsset: String
+  outputBAsset: String
+  inputAmount: BigInt
+  outputAmount: BigInt
+  eventLogIndex: BigInt
+  transactionLogIndex: BigInt
+  swapEventApplied: Boolean!
+  swapCallApplied: Boolean!
+}
+
+type FPTransferToZero @entity {
+  id: ID! # {mAssetAddress}{transaction hash}
+  mAsset: FeederPool!
+  redeemer: String
+  recipient: String
+  mAssetQuantity: BigInt
+  eventLogIndex: BigInt
+  transactionLogIndex: BigInt
+}
+
+# END - MStable protocol entities
