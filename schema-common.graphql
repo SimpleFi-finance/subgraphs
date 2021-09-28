@@ -16,7 +16,6 @@ enum TokenStandard {
 
 enum ProtocolName {
   UNISWAP_V2
-  CURVE_POOL
 }
 
 enum ProtocolType {
@@ -62,7 +61,7 @@ type Token @entity {
 }
 
 type Market @entity {
-  id: ID! # {protocol pool/pool/vault address}
+  id: ID! # {protocol pair/pool/vault address}
   account: Account!
   protocolName: ProtocolName!
   protocolType: ProtocolType!
@@ -78,6 +77,7 @@ type Market @entity {
   blockNumber: BigInt!
   timestamp: BigInt!
   positions: [Position!]! @derivedFrom(field: "market")
+  history: [MarketSnapshot!]! @derivedFrom(field: "market")
 }
 
 type MarketSnapshot @entity {
@@ -96,6 +96,7 @@ type Transaction @entity {
   id: ID! # {account}{transactionHash}{logIndex}
   transactionHash: Bytes!
   market: Market!
+  marketSnapshot: MarketSnapshot!
   # A transaction.from is always transaction origin because outside EVM transaction.origin and msg.sender are same
   from: Account!
   to: Account
