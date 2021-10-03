@@ -34,15 +34,12 @@ import {
   TokenBalance,
 } from "../library/common";
 
-import { getOrCreateUserInfo } from "../library/masterChefUtils";
+import { getOrCreateUserInfo, REWARD_BALANCE_UPDATE_FREQ } from "../library/masterChefUtils";
 
 import { PositionType, ProtocolName, ProtocolType } from "../library/constants";
 
 // hard-coded as in contract
 let ACC_SUSHI_PRECISION: BigInt = BigInt.fromI32(10).pow(12);
-
-// every so blocks update all the positions with new reward token balances
-let REWARD_BALANCE_UPDATE_FREQ: BigInt = BigInt.fromI32(10000);
 
 /**
  * Call handler for creation of new SushiFarm
@@ -674,7 +671,7 @@ function pendingSushi(
   let accSushiPerShare = sushiFarm.accSushiPerShare;
   let lpSupply = sushiFarm.totalSupply;
 
-  if (blockNumber > sushiFarm.lastRewardBlock && lpSupply.notEqual(BigInt.fromI32(0))) {
+  if (blockNumber > sushiFarm.lastRewardBlock && lpSupply != BigInt.fromI32(0)) {
     let multiplier = getMultiplier(masterChef, sushiFarm.lastRewardBlock, blockNumber);
     let sushiReward = multiplier
       .times(masterChef.sushiPerBlock)
