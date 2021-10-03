@@ -824,7 +824,10 @@ function isThereUnprocessedRewardTransfer(market: Market, event: ethereum.Event)
  */
 function updateRewardBalances(block: ethereum.Block, masterChef: MasterChef): void {
   // do update after at least 10000 blocks
-  if (block.number.minus(masterChef.lastBlockRewardBalancesUpdated) < REWARD_BALANCE_UPDATE_FREQ) {
+  if (
+    block.number.minus(masterChef.lastBlockRewardBalancesUpdated) <
+    BigInt.fromI32(REWARD_BALANCE_UPDATE_FREQ)
+  ) {
     return;
   }
 

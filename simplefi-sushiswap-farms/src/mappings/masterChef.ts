@@ -46,7 +46,7 @@ let ACC_SUSHI_PRECISION: BigInt = BigInt.fromI32(10).pow(12);
  * @param call
  */
 export function handleAdd(call: AddCall): void {
-  let masterChef = MasterChefEntity.load(call.to.toHexString()) as MasterChefEntity;
+  let masterChef = MasterChefEntity.load(call.to.toHexString());
 
   // "fake" event containing block info
   let event = new ethereum.Event();
@@ -82,12 +82,12 @@ export function handleAdd(call: AddCall): void {
 
   // update all farms reward variables
   if (call.inputs._withUpdate) {
-    massUpdateFarms(masterChef, call.block);
+    massUpdateFarms(masterChef as MasterChefEntity, call.block);
   }
 
   // create SushiFarm entity
   let farmId = masterChef.id + "-" + masterChef.numberOfFarms.toString();
-  let sushiFarm = getOrCreateSushiFarm(masterChef, call, event, farmId);
+  let sushiFarm = getOrCreateSushiFarm(masterChef as MasterChefEntity, call, event, farmId);
 
   if (sushiFarm != null) {
     // numberOfFarms++
@@ -618,7 +618,10 @@ function getOrCreateSushiFarm(
  */
 function updateRewardBalances(block: ethereum.Block, masterChef: MasterChefEntity): void {
   // do update after at least 10000 blocks
-  if (block.number.minus(masterChef.lastBlockRewardBalancesUpdated) < REWARD_BALANCE_UPDATE_FREQ) {
+  if (
+    block.number.minus(masterChef.lastBlockRewardBalancesUpdated) <
+    BigInt.fromI32(REWARD_BALANCE_UPDATE_FREQ)
+  ) {
     return;
   }
 
