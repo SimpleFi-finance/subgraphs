@@ -29,6 +29,7 @@ import {
   ExtraRewardTokenTransfer,
   MasterChef,
   Rewarder,
+  PositionTracker,
 } from "../../generated/schema";
 
 import {
@@ -63,6 +64,11 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
     masterChef = new MasterChef(event.address.toHexString());
     masterChef.version = BigInt.fromI32(2);
 
+    // initialize position tracker
+    let positionTracker = new PositionTracker(masterChef.id);
+    let positions: string[] = [];
+    positionTracker.positions = positions;
+
     // get sushi address, store it and start indexer if needed
     let masterChefContract = MasterChefV2.bind(event.address);
     let sushi = masterChefContract.SUSHI();
@@ -77,6 +83,7 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
     masterChef.numberOfFarms = BigInt.fromI32(0);
     masterChef.totalAllocPoint = BigInt.fromI32(0);
     masterChef.sushiPerBlock = masterChefContract.sushiPerBlock();
+    masterChef.lastBlockRewardBalancesUpdated = BigInt.fromI32(0);
     masterChef.save();
   }
 

@@ -5,7 +5,7 @@ import { UserInfo } from "../../generated/schema";
 /**
  * Create UserInfo entity which tracks how many LP tokens user provided and how many Sushi rewards he claimed
  * @param user
- * @param farmPid
+ * @param farmId
  * @returns
  */
 export function getOrCreateUserInfo(user: string, farmId: string): UserInfo {

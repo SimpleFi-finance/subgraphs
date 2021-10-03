@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
 
 import {
   MasterChef,
@@ -9,6 +9,7 @@ import {
   SetCall,
   UpdatePoolCall,
   MigrateCall,
+  MassUpdatePoolsCall,
 } from "../../generated/MasterChef/MasterChef";
 
 import {
@@ -17,7 +18,10 @@ import {
   FarmWithdrawal,
   Market,
   Token,
+  Position,
   MasterChef as MasterChefEntity,
+  AccountPosition,
+  PositionTracker,
 } from "../../generated/schema";
 
 import {
@@ -32,11 +36,13 @@ import {
 
 import { getOrCreateUserInfo } from "../library/masterChefUtils";
 
-import { ProtocolName, ProtocolType } from "../library/constants";
-import { MassUpdatePoolsCall } from "../../generated/MasterChefV2/MasterChefV2";
+import { PositionType, ProtocolName, ProtocolType } from "../library/constants";
 
 // hard-coded as in contract
 let ACC_SUSHI_PRECISION: BigInt = BigInt.fromI32(10).pow(12);
+
+// every so blocks update all the positions with new reward token balances
+let REWARD_BALANCE_UPDATE_FREQ: BigInt = BigInt.fromI32(10000);
 
 /**
  * Call handler for creation of new SushiFarm
@@ -55,6 +61,12 @@ export function handleAdd(call: AddCall): void {
     masterChef = new MasterChefEntity(call.to.toHexString());
     masterChef.version = BigInt.fromI32(1);
 
+    // initialize position tracker
+    let positionTracker = new PositionTracker(call.to.toHexString());
+    let positions: string[] = [];
+    positionTracker.positions = positions;
+    positionTracker.save();
+
     // get sushi address, store it and start indexer if needed
     let masterChefContract = MasterChef.bind(call.to);
     let sushi = masterChefContract.sushi();
@@ -67,6 +79,7 @@ export function handleAdd(call: AddCall): void {
     masterChef.sushiPerBlock = masterChefContract.sushiPerBlock();
     masterChef.bonusEndBlock = masterChefContract.bonusEndBlock();
     masterChef.bonusMultiplier = masterChefContract.BONUS_MULTIPLIER();
+    masterChef.lastBlockRewardBalancesUpdated = BigInt.fromI32(0);
     masterChef.save();
   }
 
@@ -141,8 +154,8 @@ export function handleDeposit(event: Deposit): void {
 
   ////// update user's position
 
-  // sushi farms don't have output token
-  let outputTokenAmount = BigInt.fromI32(0);
+  // sushi farms don't have output token, but keep track of provided LP token amounts
+  let outputTokenAmount = amount;
 
   // user deposited `amount` LP tokens
   let inputTokenAmounts: TokenBalance[] = [new TokenBalance(sushiFarm.lpToken, user.id, amount)];
@@ -152,8 +165,8 @@ export function handleDeposit(event: Deposit): void {
   let rewardTokens = market.rewardTokens as string[];
   rewardTokenAmounts.push(new TokenBalance(rewardTokens[0], user.id, harvestedSushi));
 
-  // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
-  let outputTokenBalance = BigInt.fromI32(0);
+  // keep track of provided LP token amounts
+  let outputTokenBalance = userInfo.amount;
 
   // inputTokenBalance -> number of LP tokens that can be redeemed by user
   let inputTokenBalances: TokenBalance[] = [];
@@ -165,7 +178,15 @@ export function handleDeposit(event: Deposit): void {
     new TokenBalance(rewardTokens[0], user.id, BigInt.fromI32(0)),
   ];
 
-  investInMarket(
+  // store number of user's positions
+  let id = user.id + "-" + market.id + "-" + PositionType.INVESTMENT;
+  let accountPosition = AccountPosition.load(id) as AccountPosition;
+  let positionCounterBefore = BigInt.fromI32(0);
+  if (accountPosition != null) {
+    positionCounterBefore = accountPosition.positionCounter;
+  }
+
+  let position = investInMarket(
     event,
     user,
     market,
@@ -177,6 +198,19 @@ export function handleDeposit(event: Deposit): void {
     rewardTokenBalances,
     null
   );
+
+  // if this deposit was start of a new user position, add it to position tracker
+  accountPosition = AccountPosition.load(id) as AccountPosition;
+  let positionCounterAfter = accountPosition.positionCounter;
+  if (positionCounterAfter != positionCounterBefore) {
+    let positionTracker = PositionTracker.load(masterChef.id);
+    let positions = positionTracker.positions as string[];
+    positions.push(position.id);
+    positionTracker.positions = positions;
+    positionTracker.save();
+  }
+
+  updateRewardBalances(event.block, masterChef);
 }
 
 /**
@@ -233,8 +267,8 @@ export function handleWithdraw(event: Withdraw): void {
 
   ////// update user's position
 
-  // sushi farms don't have output token
-  let outputTokenAmount = BigInt.fromI32(0);
+  // sushi farms don't have output token, but keep track of provided LP token amounts
+  let outputTokenAmount = amount;
 
   // user received `amount` LP tokens
   let inputTokenAmounts: TokenBalance[] = [new TokenBalance(sushiFarm.lpToken, user.id, amount)];
@@ -244,8 +278,8 @@ export function handleWithdraw(event: Withdraw): void {
   let rewardTokens = market.rewardTokens as string[];
   rewardTokenAmounts.push(new TokenBalance(rewardTokens[0], user.id, harvestedSushi));
 
-  // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
-  let outputTokenBalance = BigInt.fromI32(0);
+  // keep track of provided LP token amounts
+  let outputTokenBalance = userInfo.amount;
 
   // inputTokenBalance -> number of LP tokens that can be redeemed by withdrawer
   let inputTokenBalances: TokenBalance[] = [];
@@ -316,8 +350,8 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
 
   ////// update user's position
 
-  // no output token in sushi farms
-  let outputTokenAmount = BigInt.fromI32(0);
+  // user withdrew `amount` of LP tokens
+  let outputTokenAmount = amount;
 
   // user received `amount` LP tokens
   let inputTokenAmounts: TokenBalance[] = [new TokenBalance(sushiFarm.lpToken, user.id, amount)];
@@ -325,7 +359,7 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
   // number of reward tokens claimed by user in this transaction
   let rewardTokenAmounts: TokenBalance[] = [];
 
-  // total number of farm ownership tokens owned by user - 0 because sushi farms don't have token
+  // all provided LP token are withdrawn
   let outputTokenBalance = BigInt.fromI32(0);
 
   // inputTokenBalance -> number of LP tokens that can be redeemed by user
@@ -577,4 +611,83 @@ function getOrCreateSushiFarm(
   );
 
   return sushiFarm as SushiFarm;
+}
+
+/**
+ * Every 10000 blocks go through all the open positions and update their reward balances.
+ * @param block
+ * @param masterChef
+ * @returns
+ */
+function updateRewardBalances(block: ethereum.Block, masterChef: MasterChefEntity): void {
+  // do update after at least 10000 blocks
+  if (block.number.minus(masterChef.lastBlockRewardBalancesUpdated) < REWARD_BALANCE_UPDATE_FREQ) {
+    return;
+  }
+
+  let positionTracker = PositionTracker.load(masterChef.id);
+  let positions = positionTracker.positions as string[];
+
+  // filter out closed positions
+  let openPositions = positions.filter(function(position: string, index: i32, positions: string[]) {
+    let positionEntity = Position.load(position) as Position;
+    return !positionEntity.closed;
+  });
+  positionTracker.positions = openPositions;
+  positionTracker.save();
+
+  // update reward balance for every open position
+  for (let i: i32 = 0; i < positions.length; ++i) {
+    let position = Position.load(positions[i]) as Position;
+    let sushiFarm = SushiFarm.load(position.market) as SushiFarm;
+    let market = Market.load(position.market) as Market;
+    let rewardTokens = market.rewardTokens as string[];
+
+    // Sushi amount claimable by user
+    let pending = pendingSushi(position, sushiFarm, masterChef, block.number);
+    let rewardTokenBalances: TokenBalance[] = [
+      new TokenBalance(rewardTokens[0], position.accountAddress, pending),
+    ];
+    position.rewardTokenBalances = rewardTokenBalances.map<string>((tb) => tb.toString());
+    position.save();
+  }
+
+  // update check-point
+  masterChef.lastBlockRewardBalancesUpdated = block.number;
+  masterChef.save();
+}
+
+/**
+ * Calculate amount of Sushi rewards user cna claim. Based on `pendingSushi` function of the Masterchef contract.
+ * @param position
+ * @param sushiFarm
+ * @param masterChef
+ * @param blockNumber
+ * @returns
+ */
+function pendingSushi(
+  position: Position,
+  sushiFarm: SushiFarm,
+  masterChef: MasterChefEntity,
+  blockNumber: BigInt
+): BigInt {
+  let accSushiPerShare = sushiFarm.accSushiPerShare;
+  let lpSupply = sushiFarm.totalSupply;
+
+  if (blockNumber > sushiFarm.lastRewardBlock && lpSupply.notEqual(BigInt.fromI32(0))) {
+    let multiplier = getMultiplier(masterChef, sushiFarm.lastRewardBlock, blockNumber);
+    let sushiReward = multiplier
+      .times(masterChef.sushiPerBlock)
+      .times(sushiFarm.allocPoint)
+      .div(masterChef.totalAllocPoint);
+    accSushiPerShare = accSushiPerShare.plus(sushiReward.times(ACC_SUSHI_PRECISION).div(lpSupply));
+  }
+  // calculate claimable Sushi amount
+  let userInfo = getOrCreateUserInfo(position.accountAddress, position.market);
+  let pendingSushi = userInfo.amount
+    .times(accSushiPerShare)
+    .div(ACC_SUSHI_PRECISION)
+    .minus(userInfo.rewardDebt);
+
+  return pendingSushi;
 }

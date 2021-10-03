@@ -357,11 +357,22 @@ type MasterChef @entity {
 
   " bonus muliplier for early sushi makers "
   bonusMultiplier: BigInt
+
+  " block at which we updated reward balances for every open position "
+  lastBlockRewardBalancesUpdated: BigInt!
 }
 
 type Rewarder @entity {
   " contract address "
   id: ID!
+}
+
+type PositionTracker @entity {
+  " address of the masterchef for which positions are tracked "
+  id: ID!
+
+  " list of all user positions opened in masterchef's farms "
+  positions: [Position!]!
 }
 
 # END - Sushiswap farm protocol entities
