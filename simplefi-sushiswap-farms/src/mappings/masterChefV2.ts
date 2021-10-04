@@ -29,9 +29,6 @@ import {
   ExtraRewardTokenTransfer,
   MasterChef,
   Rewarder,
-  Position,
-  PositionTracker,
-  AccountPosition,
 } from "../../generated/schema";
 
 import {
@@ -45,11 +42,11 @@ import {
   ADDRESS_ZERO,
 } from "../library/common";
 
-import { getOrCreateUserInfo, REWARD_BALANCE_UPDATE_FREQ } from "../library/masterChefUtils";
+import { getOrCreateUserInfo } from "../library/masterChefUtils";
 
 import { RewardToken } from "../../generated/templates";
 
-import { ProtocolName, ProtocolType, PositionType } from "../library/constants";
+import { ProtocolName, ProtocolType } from "../library/constants";
 
 // hard-coded as in contract
 let ACC_SUSHI_PRECISION: BigInt = BigInt.fromI32(10).pow(12);
@@ -66,11 +63,6 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
     masterChef = new MasterChef(event.address.toHexString());
     masterChef.version = BigInt.fromI32(2);
 
-    // initialize position tracker
-    let positionTracker = new PositionTracker(masterChef.id);
-    let positions: string[] = [];
-    positionTracker.positions = positions;
-
     // get sushi address, store it and start indexer if needed
     let masterChefContract = MasterChefV2.bind(event.address);
     let sushi = masterChefContract.SUSHI();
@@ -85,7 +77,6 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
     masterChef.numberOfFarms = BigInt.fromI32(0);
     masterChef.totalAllocPoint = BigInt.fromI32(0);
     masterChef.sushiPerBlock = masterChefContract.sushiPerBlock();
-    masterChef.lastBlockRewardBalancesUpdated = BigInt.fromI32(0);
     masterChef.save();
   }
 
@@ -200,26 +191,10 @@ export function handleDeposit(event: Deposit): void {
   );
 
   // reward token amounts (SUSHI + custom tokens) claimable by user
-  let sushiPerBlock = MasterChefV2.bind(Address.fromString(masterChef)).sushiPerBlock();
   let rewardTokenBalances: TokenBalance[] = [];
-  collectRewardTokenBalances(
-    sushiFarm,
-    receiver,
-    rewardTokenBalances,
-    market,
-    event.block,
-    sushiPerBlock
-  );
+  collectRewardTokenBalances(sushiFarm, receiver, rewardTokenBalances, market);
 
-  // store number of user's positions
-  let id = receiver.id + "-" + market.id + "-" + PositionType.INVESTMENT;
-  let accountPosition = AccountPosition.load(id) as AccountPosition;
-  let positionCounterBefore = BigInt.fromI32(0);
-  if (accountPosition != null) {
-    positionCounterBefore = accountPosition.positionCounter;
-  }
-
-  let position = investInMarket(
+  investInMarket(
     event,
     receiver,
     market,
@@ -231,19 +206,6 @@ export function handleDeposit(event: Deposit): void {
     rewardTokenBalances,
     null
   );
-
-  // if this deposit was start of a new user position, add it to position tracker
-  accountPosition = AccountPosition.load(id) as AccountPosition;
-  let positionCounterAfter = accountPosition.positionCounter;
-  if (positionCounterAfter != positionCounterBefore) {
-    let positionTracker = PositionTracker.load(masterChef);
-    let positions = positionTracker.positions as string[];
-    positions.push(position.id);
-    positionTracker.positions = positions;
-    positionTracker.save();
-  }
-
-  updateRewardBalances(event.block, MasterChef.load(masterChef) as MasterChef);
 }
 
 /**
@@ -320,16 +282,8 @@ export function handleWithdraw(event: Withdraw): void {
   );
 
   // reward token amounts (SUSHI + custom tokens) claimable by user
-  let sushiPerBlock = MasterChefV2.bind(Address.fromString(masterChef)).sushiPerBlock();
   let rewardTokenBalances: TokenBalance[] = [];
-  collectRewardTokenBalances(
-    sushiFarm,
-    user,
-    rewardTokenBalances,
-    market,
-    event.block,
-    sushiPerBlock
-  );
+  collectRewardTokenBalances(sushiFarm, user, rewardTokenBalances, market);
 
   redeemFromMarket(
     event,
@@ -405,16 +359,8 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
   );
 
   // reward token amounts (SUSHI + custom tokens) claimable by user
-  let sushiPerBlock = MasterChefV2.bind(Address.fromString(masterChef)).sushiPerBlock();
   let rewardTokenBalances: TokenBalance[] = [];
-  collectRewardTokenBalances(
-    sushiFarm,
-    user,
-    rewardTokenBalances,
-    market,
-    event.block,
-    sushiPerBlock
-  );
+  collectRewardTokenBalances(sushiFarm, user, rewardTokenBalances, market);
 
   redeemFromMarket(
     event,
@@ -479,16 +425,8 @@ export function handleHarvest(event: Harvest): void {
   inputTokenBalances.push(new TokenBalance(sushiFarm.lpToken, userInfo.id, userInfo.amount));
 
   // reward token amounts (SUSHI + custom tokens) claimable by user
-  let sushiPerBlock = MasterChefV2.bind(Address.fromString(masterChef)).sushiPerBlock();
   let rewardTokenBalances: TokenBalance[] = [];
-  collectRewardTokenBalances(
-    sushiFarm,
-    harvester,
-    rewardTokenBalances,
-    market,
-    event.block,
-    sushiPerBlock
-  );
+  collectRewardTokenBalances(sushiFarm, harvester, rewardTokenBalances, market);
 
   redeemFromMarket(
     event,
@@ -691,29 +629,15 @@ function collectRewardTokenBalances(
   sushiFarm: SushiFarm,
   account: Account,
   rewardTokenBalances: TokenBalance[],
-  market: Market,
-  block: ethereum.Block,
-  sushiPerBlock: BigInt
+  market: Market
 ): void {
   let masterChef = MasterChef.load(sushiFarm.masterChef);
   let rewardTokens = market.rewardTokens as string[];
 
   // calculate claimable amount of sushi
   let userInfo = UserInfo.load(account.id + "-" + sushiFarm.id);
-  let accSushiPerShare = sushiFarm.accSushiPerShare;
-
-  if (block.number > sushiFarm.lastRewardBlock && sushiFarm.totalSupply != BigInt.fromI32(0)) {
-    let blocks = block.number.minus(sushiFarm.lastRewardBlock);
-    let sushiReward = blocks
-      .times(sushiPerBlock)
-      .times(sushiFarm.allocPoint)
-      .div(masterChef.totalAllocPoint);
-    accSushiPerShare = accSushiPerShare.plus(
-      sushiReward.times(ACC_SUSHI_PRECISION).div(sushiFarm.totalSupply)
-    );
-  }
   let claimableSushi = userInfo.amount
-    .times(accSushiPerShare)
+    .times(sushiFarm.accSushiPerShare)
     .div(ACC_SUSHI_PRECISION)
     .minus(userInfo.rewardDebt);
   rewardTokenBalances.push(new TokenBalance(rewardTokens[0], account.id, claimableSushi));
@@ -814,58 +738,4 @@ function isThereUnprocessedRewardTransfer(market: Market, event: ethereum.Event)
   }
 
   return false;
-}
-
-/**
- * Every 10000 blocks go through all the open positions and update their reward balances.
- * @param block
- * @param masterChef
- * @returns
- */
-function updateRewardBalances(block: ethereum.Block, masterChef: MasterChef): void {
-  // do update after at least 10000 blocks
-  if (
-    block.number.minus(masterChef.lastBlockRewardBalancesUpdated) <
-    BigInt.fromI32(REWARD_BALANCE_UPDATE_FREQ)
-  ) {
-    return;
-  }
-
-  let positionTracker = PositionTracker.load(masterChef.id);
-  let positions = positionTracker.positions as string[];
-
-  // filter out closed positions
-  let openPositions = positions.filter(function(position: string, index: i32, positions: string[]) {
-    let positionEntity = Position.load(position) as Position;
-    return !positionEntity.closed;
-  });
-  positionTracker.positions = openPositions;
-  positionTracker.save();
-
-  // update reward balance for every open position
-  let sushiPerBlock = MasterChefV2.bind(Address.fromString(masterChef.id)).sushiPerBlock();
-  for (let i: i32 = 0; i < positions.length; ++i) {
-    let position = Position.load(positions[i]) as Position;
-
-    let sushiFarm = SushiFarm.load(position.market) as SushiFarm;
-    let account = getOrCreateAccount(Address.fromString(position.account));
-    let market = Market.load(position.market) as Market;
-
-    let rewardTokenBalances: TokenBalance[] = [];
-    collectRewardTokenBalances(
-      sushiFarm,
-      account,
-      rewardTokenBalances,
-      market,
-      block,
-      sushiPerBlock
-    );
-
-    position.rewardTokenBalances = rewardTokenBalances.map<string>((tb) => tb.toString());
-    position.save();
-  }
-
-  // update check-point
-  masterChef.lastBlockRewardBalancesUpdated = block.number;
-  masterChef.save();
 }

@@ -2,9 +2,6 @@ import { BigInt } from "@graphprotocol/graph-ts";
 
 import { UserInfo } from "../../generated/schema";
 
-// every so blocks update all the positions with new reward token balances
-export const REWARD_BALANCE_UPDATE_FREQ = 10000;
-
 /**
  * Create UserInfo entity which tracks how many LP tokens user provided and how many Sushi rewards he claimed
  * @param user
