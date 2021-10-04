@@ -78,6 +78,7 @@ type Market @entity {
   rewardTokens: [Token!] # Aditional tokens that are given as reward for position in a protocol
   inputTokenTotalBalances: [String!]! # Total balance of this market contract of all input tokens in TokenBalance string format
   outputTokenTotalSupply: BigInt! # Total supply of output token
+  rewardTokenBalances: [String!] # Total balance of this market contract of all reward tokens in TokenBalance string format
   blockNumber: BigInt!
   timestamp: BigInt!
   positions: [Position!]! @derivedFrom(field: "market")
