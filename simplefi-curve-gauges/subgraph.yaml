@@ -1,0 +1,133 @@
+specVersion: 0.0.2
+
+schema:
+  file: ./schema.graphql
+
+dataSources:
+  # Controls liquidity gauges and the issuance of CRV through the liquidity gauges
+  - name: GaugeController
+    kind: ethereum/contract
+    network: mainnet
+    source:
+      abi: GaugeController
+      address: "0x2f50d538606fa9edd2b11e2446beb18c9d5846bb"
+      startBlock: 10647875
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/gaugeController.ts
+      abis:
+        - name: GaugeController
+          file: ./abis/GaugeController.json
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGauge.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      entities:
+        - Gauge
+        - GaugeType
+      eventHandlers:
+        - event: NewGauge(address,int128,uint256)
+          handler: handleNewGauge
+
+  # Issues CRV tokens for the gauge users
+  - name: Minter
+    kind: ethereum/contract
+    network: mainnet
+    source:
+      abi: Minter
+      address: "0xd061d61a4d941c39e5453435b6345dc261c2fce0"
+      startBlock: 10647887
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/gauge.ts
+      abis:
+        - name: Minter
+          file: ./abis/Minter.json
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGauge.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Gauge
+        - GaugeSnapshot
+      eventHandlers:
+        - event: Minted(indexed address,address,uint256)
+          handler: handleMinted
+
+templates:
+  # Measures the amount of liquidity provided by each user
+  - kind: ethereum/contract
+    name: LiquidityGauge
+    network: mainnet
+    source:
+      abi: LiquidityGauge
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Gauge
+        - GaugeSnapshot
+      abis:
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGauge.json
+      eventHandlers:
+        - event: Deposit(indexed address,uint256)
+          handler: handleDeposit
+        - event: UpdateLiquidityLimit(address,uint256,uint256,uint256,uint256)
+          handler: handleUpdateLiquidityLimit
+        - event: Withdraw(indexed address,uint256)
+          handler: handleWithdraw
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleGaugeTokenTransfer
+      file: ./src/gauge.ts
+
+  - kind: ethereum/contract
+    name: RewardToken
+    network: mainnet
+    source:
+      abi: ERC20
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Gauge
+        - GaugeSnapshot
+      abis:
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGauge.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleRewardTokenTransfer
+      file: ./src/gauge.ts

@@ -1,3 +1,5 @@
+# Common entities for all protocols
+
 enum Blockchain {
   ETHEREUM
   BSC
@@ -16,6 +18,8 @@ enum TokenStandard {
 
 enum ProtocolName {
   UNISWAP_V2
+  CURVE_POOL
+  CURVE_GAUGE
 }
 
 enum ProtocolType {
@@ -26,7 +30,7 @@ enum ProtocolType {
   STABLECOIN
   DERIVATIVE
   SYNTHETIC_TOKEN
-  TOKEN_MANAGEMENT  # Meta LP vaults
+  TOKEN_MANAGEMENT # Meta LP vaults
   PREDICTION_MARKET
 }
 
@@ -61,19 +65,19 @@ type Token @entity {
 }
 
 type Market @entity {
-  id: ID! # {protocol pair/pool/vault address}
+  id: ID! # {protocol pool/pool/vault address}
   account: Account!
   protocolName: ProtocolName!
   protocolType: ProtocolType!
   # Generally protocols accept one or multiple tokens and mint tokens to the depositor to track ownership
   # Some protocols reward DAO tokens or other incentivisation tokens to holders of LP tokens
-  # Some protocols don't mint any tokens to track ownership, in that case outputToken is null 
+  # Some protocols don't mint any tokens to track ownership, in that case outputToken is null
   # and inputToken balances are used to calculate returns
-  inputTokens: [Token!]!   # Tokens that need to be deposited to take a position in protocol
-  outputToken: Token       # Token that is minted to track ownership of position in protocol
-  rewardTokens: [Token!]   # Aditional tokens that are given as reward for position in a protocol
-  inputTokenTotalBalances: [String!]!   # Total balance of this market contract of all input tokens in TokenBalance string format
-  outputTokenTotalSupply: BigInt!       # Total supply of output token
+  inputTokens: [Token!]! # Tokens that need to be deposited to take a position in protocol
+  outputToken: Token # Token that is minted to track ownership of position in protocol
+  rewardTokens: [Token!] # Aditional tokens that are given as reward for position in a protocol
+  inputTokenTotalBalances: [String!]! # Total balance of this market contract of all input tokens in TokenBalance string format
+  outputTokenTotalSupply: BigInt! # Total supply of output token
   blockNumber: BigInt!
   timestamp: BigInt!
   positions: [Position!]! @derivedFrom(field: "market")
@@ -83,7 +87,7 @@ type Market @entity {
 type MarketSnapshot @entity {
   id: ID! # {trasactionHash}{logIndex}
   market: Market!
-  inputTokenBalances: [String!]!  # TokenBalance string format
+  inputTokenBalances: [String!]! # TokenBalance string format
   outputTokenTotalSupply: BigInt!
   blockNumber: BigInt!
   timestamp: BigInt!
@@ -128,7 +132,7 @@ type AccountPosition @entity {
   positions: [Position!]! @derivedFrom(field: "accountPosition")
 }
 
-# We can not keep balances and roi updated all the time. 
+# We can not keep balances and roi updated all the time.
 # We can update these only when the account of the position makes some changes in the position
 # at others time when market variables are changing because of other's actions then we won't update these
 type Position @entity {
@@ -140,8 +144,8 @@ type Position @entity {
   marketAddress: String!
   positionType: PositionType!
   outputTokenBalance: BigInt!
-  inputTokenBalances: [String!]!    # TokenBalance string format
-  rewardTokenBalances: [String!]!   # TokenBalance string format
+  inputTokenBalances: [String!]! # TokenBalance string format
+  rewardTokenBalances: [String!]! # TokenBalance string format
   transferredTo: [String!]!
   closed: Boolean!
   blockNumber: BigInt!
@@ -156,7 +160,95 @@ type PositionSnapshot @entity {
   position: Position!
   transaction: Transaction!
   outputTokenBalance: BigInt!
-  inputTokenBalances: [String!]!    # TokenBalance string format
-  rewardTokenBalances: [String!]!   # TokenBalance string format
-  transferredTo: [String!]!         # TokenBalance string format
+  inputTokenBalances: [String!]! # TokenBalance string format
+  rewardTokenBalances: [String!]! # TokenBalance string format
+  transferredTo: [String!]! # TokenBalance string format
 }
+
+# END - Common entities for all protocols
+
+# Curve gauge entities
+
+type Gauge @entity {
+  " Gauge contract address "
+  id: ID!
+  type: GaugeType!
+
+  created: BigInt!
+  createdAtBlock: BigInt!
+  createdAtTransaction: Bytes!
+
+  " API version of gauge implementation "
+  version: GaugeVersion!
+
+  " Input token for gauge "
+  lpToken: Token
+
+  " Total amount of LP tokens deposited to gauge "
+  totalSupply: BigInt!
+
+  " Effective total LP token amount after all deposits have been boosted "
+  workingSupply: BigInt!
+}
+
+enum GaugeVersion {
+  LIQUIDITY_GAUGE_REWARD
+  LIQUIDITY_GAUGE_V1
+  LIQUIDITY_GAUGE_V2
+  LIQUIDITY_GAUGE_V3
+  LIQUIDITY_GAUGE_ANDRE
+}
+
+type GaugeSnapshot @entity {
+  id: ID! # {trasactionHash}{logIndex}
+  gauge: Gauge!
+  originalSupply: BigInt!
+  workingSupply: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  transactionIndexInBlock: BigInt!
+  logIndex: BigInt!
+}
+
+type GaugeType @entity {
+  id: ID!
+  name: String!
+  gauges: [Gauge!] @derivedFrom(field: "type")
+  #weights: [GaugeTypeWeight!] @derivedFrom(field: "type")
+}
+
+type GaugeDeposit @entity {
+  id: ID!
+  gauge: Gauge!
+  provider: Account!
+  value: BigInt!
+}
+
+type GaugeWithdraw @entity {
+  id: ID!
+  gauge: Gauge!
+  provider: Account!
+  value: BigInt!
+}
+
+type GaugeUpdateLiquidityLimit @entity {
+  id: ID! # {transactionHash}{account}{gauge}
+  gauge: Gauge!
+  user: Account!
+  original_balance: BigInt!
+  original_supply: BigInt!
+  working_balance: BigInt!
+  working_supply: BigInt!
+}
+
+type AccountLiquidity @entity {
+  id: ID! # {accountAddress}{gaugeAddress}
+  gauge: Gauge!
+  account: Account!
+  balance: BigInt!
+  workingBalance: BigInt!
+  crvReceived: BigInt!
+}
+
+# END - Curve protocol entities

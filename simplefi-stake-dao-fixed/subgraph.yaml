@@ -28,6 +28,8 @@ dataSources:
       callHandlers:
         - function: setVault(address,address)
           handler: handleSetVault
+        - function: setStrategy(address,address)
+          handler: handleSetStrategy
       file: ./src/stakeDAOController.ts
   - kind: ethereum/contract
     name: StakeDAOMasterChef
