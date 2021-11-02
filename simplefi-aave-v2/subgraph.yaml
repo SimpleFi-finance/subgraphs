@@ -4,6 +4,7 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: LendingPoolAddressesProviderRegistry
+    network: mainnet
     source:
       address: "0x52d306e36e3b6b02c153d0266ff0f85d18bcd413"
       abi: LendingPoolAddressesProviderRegistry
@@ -30,6 +31,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: LendingPoolAddressesProvider
+    network: mainnet
     source:
       abi: LendingPoolAddressesProvider
     mapping:
@@ -48,8 +50,8 @@ templates:
         #   handler: handlePriceOracleUpdated
         # - event: LendingRateOracleUpdated(indexed address)
         #   handler: handleLendingRateOracleUpdated
-        # - event: LendingPoolUpdated(indexed address)
-        #   handler: handleLendingPoolUpdated
+        - event: LendingPoolUpdated(indexed address)
+          handler: handleLendingPoolUpdated
         # - event: LendingPoolConfiguratorUpdated(indexed address)
         #   handler: handleLendingPoolConfiguratorUpdated
         # - event: LendingPoolCollateralManagerUpdated(indexed address)
@@ -68,6 +70,7 @@ templates:
 
   - kind: ethereum/contract
     name: LendingPool
+    network: mainnet
     source:
       abi: LendingPool
     mapping:
@@ -83,16 +86,14 @@ templates:
         - Transfer
         - Position
         - PositionSnapshot
-        - Gauge
-        - GaugeSnapshot
       abis:
         - name: LendingPool
           file: ./abis/LendingPool.json
       eventHandlers:
-        - event: Deposit(indexed address,indexed address,uint256,indexed uint16,uint256)
+        - event: Deposit(indexed address,address,indexed address,uint256,indexed uint16)
           handler: handleDeposit
-        # - event: Withdraw(indexed address,indexed address,indexed address,uint256)
-        #   handler: handleWithdraw
+        - event: Withdraw(indexed address,indexed address,indexed address,uint256)
+          handler: handleWithdraw
         # - event: Borrow(indexed address,address,indexed address,uint256,uint256,uint256,indexed uint16)
         #   handler: handleBorrow
         # - event: Repay(indexed address,indexed address,indexed address,uint256)

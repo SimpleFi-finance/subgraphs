@@ -173,4 +173,18 @@ type LendingPoolAddressesProvider @entity {
   address: String!
 }
 
+type LendingPool @entity {
+  id: ID! # {address}
+  address: String!
+}
+
+type Deposit @entity {
+  id: ID! # {address}
+  user: String!
+  onBehalfOf: String!
+  reserve: String!
+  amount: BigInt!
+  referral: BigInt!
+}
+
 # END - Aave protocol entities
