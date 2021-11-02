@@ -139,13 +139,6 @@ export function handleDeposit(event: Deposit): void {
     sushiFarm.totalSupply
   );
 
-  // save new total amount of Sushi token rewards
-  let marketRewardTokenBalances = market.rewardTokenBalances as string[];
-  let sushiBalance = TokenBalance.fromString(marketRewardTokenBalances[0]);
-  sushiBalance.balance = sushiBalance.balance.minus(harvestedSushi);
-  market.rewardTokenBalances = [sushiBalance.toString()];
-  market.save();
-
   ////// update user's position
 
   // sushi farms don't have output token, but keep track of provided LP token amounts
@@ -237,13 +230,6 @@ export function handleWithdraw(event: Withdraw): void {
     [new TokenBalance(sushiFarm.lpToken, masterChef.id, sushiFarm.totalSupply)],
     sushiFarm.totalSupply
   );
-
-  // save new total amount of Sushi token rewards
-  let marketRewardTokenBalances = market.rewardTokenBalances as string[];
-  let sushiBalance = TokenBalance.fromString(marketRewardTokenBalances[0]);
-  sushiBalance.balance = sushiBalance.balance.minus(harvestedSushi);
-  market.rewardTokenBalances = [sushiBalance.toString()];
-  market.save();
 
   ////// update user's position
 
@@ -452,6 +438,7 @@ export function handleMassUpdatePools(call: MassUpdatePoolsCall): void {
 
 /**
  * Update reward variables of the given pool to be up-to-date.
+ *
  * Implementation loosely copied from MasterChef's `updatePool` function.
  * @param sushiFarm
  * @param event
@@ -475,14 +462,6 @@ function updateFarm(sushiFarm: SushiFarm, block: ethereum.Block): void {
     .times(masterChef.sushiPerBlock)
     .times(sushiFarm.allocPoint)
     .div(masterChef.totalAllocPoint);
-
-  // save new total amount of Sushi token rewards
-  let market = Market.load(sushiFarm.id) as Market;
-  let rewardTokenBalances = market.rewardTokenBalances as string[];
-  let sushiBalance = TokenBalance.fromString(rewardTokenBalances[0]);
-  sushiBalance.balance = sushiBalance.balance.plus(sushiReward);
-  market.rewardTokenBalances = [sushiBalance.toString()];
-  market.save();
 
   sushiFarm.accSushiPerShare = sushiFarm.accSushiPerShare.plus(
     sushiReward.times(ACC_SUSHI_PRECISION).div(sushiFarm.totalSupply)
@@ -588,7 +567,7 @@ function getOrCreateSushiFarm(
   let inputTokens: Token[] = [inputToken];
   let rewardTokens: Token[] = [getOrCreateERC20Token(event, Address.fromString(masterChef.sushi))];
 
-  let market = getOrCreateMarketWithId(
+  getOrCreateMarketWithId(
     event,
     marketId,
     marketAddress,
@@ -598,15 +577,6 @@ function getOrCreateSushiFarm(
     null,
     rewardTokens
   );
-
-  // initialize market's reward token balance to 0
-  let rewardTokenBalances: TokenBalance[] = [];
-  for (let i = 0; i < rewardTokens.length; i++) {
-    let token = rewardTokens[i];
-    rewardTokenBalances.push(new TokenBalance(token.id, market.account, BigInt.fromI32(0)));
-  }
-  market.rewardTokenBalances = rewardTokenBalances.map<string>((tb) => tb.toString());
-  market.save();
 
   return sushiFarm as SushiFarm;
 }

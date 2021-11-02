@@ -127,15 +127,6 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
     null,
     rewardTokens
   );
-
-  // initialize market's reward token balance to 0
-  let rewardTokenBalances: TokenBalance[] = [];
-  for (let i = 0; i < rewardTokens.length; i++) {
-    let token = rewardTokens[i];
-    rewardTokenBalances.push(new TokenBalance(token.id, market.account, BigInt.fromI32(0)));
-  }
-  market.rewardTokenBalances = rewardTokenBalances.map<string>((tb) => tb.toString());
-  market.save();
 }
 
 /**
@@ -488,19 +479,6 @@ export function handleLogUpdatePool(event: LogUpdatePool): void {
     [new TokenBalance(sushiFarm.lpToken, masterChef, sushiFarm.totalSupply)],
     sushiFarm.totalSupply
   );
-
-  // save new total amount of Sushi token rewards
-  let rewardTokenBalances = market.rewardTokenBalances as string[];
-  let sushiBalance = TokenBalance.fromString(rewardTokenBalances[0]);
-
-  let newSushiReward = sushiFarm.totalSupply
-    .times(oldAccSushiPerShare.minus(sushiFarm.accSushiPerShare))
-    .div(ACC_SUSHI_PRECISION);
-
-  sushiBalance.balance = sushiBalance.balance.plus(newSushiReward);
-  rewardTokenBalances[0] = sushiBalance.toString();
-  market.rewardTokenBalances = rewardTokenBalances;
-  market.save();
 }
 
 /**
@@ -697,7 +675,6 @@ function getHarvestedRewards(
   rewardTokenAmounts: TokenBalance[]
 ): void {
   let rewardTokens = market.rewardTokens as string[];
-  let rewardTokenBalances = market.rewardTokenBalances as string[];
 
   // get sushi receiver (it doesn't have to be harvester himself) by checking preceding Sushi transfer
   let sushiEventEntityId = event.transaction.hash.toHexString();
@@ -708,11 +685,6 @@ function getHarvestedRewards(
 
     // store amount of harvested Sushi
     rewardTokenAmounts.push(new TokenBalance(rewardTokens[0], sushiReceiver, sushiAmount));
-
-    // save new total amount of Sushi token rewards
-    let sushiBalance: TokenBalance = TokenBalance.fromString(rewardTokenBalances[0]);
-    sushiBalance.balance = sushiBalance.balance.minus(sushiAmount);
-    rewardTokenBalances[0] = sushiBalance.toString();
 
     // remove entity so that new one can be created in same transaction
     store.remove("SushiRewardTransfer", sushiEventEntityId);
@@ -733,18 +705,9 @@ function getHarvestedRewards(
     let rewardTokenAmount = transfer.value;
     rewardTokenAmounts.push(new TokenBalance(token, rewardReceiver, rewardTokenAmount));
 
-    // save new total amount of extra token rewards
-    let rewardBalance: TokenBalance = TokenBalance.fromString(rewardTokenBalances[i]);
-    rewardBalance.balance = rewardBalance.balance.minus(rewardTokenAmount);
-    rewardTokenBalances[i] = rewardBalance.toString();
-
     // remove entity so that new one can be created in same transaction for same token
     store.remove("ExtraRewardTokenTransfer", tx + "-" + token);
   }
-
-  // save new total amount of  token reward balances
-  market.rewardTokenBalances = rewardTokenBalances;
-  market.save();
 }
 
 /**
