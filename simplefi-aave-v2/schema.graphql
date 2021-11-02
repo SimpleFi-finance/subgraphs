@@ -187,4 +187,12 @@ type Deposit @entity {
   referral: BigInt!
 }
 
+type Withdrawal @entity {
+  id: ID! # {address}
+  user: String!
+  to: String!
+  reserve: String!
+  amount: BigInt!
+}
+
 # END - Aave protocol entities
