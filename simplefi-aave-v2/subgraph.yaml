@@ -116,4 +116,7 @@ templates:
         #   handler: handleUnpaused
         # - event: ReserveDataUpdated(indexed address,uint256,uint256,uint256,uint256,uint256)
         #   handler: handleReserveDataUpdated
+      callHandlers:
+        - function: initReserve(address,address,address,address,address)
+          handler: handleInitReserveCall
       file: ./src/mappings/lendingPool.ts

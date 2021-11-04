@@ -195,4 +195,10 @@ type Withdrawal @entity {
   amount: BigInt!
 }
 
+type Reserve @entity {
+  id: ID! # {address}
+  asset: String!
+  aToken: String!
+}
+
 # END - Aave protocol entities

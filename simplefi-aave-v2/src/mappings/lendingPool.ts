@@ -1,7 +1,10 @@
-import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
-import { Deposit, Withdraw } from "../../generated/templates/LendingPool/LendingPool";
-
-import { Deposit as DepositEntity, Withdrawal } from "../../generated/schema";
+import { BigInt, log } from "@graphprotocol/graph-ts";
+import {
+  Deposit,
+  Withdraw,
+  InitReserveCall,
+} from "../../generated/templates/LendingPool/LendingPool";
+import { Deposit as DepositEntity, Withdrawal, Reserve } from "../../generated/schema";
 
 export function handleDeposit(event: Deposit): void {
   let amount = event.params.amount;
@@ -35,4 +38,14 @@ export function handleWithdraw(event: Withdraw): void {
   withdrawal.reserve = reserve.toHexString();
   withdrawal.user = user.toHexString();
   withdrawal.save();
+}
+
+export function handleInitReserveCall(call: InitReserveCall): void {
+  let asset = call.inputs.asset;
+  let aToken = call.inputs.aTokenAddress;
+
+  let reserve = new Reserve(call.to.toHexString() + "-" + asset.toHexString());
+  reserve.asset = asset.toHexString();
+  reserve.aToken = aToken.toHexString();
+  reserve.save();
 }

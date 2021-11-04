@@ -1,14 +1,23 @@
 {
-  "name": "simplefi-aave-v2",
+  "name": "simplefi-aave",
   "license": "UNLICENSED",
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-aave-v2",
+    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-aave",
     "create-local": "graph create --node http://localhost:8020/ gvladika/simplefi-aave-v2",
     "remove-local": "graph remove --node http://localhost:8020/ gvladika/simplefi-aave-v2",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 gvladika/simplefi-aave-v2"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SimpleFi-finance/subgraphs.git"
+  },
+  "author": "Goran Vladika",
+  "bugs": {
+    "url": "https://github.com/SimpleFi-finance/subgraphs.git/issues"
+  },
+  "homepage": "https://docs.simplefi.finance/subgraph-development-documentation",
   "dependencies": {
     "@graphprotocol/graph-cli": "0.20.0",
     "@graphprotocol/graph-ts": "0.20.0"

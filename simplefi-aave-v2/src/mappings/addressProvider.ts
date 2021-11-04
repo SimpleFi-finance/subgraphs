@@ -29,11 +29,13 @@ export function handleProxyCreated(event: ProxyCreated): void {
   let poolId = event.params.id;
   let poolAddress = event.params.newAddress;
 
-  let lendingPool = new LendingPool(poolAddress.toHexString());
-  lendingPool.address = poolAddress.toHexString();
-  lendingPool.save();
+  if (poolId.toString() == "LENDING_POOL") {
+    let lendingPool = new LendingPool(poolAddress.toHexString());
+    lendingPool.address = poolAddress.toHexString();
+    lendingPool.save();
 
-  LendingPoolTemplate.create(poolAddress);
+    LendingPoolTemplate.create(poolAddress);
+  }
 }
 
 export function handleLendingPoolUpdated(event: LendingPoolUpdated): void {
