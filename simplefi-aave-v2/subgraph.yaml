@@ -16,8 +16,6 @@ dataSources:
       entities:
         - LendingPoolAddressesProvider
       abis:
-        - name: ERC20
-          file: ./abis/IERC20.json
         - name: LendingPoolAddressesProviderRegistry
           file: ./abis/LendingPoolAddressesProviderRegistry.json
         - name: LendingPoolAddressesProvider
@@ -89,6 +87,8 @@ templates:
       abis:
         - name: LendingPool
           file: ./abis/LendingPool.json
+        - name: IERC20
+          file: ./abis/IERC20.json
       eventHandlers:
         - event: Deposit(indexed address,address,indexed address,uint256,indexed uint16)
           handler: handleDeposit

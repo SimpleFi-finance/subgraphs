@@ -19,6 +19,7 @@ enum TokenStandard {
 enum ProtocolName {
   UNISWAP_V2
   CURVE_POOL
+  AAVE_POOL
 }
 
 enum ProtocolType {
@@ -197,6 +198,7 @@ type Withdrawal @entity {
 
 type Reserve @entity {
   id: ID! # {address}
+  lendingPool: String!
   asset: String!
   aToken: String!
 }

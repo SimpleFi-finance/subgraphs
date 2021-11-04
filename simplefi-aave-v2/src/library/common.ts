@@ -9,7 +9,7 @@ import {
   Token,
   Transaction,
 } from "../../generated/schema";
-import { ERC20 } from "../../generated/LendingPoolAddressesProviderRegistry/ERC20";
+import { IERC20 } from "../../generated/templates/LendingPool/IERC20";
 import { PositionType, TokenStandard, TransactionType } from "./constants";
 
 export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
@@ -51,7 +51,7 @@ export function getOrCreateERC20Token(event: ethereum.Event, address: Address): 
 
   token = new Token(addressHex);
   token.tokenStandard = TokenStandard.ERC20;
-  let tokenInstance = ERC20.bind(address);
+  let tokenInstance = IERC20.bind(address);
   let tryName = tokenInstance.try_name();
   if (!tryName.reverted) {
     token.name = tryName.value;
@@ -71,7 +71,7 @@ export function getOrCreateERC20Token(event: ethereum.Event, address: Address): 
 }
 
 /**
- * Fetch market entity, or create it if it doesn't exist.
+ * Fetch market entity, or create it if it doesn't exist. ID of the market is its address.
  *
  * @export
  * @param {ethereum.Event} event Event contains block info
@@ -92,8 +92,45 @@ export function getOrCreateMarket(
   outputToken: Token,
   rewardTokens: Token[]
 ): Market {
+  let market = getOrCreateMarketWithId(
+    event,
+    address.toHexString(),
+    address,
+    protocolName,
+    protocolType,
+    inputTokens,
+    outputToken,
+    rewardTokens
+  );
+  return market;
+}
+
+/**
+ * Fetch market entity, or create it if it doesn't exist.
+ *
+ * @export
+ * @param {ethereum.Event} event Event contains block info
+ * @param {string} id ID of the market
+ * @param {Address} address Address of the market
+ * @param {string} protocolName Name of the protocol based on ProtocolName enum
+ * @param {string} protocolType Type of the protocol based on ProtocolType enum
+ * @param {Token[]} inputTokens List of tokens that can be deposited in this market as investment
+ * @param {Token} outputToken Token that is minted by the market to track the position of a user in the market (e.g. an LP token)
+ * @param {Token[]} rewardTokens List of reward tokens given out by protocol as incentives
+ * @return {*}  {Market} Market entity
+ */
+export function getOrCreateMarketWithId(
+  event: ethereum.Event,
+  id: string,
+  address: Address,
+  protocolName: string,
+  protocolType: string,
+  inputTokens: Token[],
+  outputToken: Token,
+  rewardTokens: Token[]
+): Market {
   let addressHex = address.toHexString();
-  let market = Market.load(addressHex);
+  let market = Market.load(id);
   if (market != null) {
     return market as Market;
   }
@@ -104,7 +141,7 @@ export function getOrCreateMarket(
     inputTokenBalances.push(new TokenBalance(token.id, addressHex, BigInt.fromI32(0)));
   }
 
-  market = new Market(addressHex);
+  market = new Market(id);
   market.account = getOrCreateAccount(address).id;
   market.protocolName = protocolName;
   market.protocolType = protocolType;

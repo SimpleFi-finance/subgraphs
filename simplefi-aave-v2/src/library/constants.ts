@@ -19,6 +19,7 @@ export namespace TokenStandard {
 export namespace ProtocolName {
   export const UNISWAP_V2 = "UNISWAP_V2";
   export const CURVE_POOL = "CURVE_POOL";
+  export const AAVE_POOL = "AAVE_POOL";
 }
 
 export namespace ProtocolType {

@@ -1,10 +1,23 @@
-import { BigInt, log } from "@graphprotocol/graph-ts";
+import { BigInt, ethereum, log } from "@graphprotocol/graph-ts";
 import {
   Deposit,
   Withdraw,
   InitReserveCall,
 } from "../../generated/templates/LendingPool/LendingPool";
-import { Deposit as DepositEntity, Withdrawal, Reserve } from "../../generated/schema";
+import { Deposit as DepositEntity, Withdrawal, Reserve, Token } from "../../generated/schema";
+
+import { ProtocolName, ProtocolType } from "../library/constants";
+
+import {
+  getOrCreateERC20Token,
+  getOrCreateMarketWithId,
+  getOrCreateAccount,
+  updateMarket,
+  investInMarket,
+  redeemFromMarket,
+  TokenBalance,
+  ADDRESS_ZERO,
+} from "../library/common";
 
 export function handleDeposit(event: Deposit): void {
   let amount = event.params.amount;
@@ -41,11 +54,35 @@ export function handleWithdraw(event: Withdraw): void {
 }
 
 export function handleInitReserveCall(call: InitReserveCall): void {
-  let asset = call.inputs.asset;
-  let aToken = call.inputs.aTokenAddress;
+  let event = new ethereum.Event();
+  event.block = call.block;
 
-  let reserve = new Reserve(call.to.toHexString() + "-" + asset.toHexString());
-  reserve.asset = asset.toHexString();
-  reserve.aToken = aToken.toHexString();
+  let asset = getOrCreateERC20Token(event, call.inputs.asset);
+  let aToken = getOrCreateERC20Token(event, call.inputs.aTokenAddress);
+
+  let reserve = new Reserve(call.to.toHexString() + "-" + asset.id);
+  reserve.lendingPool = call.to.toHexString();
+  reserve.asset = asset.id;
+  reserve.aToken = aToken.id;
   reserve.save();
+
+  // create market representing the farm
+  let marketId = reserve.id;
+  let marketAddress = call.to;
+  let protocolName = ProtocolName.AAVE_POOL;
+  let protocolType = ProtocolType.LENDING;
+  let inputTokens: Token[] = [asset];
+  let outputTokens = aToken;
+  let rewardTokens: Token[] = [];
+
+  getOrCreateMarketWithId(
+    event,
+    marketId,
+    marketAddress,
+    protocolName,
+    protocolType,
+    inputTokens,
+    outputTokens,
+    rewardTokens
+  );
 }
