@@ -197,10 +197,27 @@ type Withdrawal @entity {
 }
 
 type Reserve @entity {
-  id: ID! # {address}
-  lendingPool: String!
+  id: ID! # {lendingPool-asset}
+  lendingPool: LendingPool!
   asset: String!
   aToken: String!
+}
+
+type UserBalance @entity {
+  " usersAddress-marketId"
+  id: ID!
+
+  " user taking positions in pool "
+  user: Account!
+
+  " reserve to which user position belongs to "
+  reserve: Reserve!
+
+  " input token amount the user has provided "
+  providedTokenAmount: BigInt!
+
+  " amount of putput tokens owned by user "
+  outputTokenAmount: BigInt!
 }
 
 # END - Aave protocol entities
