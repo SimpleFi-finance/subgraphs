@@ -107,6 +107,7 @@ export function handleWithdraw(event: Withdraw): void {
   let reserve = event.params.reserve;
   let user = event.params.user;
 
+  // create withdrawal entity
   let withdrawal = new Withdrawal(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
   );
@@ -115,6 +116,58 @@ export function handleWithdraw(event: Withdraw): void {
   withdrawal.reserve = reserve.toHexString();
   withdrawal.user = user.toHexString();
   withdrawal.save();
+
+  // decrease user's balance of provided tokens
+  let reserveId = event.transaction.hash.toHexString() + "-" + reserve.toHexString();
+  let userBalance = getOrCreateUserBalance(withdrawal.user, reserveId);
+  userBalance.reserve = reserveId;
+  userBalance.providedTokenAmount = userBalance.providedTokenAmount.minus(withdrawal.amount);
+  userBalance.outputTokenAmount = userBalance.outputTokenAmount.minus(withdrawal.amount);
+  userBalance.save();
+
+  ////// update user's position
+
+  let market = Market.load(event.address.toHexString() + "-" + withdrawal.reserve) as Market;
+
+  // withdrawer (msg.sender)
+  let account = getOrCreateAccount(Address.fromString(withdrawal.user));
+
+  // amount of aTokens moved
+  let outputTokenAmount = withdrawal.amount;
+
+  // withdraw receiver received `amount` of reserve tokens
+  let inputTokensAmount: TokenBalance[] = [
+    new TokenBalance(withdrawal.reserve, withdrawal.to, withdrawal.amount),
+  ];
+
+  // number of reward tokens claimed by user in this transaction
+  let rewardTokenAmounts: TokenBalance[] = [];
+
+  // keep track of provided token amounts
+  let outputTokenBalance = userBalance.outputTokenAmount;
+
+  // inputTokenBalance -> number of reserve tokens that can be redeemed by withdrawer
+  let inputTokenBalances: TokenBalance[] = [];
+  inputTokenBalances.push(
+    new TokenBalance(reserve.toHexString(), withdrawal.user, userBalance.outputTokenAmount)
+  );
+
+  // reward token amounts claimable by user
+  let rewardTokenBalances: TokenBalance[] = [];
+
+  // use common function to update position and store transaction
+  redeemFromMarket(
+    event,
+    account,
+    market,
+    outputTokenAmount,
+    inputTokensAmount,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
 }
 
 export function handleInitReserveCall(call: InitReserveCall): void {
@@ -155,7 +208,7 @@ export function handleInitReserveCall(call: InitReserveCall): void {
 }
 
 export function handleReserveDataUpdated(event: ReserveDataUpdated): void {
-  let reserveId = event.address.toHexString() + "-" + event.params.reserve;
+  let reserveId = event.address.toHexString() + "-" + event.params.reserve.toHexString();
   let reserve = Reserve.load(reserveId) as Reserve;
 
   reserve.liquidityRate = event.params.liquidityRate;
