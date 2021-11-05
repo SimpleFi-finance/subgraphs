@@ -201,6 +201,9 @@ type Reserve @entity {
   lendingPool: LendingPool!
   asset: String!
   aToken: String!
+  lastUpdateTimestamp: BigInt!
+  liquidityIndex: BigInt!
+  liquidityRate: BigInt!
 }
 
 type UserBalance @entity {

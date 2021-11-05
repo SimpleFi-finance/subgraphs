@@ -27,6 +27,8 @@ import {
   getOrCreateMarket,
 } from "../library/common";
 
+import { calculateCompoundedInterest, calculateLinearInterest, rayMul } from "../library/math";
+
 export function handleDeposit(event: Deposit): void {
   let amount = event.params.amount;
   let onBehalfOf = event.params.onBehalfOf;
@@ -124,6 +126,9 @@ export function handleInitReserveCall(call: InitReserveCall): void {
   reserve.lendingPool = call.to.toHexString();
   reserve.asset = asset.id;
   reserve.aToken = aToken.id;
+  reserve.lastUpdateTimestamp = call.block.timestamp;
+  reserve.liquidityIndex = BigInt.fromI32(0);
+  reserve.liquidityRate = BigInt.fromI32(0);
   reserve.save();
 
   // create market representing the farm
@@ -167,4 +172,24 @@ export function getOrCreateUserBalance(user: string, reserveId: string): UserBal
   }
 
   return userBalance;
+}
+
+/**
+ * Returns the ongoing normalized income for the reserve.
+ * @param reserve
+ * @param event
+ * @returns
+ */
+export function getReserveNormalizedIncome(reserve: Reserve, event: ethereum.Event): BigInt {
+  let timestamp = reserve.lastUpdateTimestamp;
+
+  if (timestamp.equals(event.block.timestamp)) {
+    //if the index was updated in the same block, no need to perform any calculation
+    return reserve.liquidityIndex;
+  }
+
+  let cumulated = calculateLinearInterest(reserve.liquidityRate, timestamp, event.block.timestamp);
+  let result = rayMul(cumulated, reserve.liquidityIndex);
+
+  return result;
 }
