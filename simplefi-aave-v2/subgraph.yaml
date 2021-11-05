@@ -114,8 +114,8 @@ templates:
         #   handler: handlePaused
         # - event: Unpaused()
         #   handler: handleUnpaused
-        # - event: ReserveDataUpdated(indexed address,uint256,uint256,uint256,uint256,uint256)
-        #   handler: handleReserveDataUpdated
+        - event: ReserveDataUpdated(indexed address,uint256,uint256,uint256,uint256,uint256)
+          handler: handleReserveDataUpdated
       callHandlers:
         - function: initReserve(address,address,address,address,address)
           handler: handleInitReserveCall
