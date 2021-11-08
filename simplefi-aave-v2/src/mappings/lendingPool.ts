@@ -2,11 +2,13 @@ import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
 import {
   Deposit,
   Withdraw,
+  Borrow,
   InitReserveCall,
   ReserveDataUpdated,
 } from "../../generated/templates/LendingPool/LendingPool";
 import {
   Deposit as DepositEntity,
+  Borrow as BorrowEntity,
   Withdrawal,
   Reserve,
   Token,
@@ -22,6 +24,7 @@ import {
   getOrCreateAccount,
   updateMarket,
   investInMarket,
+  borrowFromMarket,
   redeemFromMarket,
   TokenBalance,
   ADDRESS_ZERO,
@@ -167,6 +170,64 @@ export function handleWithdraw(event: Withdraw): void {
     inputTokenBalances,
     rewardTokenBalances,
     null
+  );
+}
+
+export function handleBorrow(event: Borrow): void {
+  let borrow = new BorrowEntity(
+    event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
+  );
+
+  borrow.amount = event.params.amount;
+  borrow.onBehalfOf = event.params.onBehalfOf.toHexString();
+  borrow.reserve = event.params.reserve.toHexString();
+  borrow.user = event.params.user.toHexString();
+  borrow.save();
+
+  // increase user's balance of provided tokens
+  let reserveId = event.transaction.hash.toHexString() + "-" + event.params.reserve.toHexString();
+  let userBalance = getOrCreateUserBalance(borrow.user, reserveId);
+
+  ////// update user's position
+
+  let market = Market.load(event.address.toHexString() + "-" + borrow.reserve) as Market;
+
+  // borower (msg.sender)
+  let account = getOrCreateAccount(Address.fromString(borrow.user));
+
+  // no aTokens moved
+  let outputTokenAmount = BigInt.fromI32(0);
+
+  // amount of reserve asset tokens borrowed
+  let inputTokensAmount: TokenBalance[] = [
+    new TokenBalance(borrow.reserve, borrow.user, borrow.amount),
+  ];
+
+  // number of reward tokens claimed by user in this transaction
+  let rewardTokenAmounts: TokenBalance[] = [];
+
+  // total balance of debt bearing tokens
+  let outputTokenBalance = userBalance.outputTokenAmount;
+
+  // total amount of debt taken by user in this reserve token
+  let inputTokenBalances: TokenBalance[] = [];
+  inputTokenBalances.push(
+    new TokenBalance(borrow.reserve, borrow.user, userBalance.providedTokenAmount)
+  );
+
+  // reward token amounts claimable by user
+  let rewardTokenBalances: TokenBalance[] = [];
+
+  borrowFromMarket(
+    event,
+    account,
+    market,
+    outputTokenAmount,
+    inputTokensAmount,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances
   );
 }
 

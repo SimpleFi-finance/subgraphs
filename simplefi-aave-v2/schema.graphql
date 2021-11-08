@@ -196,6 +196,14 @@ type Withdrawal @entity {
   amount: BigInt!
 }
 
+type Borrow @entity {
+  id: ID! # {address}
+  user: String!
+  onBehalfOf: String!
+  reserve: String!
+  amount: BigInt!
+}
+
 type Reserve @entity {
   id: ID! # {lendingPool-asset}
   lendingPool: LendingPool!
