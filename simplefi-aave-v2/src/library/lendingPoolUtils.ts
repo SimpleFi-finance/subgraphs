@@ -1,29 +1,59 @@
 import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
 
-import { Reserve, UserBalance } from "../../generated/schema";
+import { Reserve, UserInvestmentBalance, UserDebtBalance } from "../../generated/schema";
 
 import { calculateLinearInterest, rayMul } from "./math";
 
 /**
- * Create UserBalance entity which tracks how many tokens user provided
+ * Create userInvestmentBalance entity which tracks how many tokens user provided
  * @param user
  * @param reserveId
  * @returns
  */
-export function getOrCreateUserBalance(user: string, reserveId: string): UserBalance {
+export function getOrCreateUserInvestmentBalance(
+  user: string,
+  reserveId: string
+): UserInvestmentBalance {
   let id = user + "-" + reserveId;
-  let userBalance = UserBalance.load(id) as UserBalance;
+  let userInvestmentBalance = UserInvestmentBalance.load(id) as UserInvestmentBalance;
 
-  if (userBalance == null) {
-    userBalance = new UserBalance(id);
-    userBalance.user = user;
-    userBalance.reserve = reserveId;
-    userBalance.providedTokenAmount = BigInt.fromI32(0);
-    userBalance.outputTokenAmount = BigInt.fromI32(0);
-    userBalance.save();
+  if (userInvestmentBalance == null) {
+    userInvestmentBalance = new UserInvestmentBalance(id);
+    userInvestmentBalance.user = user;
+    userInvestmentBalance.reserve = reserveId;
+    userInvestmentBalance.providedTokenAmount = BigInt.fromI32(0);
+    userInvestmentBalance.outputTokenAmount = BigInt.fromI32(0);
+    userInvestmentBalance.save();
   }
 
-  return userBalance;
+  return userInvestmentBalance;
+}
+
+/**
+ * Create userDebtBalance entity which tracks user's debt balance
+ * @param user
+ * @param reserveId
+ * @returns
+ */
+export function getOrCreateUserDebtBalance(
+  user: string,
+  reserve: string,
+  marketId: string
+): UserDebtBalance {
+  let id = user + "-" + marketId;
+  let userDebtBalance = UserDebtBalance.load(id) as UserDebtBalance;
+
+  if (userDebtBalance == null) {
+    userDebtBalance = new UserDebtBalance(id);
+    userDebtBalance.user = user;
+    userDebtBalance.reserve = reserve;
+    userDebtBalance.debtTakenAmount = BigInt.fromI32(0);
+    userDebtBalance.totalCollateralInETH = BigInt.fromI32(0);
+    userDebtBalance.totalDebtInETH = BigInt.fromI32(0);
+    userDebtBalance.save();
+  }
+
+  return userDebtBalance;
 }
 
 /**

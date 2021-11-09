@@ -5,6 +5,7 @@ import {
   Borrow,
   InitReserveCall,
   ReserveDataUpdated,
+  LendingPool as LendingPoolContract,
 } from "../../generated/templates/LendingPool/LendingPool";
 import {
   Deposit as DepositEntity,
@@ -13,7 +14,7 @@ import {
   Reserve,
   Token,
   Market,
-  UserBalance,
+  UserInvestmentBalance,
 } from "../../generated/schema";
 
 import { ProtocolName, ProtocolType } from "../library/constants";
@@ -32,7 +33,15 @@ import {
 } from "../library/common";
 
 import { calculateGrowth } from "../library/math";
-import { getOrCreateUserBalance, getReserveNormalizedIncome } from "../library/lendingPoolUtils";
+import {
+  getOrCreateUserInvestmentBalance,
+  getOrCreateUserDebtBalance,
+  getReserveNormalizedIncome,
+} from "../library/lendingPoolUtils";
+
+const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+const BORROW_MODE_STABLE = 1;
+const BORROW_MODE_VARIABLE = 2;
 
 export function handleDeposit(event: Deposit): void {
   let amount = event.params.amount;
@@ -53,11 +62,15 @@ export function handleDeposit(event: Deposit): void {
 
   // increase user's balance of provided tokens
   let reserveId = event.transaction.hash.toHexString() + "-" + reserve.toHexString();
-  let userBalance = getOrCreateUserBalance(deposit.onBehalfOf, reserveId);
-  userBalance.reserve = reserveId;
-  userBalance.providedTokenAmount = userBalance.providedTokenAmount.plus(deposit.amount);
-  userBalance.outputTokenAmount = userBalance.outputTokenAmount.plus(deposit.amount);
-  userBalance.save();
+  let userInvestmentBalance = getOrCreateUserInvestmentBalance(deposit.onBehalfOf, reserveId);
+  userInvestmentBalance.reserve = reserveId;
+  userInvestmentBalance.providedTokenAmount = userInvestmentBalance.providedTokenAmount.plus(
+    deposit.amount
+  );
+  userInvestmentBalance.outputTokenAmount = userInvestmentBalance.outputTokenAmount.plus(
+    deposit.amount
+  );
+  userInvestmentBalance.save();
 
   ////// update user's position
 
@@ -78,12 +91,16 @@ export function handleDeposit(event: Deposit): void {
   let rewardTokenAmounts: TokenBalance[] = [];
 
   // keep track of provided token amounts
-  let outputTokenBalance = userBalance.outputTokenAmount;
+  let outputTokenBalance = userInvestmentBalance.outputTokenAmount;
 
   // inputTokenBalance -> number of tokens that can be redeemed by aToken receiver
   let inputTokenBalances: TokenBalance[] = [];
   inputTokenBalances.push(
-    new TokenBalance(reserve.toHexString(), deposit.onBehalfOf, userBalance.outputTokenAmount)
+    new TokenBalance(
+      reserve.toHexString(),
+      deposit.onBehalfOf,
+      userInvestmentBalance.outputTokenAmount
+    )
   );
 
   // reward token amounts claimable by user
@@ -122,11 +139,15 @@ export function handleWithdraw(event: Withdraw): void {
 
   // decrease user's balance of provided tokens
   let reserveId = event.transaction.hash.toHexString() + "-" + reserve.toHexString();
-  let userBalance = getOrCreateUserBalance(withdrawal.user, reserveId);
-  userBalance.reserve = reserveId;
-  userBalance.providedTokenAmount = userBalance.providedTokenAmount.minus(withdrawal.amount);
-  userBalance.outputTokenAmount = userBalance.outputTokenAmount.minus(withdrawal.amount);
-  userBalance.save();
+  let UserInvestmentBalance = getOrCreateUserInvestmentBalance(withdrawal.user, reserveId);
+  UserInvestmentBalance.reserve = reserveId;
+  UserInvestmentBalance.providedTokenAmount = UserInvestmentBalance.providedTokenAmount.minus(
+    withdrawal.amount
+  );
+  UserInvestmentBalance.outputTokenAmount = UserInvestmentBalance.outputTokenAmount.minus(
+    withdrawal.amount
+  );
+  UserInvestmentBalance.save();
 
   ////// update user's position
 
@@ -147,12 +168,16 @@ export function handleWithdraw(event: Withdraw): void {
   let rewardTokenAmounts: TokenBalance[] = [];
 
   // keep track of provided token amounts
-  let outputTokenBalance = userBalance.outputTokenAmount;
+  let outputTokenBalance = UserInvestmentBalance.outputTokenAmount;
 
   // inputTokenBalance -> number of reserve tokens that can be redeemed by withdrawer
   let inputTokenBalances: TokenBalance[] = [];
   inputTokenBalances.push(
-    new TokenBalance(reserve.toHexString(), withdrawal.user, userBalance.outputTokenAmount)
+    new TokenBalance(
+      reserve.toHexString(),
+      withdrawal.user,
+      UserInvestmentBalance.outputTokenAmount
+    )
   );
 
   // reward token amounts claimable by user
@@ -182,15 +207,35 @@ export function handleBorrow(event: Borrow): void {
   borrow.onBehalfOf = event.params.onBehalfOf.toHexString();
   borrow.reserve = event.params.reserve.toHexString();
   borrow.user = event.params.user.toHexString();
+  borrow.borrowRateMode = event.params.borrowRateMode;
   borrow.save();
 
-  // increase user's balance of provided tokens
-  let reserveId = event.transaction.hash.toHexString() + "-" + event.params.reserve.toHexString();
-  let userBalance = getOrCreateUserBalance(borrow.user, reserveId);
+  // fetch market based on borrow mode
+  let reserve = Reserve.load(borrow.reserve) as Reserve;
+  let marketId: string;
+  if (borrow.borrowRateMode == BigInt.fromI32(BORROW_MODE_STABLE)) {
+    marketId = event.address.toHexString() + "-" + reserve.stableDebtToken;
+  } else if (borrow.borrowRateMode == BigInt.fromI32(BORROW_MODE_VARIABLE)) {
+    marketId = event.address.toHexString() + "-" + reserve.variableDebtToken;
+  } else {
+    // unrecognized borrow mode
+    return;
+  }
+
+  // increase user's debt balance
+  let userDebtBalance = getOrCreateUserDebtBalance(borrow.user, marketId, reserve.id);
+  userDebtBalance.debtTakenAmount = userDebtBalance.debtTakenAmount.plus(borrow.amount);
+
+  let contract = LendingPoolContract.bind(event.address);
+  let userData = contract.getUserAccountData(Address.fromString(borrow.user));
+  // TODO - this is not really correct as we store total collateral when it should be
+  // only collateral locked for single reserve asset
+  userDebtBalance.totalCollateralInETH = userData.value0;
+  userDebtBalance.save();
 
   ////// update user's position
 
-  let market = Market.load(event.address.toHexString() + "-" + borrow.reserve) as Market;
+  let market = Market.load(marketId) as Market;
 
   // borower (msg.sender)
   let account = getOrCreateAccount(Address.fromString(borrow.user));
@@ -207,12 +252,13 @@ export function handleBorrow(event: Borrow): void {
   let rewardTokenAmounts: TokenBalance[] = [];
 
   // total balance of debt bearing tokens
-  let outputTokenBalance = userBalance.outputTokenAmount;
+  let outputTokenBalance = userDebtBalance.debtTakenAmount;
 
-  // total amount of debt taken by user in this reserve token
+  // amount of collateral locked as result of debt taken in this reserve
   let inputTokenBalances: TokenBalance[] = [];
+  let inputTokens = market.inputTokens as string[];
   inputTokenBalances.push(
-    new TokenBalance(borrow.reserve, borrow.user, userBalance.providedTokenAmount)
+    new TokenBalance(inputTokens[0], borrow.user, userDebtBalance.totalCollateralInETH)
   );
 
   // reward token amounts claimable by user
@@ -237,24 +283,62 @@ export function handleInitReserveCall(call: InitReserveCall): void {
 
   let asset = getOrCreateERC20Token(event, call.inputs.asset);
   let aToken = getOrCreateERC20Token(event, call.inputs.aTokenAddress);
+  let stableDebtToken = getOrCreateERC20Token(event, call.inputs.stableDebtAddress);
+  let variableDebtToken = getOrCreateERC20Token(event, call.inputs.variableDebtAddress);
+  let weth = getOrCreateERC20Token(event, Address.fromString(WETH));
 
+  // fetch and store reserve data
   let reserve = new Reserve(call.to.toHexString() + "-" + asset.id);
   reserve.lendingPool = call.to.toHexString();
   reserve.asset = asset.id;
   reserve.aToken = aToken.id;
+  reserve.stableDebtToken = stableDebtToken.id;
+  reserve.variableDebtToken = variableDebtToken.id;
   reserve.lastUpdateTimestamp = call.block.timestamp;
   reserve.liquidityIndex = BigInt.fromI32(0);
   reserve.liquidityRate = BigInt.fromI32(0);
   reserve.save();
 
-  // create market representing the farm
-  let marketId = reserve.id;
+  // create investment market representing the token-aToken pair
+  let marketId = call.to.toHexString() + "-" + reserve.id;
   let marketAddress = call.to;
   let protocolName = ProtocolName.AAVE_POOL;
   let protocolType = ProtocolType.LENDING;
   let inputTokens: Token[] = [asset];
   let outputTokens = aToken;
   let rewardTokens: Token[] = [];
+
+  getOrCreateMarketWithId(
+    event,
+    marketId,
+    marketAddress,
+    protocolName,
+    protocolType,
+    inputTokens,
+    outputTokens,
+    rewardTokens
+  );
+
+  // create stable debt market representing the debt taken in reserve asset
+  marketId = call.to.toHexString() + "-" + stableDebtToken.id;
+  inputTokens = [weth];
+  outputTokens = stableDebtToken;
+
+  getOrCreateMarketWithId(
+    event,
+    marketId,
+    marketAddress,
+    protocolName,
+    protocolType,
+    inputTokens,
+    outputTokens,
+    rewardTokens
+  );
+
+  // create variable debt market representing the debt taken in reserve asset
+  marketId = call.to.toHexString() + "-" + variableDebtToken.id;
+  inputTokens = [weth];
+  outputTokens = variableDebtToken;
 
   getOrCreateMarketWithId(
     event,

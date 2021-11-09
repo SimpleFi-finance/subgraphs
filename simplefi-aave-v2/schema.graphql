@@ -202,6 +202,7 @@ type Borrow @entity {
   onBehalfOf: String!
   reserve: String!
   amount: BigInt!
+  borrowRateMode: BigInt!
 }
 
 type Reserve @entity {
@@ -209,13 +210,15 @@ type Reserve @entity {
   lendingPool: LendingPool!
   asset: String!
   aToken: String!
+  stableDebtToken: String!
+  variableDebtToken: String!
   lastUpdateTimestamp: BigInt!
   liquidityIndex: BigInt!
   liquidityRate: BigInt!
 }
 
-type UserBalance @entity {
-  " usersAddress-marketId"
+type UserInvestmentBalance @entity {
+  " userAddress-marketId"
   id: ID!
 
   " user taking positions in pool "
@@ -227,8 +230,28 @@ type UserBalance @entity {
   " input token amount the user has provided "
   providedTokenAmount: BigInt!
 
-  " amount of putput tokens owned by user "
+  " amount of aTokens owned by user "
   outputTokenAmount: BigInt!
+}
+
+type UserDebtBalance @entity {
+  " userAddress-marketId"
+  id: ID!
+
+  " user taking debt "
+  user: Account!
+
+  " reserve in which debt is taken "
+  reserve: Reserve!
+
+  " amount of debt taken by user "
+  debtTakenAmount: BigInt!
+
+  " amount of tokens provided as collateral priced in ETH "
+  totalCollateralInETH: BigInt!
+
+  " amount of debt taken by user pirced in ETH "
+  totalDebtInETH: BigInt!
 }
 
 # END - Aave protocol entities
