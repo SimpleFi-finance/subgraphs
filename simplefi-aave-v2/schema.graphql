@@ -205,6 +205,14 @@ type Borrow @entity {
   borrowRateMode: BigInt!
 }
 
+type Repay @entity {
+  id: ID! # {address}
+  user: String!
+  repayer: String!
+  reserve: String!
+  amount: BigInt!
+}
+
 type Reserve @entity {
   id: ID! # {lendingPool-asset}
   lendingPool: LendingPool!

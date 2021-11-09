@@ -3,6 +3,7 @@ import {
   Deposit,
   Withdraw,
   Borrow,
+  Repay,
   InitReserveCall,
   ReserveDataUpdated,
   LendingPool as LendingPoolContract,
@@ -10,6 +11,7 @@ import {
 import {
   Deposit as DepositEntity,
   Borrow as BorrowEntity,
+  Repay as RepayEntity,
   Withdrawal,
   Reserve,
   Token,
@@ -27,6 +29,7 @@ import {
   investInMarket,
   borrowFromMarket,
   redeemFromMarket,
+  repayToMarket,
   TokenBalance,
   ADDRESS_ZERO,
   getOrCreateMarket,
@@ -229,7 +232,7 @@ export function handleBorrow(event: Borrow): void {
   let contract = LendingPoolContract.bind(event.address);
   let userData = contract.getUserAccountData(Address.fromString(borrow.user));
   // TODO - this is not really correct as we store total collateral when it should be
-  // only collateral locked for single reserve asset
+  // only collateral locked for this specific reserve asset
   userDebtBalance.totalCollateralInETH = userData.value0;
   userDebtBalance.save();
 
@@ -240,12 +243,15 @@ export function handleBorrow(event: Borrow): void {
   // borower (msg.sender)
   let account = getOrCreateAccount(Address.fromString(borrow.user));
 
-  // no aTokens moved
-  let outputTokenAmount = BigInt.fromI32(0);
+  // amount of debt bearing tokens minted
+  let outputTokenAmount = borrow.amount;
 
-  // amount of reserve asset tokens borrowed
+  // amount of collateral locked because of this payment
+  let inputTokens = market.inputTokens as string[];
+  // TODO - make bunch of calcs to deduce the actual amount
+  let collateralAmountLocked = BigInt.fromI32(0);
   let inputTokensAmount: TokenBalance[] = [
-    new TokenBalance(borrow.reserve, borrow.user, borrow.amount),
+    new TokenBalance(inputTokens[0], borrow.user, collateralAmountLocked),
   ];
 
   // number of reward tokens claimed by user in this transaction
@@ -256,7 +262,6 @@ export function handleBorrow(event: Borrow): void {
 
   // amount of collateral locked as result of debt taken in this reserve
   let inputTokenBalances: TokenBalance[] = [];
-  let inputTokens = market.inputTokens as string[];
   inputTokenBalances.push(
     new TokenBalance(inputTokens[0], borrow.user, userDebtBalance.totalCollateralInETH)
   );
@@ -265,6 +270,79 @@ export function handleBorrow(event: Borrow): void {
   let rewardTokenBalances: TokenBalance[] = [];
 
   borrowFromMarket(
+    event,
+    account,
+    market,
+    outputTokenAmount,
+    inputTokensAmount,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances
+  );
+}
+
+export function handleRepay(event: Repay): void {
+  let repay = new RepayEntity(
+    event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
+  );
+
+  repay.amount = event.params.amount;
+  repay.repayer = event.params.repayer.toHexString();
+  repay.reserve = event.params.reserve.toHexString();
+  repay.user = event.params.user.toHexString();
+  repay.save();
+
+  // fetch market based on borrow mode
+  let reserve = Reserve.load(repay.reserve) as Reserve;
+  // TODO - deduce if stable or variable debt repayment based on preceding ERC20 burn event
+  let marketId = event.address.toHexString() + "-" + reserve.variableDebtToken;
+
+  // decrease user's debt balance
+  let userDebtBalance = getOrCreateUserDebtBalance(repay.repayer, marketId, reserve.id);
+  userDebtBalance.debtTakenAmount = userDebtBalance.debtTakenAmount.minus(repay.amount);
+
+  let contract = LendingPoolContract.bind(event.address);
+  let userData = contract.getUserAccountData(Address.fromString(repay.repayer));
+  // TODO - this is not really correct as we store total collateral when it should be
+  // only collateral locked for this specific reserve asset
+  userDebtBalance.totalCollateralInETH = userData.value0;
+  userDebtBalance.save();
+
+  ////// update user's position
+
+  let market = Market.load(marketId) as Market;
+
+  // user for whom debt is being repayed (not neccessarily the sender)
+  let account = getOrCreateAccount(Address.fromString(repay.repayer));
+
+  // amount of debt bearing tokens burned
+  let outputTokenAmount = repay.amount;
+
+  // amount of collateral unlocked because of this payment
+  let inputTokens = market.inputTokens as string[];
+  // TODO - make bunch of calcs to deduce the actual amount
+  let collateralAmountUnlocked = BigInt.fromI32(0);
+  let inputTokensAmount: TokenBalance[] = [
+    new TokenBalance(inputTokens[0], repay.user, collateralAmountUnlocked),
+  ];
+
+  // number of reward tokens claimed by user in this transaction
+  let rewardTokenAmounts: TokenBalance[] = [];
+
+  // total balance of debt bearing tokens
+  let outputTokenBalance = userDebtBalance.debtTakenAmount;
+
+  // amount of collateral locked as result of debt taken in this reserve
+  let inputTokenBalances: TokenBalance[] = [];
+  inputTokenBalances.push(
+    new TokenBalance(inputTokens[0], repay.repayer, userDebtBalance.totalCollateralInETH)
+  );
+
+  // reward token amounts claimable by user
+  let rewardTokenBalances: TokenBalance[] = [];
+
+  repayToMarket(
     event,
     account,
     market,
@@ -305,7 +383,7 @@ export function handleInitReserveCall(call: InitReserveCall): void {
   let protocolName = ProtocolName.AAVE_POOL;
   let protocolType = ProtocolType.LENDING;
   let inputTokens: Token[] = [asset];
-  let outputTokens = aToken;
+  let outputToken = aToken;
   let rewardTokens: Token[] = [];
 
   getOrCreateMarketWithId(
@@ -315,14 +393,14 @@ export function handleInitReserveCall(call: InitReserveCall): void {
     protocolName,
     protocolType,
     inputTokens,
-    outputTokens,
+    outputToken,
     rewardTokens
   );
 
   // create stable debt market representing the debt taken in reserve asset
   marketId = call.to.toHexString() + "-" + stableDebtToken.id;
   inputTokens = [weth];
-  outputTokens = stableDebtToken;
+  outputToken = stableDebtToken;
 
   getOrCreateMarketWithId(
     event,
@@ -331,14 +409,14 @@ export function handleInitReserveCall(call: InitReserveCall): void {
     protocolName,
     protocolType,
     inputTokens,
-    outputTokens,
+    outputToken,
     rewardTokens
   );
 
   // create variable debt market representing the debt taken in reserve asset
   marketId = call.to.toHexString() + "-" + variableDebtToken.id;
   inputTokens = [weth];
-  outputTokens = variableDebtToken;
+  outputToken = variableDebtToken;
 
   getOrCreateMarketWithId(
     event,
@@ -347,7 +425,7 @@ export function handleInitReserveCall(call: InitReserveCall): void {
     protocolName,
     protocolType,
     inputTokens,
-    outputTokens,
+    outputToken,
     rewardTokens
   );
 }
