@@ -38,7 +38,8 @@ export function getOrCreateUserInvestmentBalance(
 export function getOrCreateUserDebtBalance(
   user: string,
   reserve: string,
-  marketId: string
+  marketId: string,
+  rateMode: BigInt
 ): UserDebtBalance {
   let id = user + "-" + marketId;
   let userDebtBalance = UserDebtBalance.load(id) as UserDebtBalance;
@@ -50,6 +51,7 @@ export function getOrCreateUserDebtBalance(
     userDebtBalance.debtTakenAmount = BigInt.fromI32(0);
     userDebtBalance.totalCollateralInETH = BigInt.fromI32(0);
     userDebtBalance.totalDebtInETH = BigInt.fromI32(0);
+    userDebtBalance.rateMode = rateMode;
     userDebtBalance.save();
   }
 

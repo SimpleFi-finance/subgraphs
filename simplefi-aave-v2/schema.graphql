@@ -213,6 +213,13 @@ type Repay @entity {
   amount: BigInt!
 }
 
+type SwapRateMode @entity {
+  id: ID! # {address}
+  user: String!
+  reserve: String!
+  rateMode: BigInt!
+}
+
 type Reserve @entity {
   id: ID! # {lendingPool-asset}
   lendingPool: LendingPool!
@@ -260,6 +267,9 @@ type UserDebtBalance @entity {
 
   " amount of debt taken by user pirced in ETH "
   totalDebtInETH: BigInt!
+
+  " either stable or variable rate mode "
+  rateMode: BigInt!
 }
 
 # END - Aave protocol entities

@@ -4,6 +4,7 @@ import {
   Withdraw,
   Borrow,
   Repay,
+  Swap,
   InitReserveCall,
   ReserveDataUpdated,
   LendingPool as LendingPoolContract,
@@ -17,6 +18,7 @@ import {
   Token,
   Market,
   UserInvestmentBalance,
+  SwapRateMode,
 } from "../../generated/schema";
 
 import { ProtocolName, ProtocolType } from "../library/constants";
@@ -226,7 +228,12 @@ export function handleBorrow(event: Borrow): void {
   }
 
   // increase user's debt balance
-  let userDebtBalance = getOrCreateUserDebtBalance(borrow.user, marketId, reserve.id);
+  let userDebtBalance = getOrCreateUserDebtBalance(
+    borrow.user,
+    marketId,
+    reserve.id,
+    borrow.borrowRateMode
+  );
   userDebtBalance.debtTakenAmount = userDebtBalance.debtTakenAmount.plus(borrow.amount);
 
   let contract = LendingPoolContract.bind(event.address);
@@ -353,6 +360,54 @@ export function handleRepay(event: Repay): void {
     inputTokenBalances,
     rewardTokenBalances
   );
+}
+
+export function handleSwap(event: Swap): void {
+  let swap = new SwapRateMode(
+    event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
+  );
+  swap.reserve = event.params.reserve.toHexString();
+  swap.user = event.params.user.toHexString();
+  swap.rateMode = event.params.rateMode;
+
+  let reserve = Reserve.load(swap.reserve) as Reserve;
+  let marketId: string;
+  if (swap.rateMode == BigInt.fromI32(BORROW_MODE_STABLE)) {
+    marketId = event.address.toHexString() + "-" + reserve.variableDebtToken;
+
+    // load existing tracker
+    let userDebtBalance = getOrCreateUserDebtBalance(
+      swap.user,
+      marketId,
+      reserve.id,
+      BigInt.fromI32(BORROW_MODE_VARIABLE)
+    );
+
+    // switch it to stable mode
+    userDebtBalance.id = event.address.toHexString() + "-" + reserve.stableDebtToken;
+    userDebtBalance.rateMode = BigInt.fromI32(BORROW_MODE_STABLE);
+    userDebtBalance.save();
+
+    // TODO update markets
+  } else if (swap.rateMode == BigInt.fromI32(BORROW_MODE_VARIABLE)) {
+    marketId = event.address.toHexString() + "-" + reserve.stableDebtToken;
+    // load existing tracker
+    let userDebtBalance = getOrCreateUserDebtBalance(
+      swap.user,
+      marketId,
+      reserve.id,
+      BigInt.fromI32(BORROW_MODE_STABLE)
+    );
+    // switch it to variable mode
+    userDebtBalance.id = event.address.toHexString() + "-" + reserve.variableDebtToken;
+    userDebtBalance.rateMode = BigInt.fromI32(BORROW_MODE_VARIABLE);
+    userDebtBalance.save();
+
+    // TODO update markets
+  } else {
+    // unrecognized borrow rate mode
+    return;
+  }
 }
 
 export function handleInitReserveCall(call: InitReserveCall): void {
