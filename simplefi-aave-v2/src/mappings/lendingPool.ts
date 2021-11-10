@@ -17,7 +17,6 @@ import {
   Reserve,
   Token,
   Market,
-  UserInvestmentBalance,
   SwapRateMode,
 } from "../../generated/schema";
 
@@ -42,6 +41,7 @@ import {
   getOrCreateUserInvestmentBalance,
   getOrCreateUserDebtBalance,
   getReserveNormalizedIncome,
+  userATokenBalance,
 } from "../library/lendingPoolUtils";
 
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
@@ -49,30 +49,20 @@ const BORROW_MODE_STABLE = 1;
 const BORROW_MODE_VARIABLE = 2;
 
 export function handleDeposit(event: Deposit): void {
-  let amount = event.params.amount;
-  let onBehalfOf = event.params.onBehalfOf;
-  let referral = event.params.referral;
-  let reserve = event.params.reserve;
-  let user = event.params.user;
-
+  // store deposit event as entity
   let deposit = new DepositEntity(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
   );
-  deposit.amount = amount;
-  deposit.onBehalfOf = onBehalfOf.toHexString();
-  deposit.referral = BigInt.fromI32(referral);
-  deposit.reserve = reserve.toHexString();
-  deposit.user = user.toHexString();
+  deposit.amount = event.params.amount;
+  deposit.onBehalfOf = event.params.onBehalfOf.toHexString();
+  deposit.referral = BigInt.fromI32(event.params.referral);
+  deposit.reserve = event.params.reserve.toHexString();
+  deposit.user = event.params.user.toHexString();
   deposit.save();
 
   // increase user's balance of provided tokens
-  let reserveId = event.transaction.hash.toHexString() + "-" + reserve.toHexString();
-  let userInvestmentBalance = getOrCreateUserInvestmentBalance(deposit.onBehalfOf, reserveId);
-  userInvestmentBalance.reserve = reserveId;
-  userInvestmentBalance.providedTokenAmount = userInvestmentBalance.providedTokenAmount.plus(
-    deposit.amount
-  );
-  userInvestmentBalance.outputTokenAmount = userInvestmentBalance.outputTokenAmount.plus(
+  let userInvestmentBalance = getOrCreateUserInvestmentBalance(deposit.onBehalfOf, deposit.reserve);
+  userInvestmentBalance.underlyingTokenProvidedAmount = userInvestmentBalance.underlyingTokenProvidedAmount.plus(
     deposit.amount
   );
   userInvestmentBalance.save();
@@ -81,32 +71,26 @@ export function handleDeposit(event: Deposit): void {
 
   let market = Market.load(event.address.toHexString() + "-" + deposit.reserve) as Market;
 
-  // depositer (msg.sender)
-  let account = getOrCreateAccount(Address.fromString(deposit.user));
+  // position shall be updated for user on whose behalf deposit is made
+  let account = getOrCreateAccount(Address.fromString(deposit.onBehalfOf));
 
-  // amount of aTokens moved
+  // amount of aTokens minted
   let outputTokenAmount = deposit.amount;
 
-  // amount of reserve asset tokens moved
+  // amount of underlying asset tokens supplied
   let inputTokensAmount: TokenBalance[] = [
-    new TokenBalance(deposit.reserve, account.id, deposit.amount),
+    new TokenBalance(deposit.reserve, deposit.user, deposit.amount),
   ];
 
   // number of reward tokens claimed by user in this transaction
   let rewardTokenAmounts: TokenBalance[] = [];
 
-  // keep track of provided token amounts
-  let outputTokenBalance = userInvestmentBalance.outputTokenAmount;
+  // user's total balance of aTokens
+  let outputTokenBalance = userATokenBalance(userInvestmentBalance, event);
 
-  // inputTokenBalance -> number of tokens that can be redeemed by aToken receiver
+  // number of tokens that can be redeemed by deposit receiver - it's equal to user's aToken balance
   let inputTokenBalances: TokenBalance[] = [];
-  inputTokenBalances.push(
-    new TokenBalance(
-      reserve.toHexString(),
-      deposit.onBehalfOf,
-      userInvestmentBalance.outputTokenAmount
-    )
-  );
+  inputTokenBalances.push(new TokenBalance(deposit.reserve, deposit.onBehalfOf, outputTokenAmount));
 
   // reward token amounts claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
@@ -127,32 +111,22 @@ export function handleDeposit(event: Deposit): void {
 }
 
 export function handleWithdraw(event: Withdraw): void {
-  let amount = event.params.amount;
-  let to = event.params.to;
-  let reserve = event.params.reserve;
-  let user = event.params.user;
-
-  // create withdrawal entity
+  // store withdraw event as entity
   let withdrawal = new Withdrawal(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
   );
-  withdrawal.amount = amount;
-  withdrawal.to = to.toHexString();
-  withdrawal.reserve = reserve.toHexString();
-  withdrawal.user = user.toHexString();
+  withdrawal.amount = event.params.amount;
+  withdrawal.to = event.params.to.toHexString();
+  withdrawal.reserve = event.params.reserve.toHexString();
+  withdrawal.user = event.params.user.toHexString();
   withdrawal.save();
 
   // decrease user's balance of provided tokens
-  let reserveId = event.transaction.hash.toHexString() + "-" + reserve.toHexString();
-  let UserInvestmentBalance = getOrCreateUserInvestmentBalance(withdrawal.user, reserveId);
-  UserInvestmentBalance.reserve = reserveId;
-  UserInvestmentBalance.providedTokenAmount = UserInvestmentBalance.providedTokenAmount.minus(
+  let userInvestmentBalance = getOrCreateUserInvestmentBalance(withdrawal.user, withdrawal.reserve);
+  userInvestmentBalance.underlyingTokenProvidedAmount = userInvestmentBalance.underlyingTokenProvidedAmount.minus(
     withdrawal.amount
   );
-  UserInvestmentBalance.outputTokenAmount = UserInvestmentBalance.outputTokenAmount.minus(
-    withdrawal.amount
-  );
-  UserInvestmentBalance.save();
+  userInvestmentBalance.save();
 
   ////// update user's position
 
@@ -161,10 +135,10 @@ export function handleWithdraw(event: Withdraw): void {
   // withdrawer (msg.sender)
   let account = getOrCreateAccount(Address.fromString(withdrawal.user));
 
-  // amount of aTokens moved
+  // amount of aTokens burned
   let outputTokenAmount = withdrawal.amount;
 
-  // withdraw receiver received `amount` of reserve tokens
+  // withdraw receiver received `amount` of underlying tokens
   let inputTokensAmount: TokenBalance[] = [
     new TokenBalance(withdrawal.reserve, withdrawal.to, withdrawal.amount),
   ];
@@ -172,18 +146,12 @@ export function handleWithdraw(event: Withdraw): void {
   // number of reward tokens claimed by user in this transaction
   let rewardTokenAmounts: TokenBalance[] = [];
 
-  // keep track of provided token amounts
-  let outputTokenBalance = UserInvestmentBalance.outputTokenAmount;
+  // user's total balance of aTokens
+  let outputTokenBalance = userATokenBalance(userInvestmentBalance, event);
 
-  // inputTokenBalance -> number of reserve tokens that can be redeemed by withdrawer
+  // number of tokens that can be redeemed by withdrawer - it's equal to his aToken balance
   let inputTokenBalances: TokenBalance[] = [];
-  inputTokenBalances.push(
-    new TokenBalance(
-      reserve.toHexString(),
-      withdrawal.user,
-      UserInvestmentBalance.outputTokenAmount
-    )
-  );
+  inputTokenBalances.push(new TokenBalance(withdrawal.reserve, withdrawal.user, outputTokenAmount));
 
   // reward token amounts claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
@@ -306,7 +274,12 @@ export function handleRepay(event: Repay): void {
   let marketId = event.address.toHexString() + "-" + reserve.variableDebtToken;
 
   // decrease user's debt balance
-  let userDebtBalance = getOrCreateUserDebtBalance(repay.repayer, marketId, reserve.id);
+  let userDebtBalance = getOrCreateUserDebtBalance(
+    repay.repayer,
+    marketId,
+    reserve.id,
+    BigInt.fromI32(BORROW_MODE_VARIABLE)
+  );
   userDebtBalance.debtTakenAmount = userDebtBalance.debtTakenAmount.minus(repay.amount);
 
   let contract = LendingPoolContract.bind(event.address);
@@ -421,7 +394,7 @@ export function handleInitReserveCall(call: InitReserveCall): void {
   let weth = getOrCreateERC20Token(event, Address.fromString(WETH));
 
   // fetch and store reserve data
-  let reserve = new Reserve(call.to.toHexString() + "-" + asset.id);
+  let reserve = new Reserve(asset.id);
   reserve.lendingPool = call.to.toHexString();
   reserve.asset = asset.id;
   reserve.aToken = aToken.id;

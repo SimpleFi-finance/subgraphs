@@ -21,8 +21,7 @@ export function getOrCreateUserInvestmentBalance(
     userInvestmentBalance = new UserInvestmentBalance(id);
     userInvestmentBalance.user = user;
     userInvestmentBalance.reserve = reserveId;
-    userInvestmentBalance.providedTokenAmount = BigInt.fromI32(0);
-    userInvestmentBalance.outputTokenAmount = BigInt.fromI32(0);
+    userInvestmentBalance.underlyingTokenProvidedAmount = BigInt.fromI32(0);
     userInvestmentBalance.save();
   }
 
@@ -76,4 +75,11 @@ export function getReserveNormalizedIncome(reserve: Reserve, event: ethereum.Eve
   let result = rayMul(cumulated, reserve.liquidityIndex);
 
   return result;
+}
+
+export function userATokenBalance(balance: UserInvestmentBalance, event: ethereum.Event): BigInt {
+  let reserve = Reserve.load(balance.reserve) as Reserve;
+  let reserveNormalIncome = getReserveNormalizedIncome(reserve, event);
+
+  return rayMul(balance.underlyingTokenProvidedAmount, reserveNormalIncome);
 }

@@ -243,10 +243,7 @@ type UserInvestmentBalance @entity {
   reserve: Reserve!
 
   " input token amount the user has provided "
-  providedTokenAmount: BigInt!
-
-  " amount of aTokens owned by user "
-  outputTokenAmount: BigInt!
+  underlyingTokenProvidedAmount: BigInt!
 }
 
 type UserDebtBalance @entity {
