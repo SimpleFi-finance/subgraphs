@@ -1,6 +1,6 @@
 import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
 
-import { Reserve, UserInvestmentBalance, UserDebtBalance } from "../../generated/schema";
+import { Reserve, UserInvestmentBalance, UserDebtBalance, Market } from "../../generated/schema";
 
 import { calculateLinearInterest, rayMul } from "./math";
 
@@ -77,9 +77,23 @@ export function getReserveNormalizedIncome(reserve: Reserve, event: ethereum.Eve
   return result;
 }
 
-export function userATokenBalance(balance: UserInvestmentBalance, event: ethereum.Event): BigInt {
+export function getUserATokenBalance(
+  balance: UserInvestmentBalance,
+  event: ethereum.Event
+): BigInt {
   let reserve = Reserve.load(balance.reserve) as Reserve;
   let reserveNormalIncome = getReserveNormalizedIncome(reserve, event);
 
   return rayMul(balance.underlyingTokenProvidedAmount, reserveNormalIncome);
+}
+
+export function getMarketATokenSupply(
+  market: Market,
+  reserveId: string,
+  event: ethereum.Event
+): BigInt {
+  let reserve = Reserve.load(reserveId) as Reserve;
+  let reserveNormalIncome = getReserveNormalizedIncome(reserve, event);
+
+  return rayMul(market.outputTokenTotalSupply, reserveNormalIncome);
 }

@@ -41,7 +41,8 @@ import {
   getOrCreateUserInvestmentBalance,
   getOrCreateUserDebtBalance,
   getReserveNormalizedIncome,
-  userATokenBalance,
+  getUserATokenBalance,
+  getMarketATokenSupply,
 } from "../library/lendingPoolUtils";
 
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
@@ -67,9 +68,16 @@ export function handleDeposit(event: Deposit): void {
   );
   userInvestmentBalance.save();
 
-  ////// update user's position
-
+  // update market total supply
   let market = Market.load(event.address.toHexString() + "-" + deposit.reserve) as Market;
+  let oldTotalSupply = getMarketATokenSupply(market, deposit.reserve, event);
+  let newTotalSupply = oldTotalSupply.plus(deposit.amount);
+  let marketInputTokenBalances: TokenBalance[] = [
+    new TokenBalance(deposit.reserve, market.id, newTotalSupply),
+  ];
+  updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
+
+  ////// update user's position
 
   // position shall be updated for user on whose behalf deposit is made
   let account = getOrCreateAccount(Address.fromString(deposit.onBehalfOf));
@@ -86,7 +94,7 @@ export function handleDeposit(event: Deposit): void {
   let rewardTokenAmounts: TokenBalance[] = [];
 
   // user's total balance of aTokens
-  let outputTokenBalance = userATokenBalance(userInvestmentBalance, event);
+  let outputTokenBalance = getUserATokenBalance(userInvestmentBalance, event);
 
   // number of tokens that can be redeemed by deposit receiver - it's equal to user's aToken balance
   let inputTokenBalances: TokenBalance[] = [];
@@ -128,9 +136,16 @@ export function handleWithdraw(event: Withdraw): void {
   );
   userInvestmentBalance.save();
 
-  ////// update user's position
-
+  // update market total supply
   let market = Market.load(event.address.toHexString() + "-" + withdrawal.reserve) as Market;
+  let oldTotalSupply = getMarketATokenSupply(market, withdrawal.reserve, event);
+  let newTotalSupply = oldTotalSupply.minus(withdrawal.amount);
+  let marketInputTokenBalances: TokenBalance[] = [
+    new TokenBalance(withdrawal.reserve, market.id, newTotalSupply),
+  ];
+  updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
+
+  ////// update user's position
 
   // withdrawer (msg.sender)
   let account = getOrCreateAccount(Address.fromString(withdrawal.user));
@@ -147,7 +162,7 @@ export function handleWithdraw(event: Withdraw): void {
   let rewardTokenAmounts: TokenBalance[] = [];
 
   // user's total balance of aTokens
-  let outputTokenBalance = userATokenBalance(userInvestmentBalance, event);
+  let outputTokenBalance = getUserATokenBalance(userInvestmentBalance, event);
 
   // number of tokens that can be redeemed by withdrawer - it's equal to his aToken balance
   let inputTokenBalances: TokenBalance[] = [];
