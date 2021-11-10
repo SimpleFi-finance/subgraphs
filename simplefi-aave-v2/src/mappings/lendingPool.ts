@@ -399,6 +399,11 @@ export function handleSwap(event: Swap): void {
 }
 
 export function handleInitReserveCall(call: InitReserveCall): void {
+  if (Reserve.load(call.inputs.asset.toHexString()) != null) {
+    //in case reserve already exists just skip it
+    return;
+  }
+
   let event = new ethereum.Event();
   event.block = call.block;
 
@@ -474,8 +479,7 @@ export function handleInitReserveCall(call: InitReserveCall): void {
 }
 
 export function handleReserveDataUpdated(event: ReserveDataUpdated): void {
-  let reserveId = event.address.toHexString() + "-" + event.params.reserve.toHexString();
-  let reserve = Reserve.load(reserveId) as Reserve;
+  let reserve = Reserve.load(event.params.reserve.toHexString()) as Reserve;
 
   reserve.liquidityRate = event.params.liquidityRate;
   reserve.liquidityIndex = event.params.liquidityIndex;
