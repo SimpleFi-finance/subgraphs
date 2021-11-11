@@ -1,8 +1,11 @@
+import { Address } from "@graphprotocol/graph-ts";
+
 import { AddressesProviderRegistered } from "../../generated/LendingPoolAddressesProviderRegistry/LendingPoolAddressesProviderRegistry";
 
 import {
   ProxyCreated,
   LendingPoolUpdated,
+  PriceOracleUpdated,
 } from "../../generated/templates/LendingPoolAddressesProvider/LendingPoolAddressesProvider";
 
 import {
@@ -11,7 +14,7 @@ import {
 } from "../../generated/templates";
 import { LendingPoolAddressesProvider, LendingPool } from "../../generated/schema";
 
-import { log } from "@graphprotocol/graph-ts";
+export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 
 export function handleAddressesProviderRegistered(event: AddressesProviderRegistered): void {
   let address = event.params.newAddress;
@@ -19,6 +22,7 @@ export function handleAddressesProviderRegistered(event: AddressesProviderRegist
   // store address provider as entity
   let provider = new LendingPoolAddressesProvider(address.toHexString());
   provider.address = address.toHexString();
+  provider.priceOracle = ADDRESS_ZERO;
   provider.save();
 
   // start indexing the address provider
@@ -43,7 +47,16 @@ export function handleLendingPoolUpdated(event: LendingPoolUpdated): void {
 
   let lendingPool = new LendingPool(poolAddress.toHexString());
   lendingPool.address = poolAddress.toHexString();
+  lendingPool.addressProvider = event.address.toHexString();
   lendingPool.save();
 
   LendingPoolTemplate.create(poolAddress);
+}
+
+export function handlePriceOracleUpdated(event: PriceOracleUpdated): void {
+  let addressProvider = LendingPoolAddressesProvider.load(event.address.toHexString());
+  let priceOracle = event.params.newAddress.toHexString();
+
+  addressProvider.priceOracle = priceOracle;
+  addressProvider.save();
 }

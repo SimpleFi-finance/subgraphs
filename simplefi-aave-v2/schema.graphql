@@ -172,11 +172,13 @@ type PositionSnapshot @entity {
 type LendingPoolAddressesProvider @entity {
   id: ID! # {address}
   address: String!
+  priceOracle: String!
 }
 
 type LendingPool @entity {
   id: ID! # {address}
   address: String!
+  addressProvider: String!
 }
 
 type Deposit @entity {
