@@ -444,6 +444,8 @@ export function handleInitReserveCall(call: InitReserveCall): void {
   reserve.stableDebtToken = stableDebtToken.id;
   reserve.variableDebtToken = variableDebtToken.id;
   reserve.lastUpdateTimestamp = call.block.timestamp;
+  reserve.liquidityIndex = BigInt.fromI32(0);
+  reserve.liquidityRate = BigInt.fromI32(0);
   reserve.ltv = BigInt.fromI32(0);
   reserve.save();
 
