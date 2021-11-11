@@ -224,8 +224,9 @@ type SwapRateMode @entity {
 
 type Reserve @entity {
   id: ID! # {lendingPool-asset}
-  lendingPool: LendingPool!
   asset: String!
+  assetDecimals: Int!
+  lendingPool: LendingPool!
   aToken: String!
   stableDebtToken: String!
   variableDebtToken: String!

@@ -46,7 +46,6 @@ import {
   getCollateralAmountLocked,
 } from "../library/lendingPoolUtils";
 
-const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 const BORROW_MODE_STABLE = 1;
 const BORROW_MODE_VARIABLE = 2;
 
@@ -419,87 +418,6 @@ export function handleSwap(event: Swap): void {
     // unrecognized borrow rate mode
     return;
   }
-}
-
-export function handleInitReserveCall(call: InitReserveCall): void {
-  if (Reserve.load(call.inputs.asset.toHexString()) != null) {
-    //in case reserve already exists just skip it
-    return;
-  }
-
-  let event = new ethereum.Event();
-  event.block = call.block;
-
-  let asset = getOrCreateERC20Token(event, call.inputs.asset);
-  let aToken = getOrCreateERC20Token(event, call.inputs.aTokenAddress);
-  let stableDebtToken = getOrCreateERC20Token(event, call.inputs.stableDebtAddress);
-  let variableDebtToken = getOrCreateERC20Token(event, call.inputs.variableDebtAddress);
-  let weth = getOrCreateERC20Token(event, Address.fromString(WETH));
-
-  // fetch and store reserve data
-  let reserve = new Reserve(asset.id);
-  reserve.lendingPool = call.to.toHexString();
-  reserve.asset = asset.id;
-  reserve.aToken = aToken.id;
-  reserve.stableDebtToken = stableDebtToken.id;
-  reserve.variableDebtToken = variableDebtToken.id;
-  reserve.lastUpdateTimestamp = call.block.timestamp;
-  reserve.liquidityIndex = BigInt.fromI32(0);
-  reserve.liquidityRate = BigInt.fromI32(0);
-  reserve.ltv = BigInt.fromI32(0);
-  reserve.save();
-
-  // create investment market representing the token-aToken pair
-  let marketId = call.to.toHexString() + "-" + reserve.id;
-  let marketAddress = call.to;
-  let protocolName = ProtocolName.AAVE_POOL;
-  let protocolType = ProtocolType.LENDING;
-  let inputTokens: Token[] = [asset];
-  let outputToken = aToken;
-  let rewardTokens: Token[] = [];
-
-  getOrCreateMarketWithId(
-    event,
-    marketId,
-    marketAddress,
-    protocolName,
-    protocolType,
-    inputTokens,
-    outputToken,
-    rewardTokens
-  );
-
-  // create stable debt market representing the debt taken in reserve asset
-  marketId = call.to.toHexString() + "-" + stableDebtToken.id;
-  inputTokens = [weth];
-  outputToken = stableDebtToken;
-
-  getOrCreateMarketWithId(
-    event,
-    marketId,
-    marketAddress,
-    protocolName,
-    protocolType,
-    inputTokens,
-    outputToken,
-    rewardTokens
-  );
-
-  // create variable debt market representing the debt taken in reserve asset
-  marketId = call.to.toHexString() + "-" + variableDebtToken.id;
-  inputTokens = [weth];
-  outputToken = variableDebtToken;
-
-  getOrCreateMarketWithId(
-    event,
-    marketId,
-    marketAddress,
-    protocolName,
-    protocolType,
-    inputTokens,
-    outputToken,
-    rewardTokens
-  );
 }
 
 export function handleReserveDataUpdated(event: ReserveDataUpdated): void {

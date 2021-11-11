@@ -147,8 +147,8 @@ templates:
         - name: IPriceOracleGetter
           file: ./abis/IPriceOracleGetter.json
       eventHandlers:
-        # - event: ReserveInitialized(indexed address,indexed address,address,address,address)
-        #   handler: handleReserveInitialized
+        - event: ReserveInitialized(indexed address,indexed address,address,address,address)
+          handler: handleReserveInitialized
         # - event: BorrowingEnabledOnReserve(indexed address,bool)
         #   handler: handleBorrowingEnabledOnReserve
         # - event: BorrowingDisabledOnReserve(indexed address)

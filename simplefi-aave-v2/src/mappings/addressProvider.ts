@@ -1,4 +1,4 @@
-import { Address } from "@graphprotocol/graph-ts";
+import { Address, DataSourceContext } from "@graphprotocol/graph-ts";
 
 import { AddressesProviderRegistered } from "../../generated/LendingPoolAddressesProviderRegistry/LendingPoolAddressesProviderRegistry";
 
@@ -7,6 +7,7 @@ import {
   LendingPoolUpdated,
   PriceOracleUpdated,
   LendingPoolConfiguratorUpdated,
+  LendingPoolAddressesProvider as AddressProviderContract,
 } from "../../generated/templates/LendingPoolAddressesProvider/LendingPoolAddressesProvider";
 
 import {
@@ -49,17 +50,26 @@ export function handleProxyCreated(event: ProxyCreated): void {
 export function handleLendingPoolUpdated(event: LendingPoolUpdated): void {
   let poolAddress = event.params.newAddress;
 
+  // create lending pool entity
   let lendingPool = new LendingPool(poolAddress.toHexString());
   lendingPool.address = poolAddress.toHexString();
   lendingPool.addressProvider = event.address.toHexString();
   lendingPool.save();
 
+  // start indexing lending pool
   LendingPoolTemplate.create(poolAddress);
 }
 
 export function handleLendingPoolConfiguratorUpdated(event: LendingPoolConfiguratorUpdated): void {
   let configuratorAddress = event.params.newAddress;
-  LendingPoolConfiguratorTemplate.create(configuratorAddress);
+
+  // fetch lending pool address and forward it to configurator
+  let contract = AddressProviderContract.bind(event.address);
+  let lendingPool = contract.getLendingPool();
+  let context = new DataSourceContext();
+  context.setString("lendingPool", lendingPool.toHexString());
+
+  LendingPoolConfiguratorTemplate.createWithContext(configuratorAddress, context);
 }
 
 export function handlePriceOracleUpdated(event: PriceOracleUpdated): void {
