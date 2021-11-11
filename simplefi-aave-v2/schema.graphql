@@ -232,6 +232,7 @@ type Reserve @entity {
   lastUpdateTimestamp: BigInt!
   liquidityIndex: BigInt!
   liquidityRate: BigInt!
+  ltv: BigInt!
 }
 
 type UserInvestmentBalance @entity {
@@ -260,12 +261,6 @@ type UserDebtBalance @entity {
 
   " amount of debt taken by user "
   debtTakenAmount: BigInt!
-
-  " amount of tokens provided as collateral priced in ETH "
-  totalCollateralInETH: BigInt!
-
-  " amount of debt taken by user pirced in ETH "
-  totalDebtInETH: BigInt!
 
   " either stable or variable rate mode "
   rateMode: BigInt!

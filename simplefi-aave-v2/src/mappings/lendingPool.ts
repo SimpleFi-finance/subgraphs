@@ -194,7 +194,6 @@ export function handleBorrow(event: Borrow): void {
   let borrow = new BorrowEntity(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
   );
-
   borrow.amount = event.params.amount;
   borrow.onBehalfOf = event.params.onBehalfOf.toHexString();
   borrow.reserve = event.params.reserve.toHexString();
@@ -224,24 +223,30 @@ export function handleBorrow(event: Borrow): void {
   userDebtBalance.debtTakenAmount = userDebtBalance.debtTakenAmount.plus(borrow.amount);
   userDebtBalance.save();
 
+  // update market total supply
+  let market = Market.load(marketId) as Market;
+  let inputTokens = market.inputTokens as string[];
+  let newTotalSupply = market.outputTokenTotalSupply.plus(borrow.amount);
+  let marketTotalAmountOfCollateralLocked = getCollateralAmountLocked(
+    lendingPool,
+    reserve,
+    newTotalSupply
+  );
+  let marketInputTokenBalances: TokenBalance[] = [
+    new TokenBalance(inputTokens[0], market.id, marketTotalAmountOfCollateralLocked),
+  ];
+  updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
+
   ////// update user's position
 
-  let market = Market.load(marketId) as Market;
-
-  // borower (msg.sender)
-  let account = getOrCreateAccount(Address.fromString(borrow.user));
+  // user whose debt is increased
+  let account = getOrCreateAccount(Address.fromString(borrow.onBehalfOf));
 
   // amount of debt bearing tokens minted
   let outputTokenAmount = borrow.amount;
 
   // amount of collateral locked because of debt taken in this TX
-  let inputTokens = market.inputTokens as string[];
-  let collateralAmountLocked = getCollateralAmountLocked(
-    lendingPool,
-    borrow.onBehalfOf,
-    borrow.reserve,
-    borrow.amount
-  );
+  let collateralAmountLocked = getCollateralAmountLocked(lendingPool, reserve, borrow.amount);
   let inputTokensAmount: TokenBalance[] = [
     new TokenBalance(inputTokens[0], borrow.user, collateralAmountLocked),
   ];
@@ -252,16 +257,15 @@ export function handleBorrow(event: Borrow): void {
   // total balance of debt bearing tokens
   let outputTokenBalance = userDebtBalance.debtTakenAmount;
 
-  // total amount of collateral locked by debt taken in this underlying token
+  // total amount of user's collateral locked by debt taken in this underlying token
   let inputTokenBalances: TokenBalance[] = [];
-  let totalCollateralAmountLocked = getCollateralAmountLocked(
+  let totalUsersCollateralAmountLocked = getCollateralAmountLocked(
     lendingPool,
-    borrow.onBehalfOf,
-    borrow.reserve,
+    reserve,
     userDebtBalance.debtTakenAmount
   );
   inputTokenBalances.push(
-    new TokenBalance(inputTokens[0], borrow.user, totalCollateralAmountLocked)
+    new TokenBalance(inputTokens[0], borrow.onBehalfOf, totalUsersCollateralAmountLocked)
   );
 
   // reward token amounts claimable by user
@@ -281,10 +285,12 @@ export function handleBorrow(event: Borrow): void {
 }
 
 export function handleRepay(event: Repay): void {
+  let lendingPool = event.address.toHexString();
+
+  // store repay event as entity
   let repay = new RepayEntity(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
   );
-
   repay.amount = event.params.amount;
   repay.repayer = event.params.repayer.toHexString();
   repay.reserve = event.params.reserve.toHexString();
@@ -294,38 +300,42 @@ export function handleRepay(event: Repay): void {
   // fetch market based on borrow mode
   let reserve = Reserve.load(repay.reserve) as Reserve;
   // TODO - deduce if stable or variable debt repayment based on preceding ERC20 burn event
-  let marketId = event.address.toHexString() + "-" + reserve.variableDebtToken;
+  let marketId = lendingPool + "-" + reserve.variableDebtToken;
 
   // decrease user's debt balance
   let userDebtBalance = getOrCreateUserDebtBalance(
-    repay.repayer,
+    repay.user,
     marketId,
     reserve.id,
     BigInt.fromI32(BORROW_MODE_VARIABLE)
   );
   userDebtBalance.debtTakenAmount = userDebtBalance.debtTakenAmount.minus(repay.amount);
-
-  let contract = LendingPoolContract.bind(event.address);
-  let userData = contract.getUserAccountData(Address.fromString(repay.repayer));
-  // TODO - this is not really correct as we store total collateral when it should be
-  // only collateral locked for this specific reserve asset
-  userDebtBalance.totalCollateralInETH = userData.value0;
   userDebtBalance.save();
+
+  // update market total supply
+  let market = Market.load(marketId) as Market;
+  let inputTokens = market.inputTokens as string[];
+  let newTotalSupply = market.outputTokenTotalSupply.minus(repay.amount);
+  let marketTotalAmountOfCollateralLocked = getCollateralAmountLocked(
+    lendingPool,
+    reserve,
+    newTotalSupply
+  );
+  let marketInputTokenBalances: TokenBalance[] = [
+    new TokenBalance(inputTokens[0], market.id, marketTotalAmountOfCollateralLocked),
+  ];
+  updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
 
   ////// update user's position
 
-  let market = Market.load(marketId) as Market;
-
   // user for whom debt is being repayed (not neccessarily the sender)
-  let account = getOrCreateAccount(Address.fromString(repay.repayer));
+  let account = getOrCreateAccount(Address.fromString(repay.user));
 
   // amount of debt bearing tokens burned
   let outputTokenAmount = repay.amount;
 
   // amount of collateral unlocked because of this payment
-  let inputTokens = market.inputTokens as string[];
-  // TODO - make bunch of calcs to deduce the actual amount
-  let collateralAmountUnlocked = BigInt.fromI32(0);
+  let collateralAmountUnlocked = getCollateralAmountLocked(lendingPool, reserve, repay.amount);
   let inputTokensAmount: TokenBalance[] = [
     new TokenBalance(inputTokens[0], repay.user, collateralAmountUnlocked),
   ];
@@ -336,10 +346,15 @@ export function handleRepay(event: Repay): void {
   // total balance of debt bearing tokens
   let outputTokenBalance = userDebtBalance.debtTakenAmount;
 
-  // amount of collateral locked as result of debt taken in this reserve
+  // total amount of user's collateral locked by debt taken in this underlying token
   let inputTokenBalances: TokenBalance[] = [];
+  let totalUsersCollateralAmountLocked = getCollateralAmountLocked(
+    lendingPool,
+    reserve,
+    userDebtBalance.debtTakenAmount
+  );
   inputTokenBalances.push(
-    new TokenBalance(inputTokens[0], repay.repayer, userDebtBalance.totalCollateralInETH)
+    new TokenBalance(inputTokens[0], repay.user, totalUsersCollateralAmountLocked)
   );
 
   // reward token amounts claimable by user
@@ -429,8 +444,7 @@ export function handleInitReserveCall(call: InitReserveCall): void {
   reserve.stableDebtToken = stableDebtToken.id;
   reserve.variableDebtToken = variableDebtToken.id;
   reserve.lastUpdateTimestamp = call.block.timestamp;
-  reserve.liquidityIndex = BigInt.fromI32(0);
-  reserve.liquidityRate = BigInt.fromI32(0);
+  reserve.ltv = BigInt.fromI32(0);
   reserve.save();
 
   // create investment market representing the token-aToken pair

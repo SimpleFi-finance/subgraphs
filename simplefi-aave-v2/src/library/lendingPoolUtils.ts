@@ -59,8 +59,6 @@ export function getOrCreateUserDebtBalance(
     userDebtBalance.user = user;
     userDebtBalance.reserve = reserve;
     userDebtBalance.debtTakenAmount = BigInt.fromI32(0);
-    userDebtBalance.totalCollateralInETH = BigInt.fromI32(0);
-    userDebtBalance.totalDebtInETH = BigInt.fromI32(0);
     userDebtBalance.rateMode = rateMode;
     userDebtBalance.save();
   }
@@ -118,18 +116,16 @@ export function getPriceOracle(lendingPoolId: string): IPriceOracleGetter {
 
 export function getCollateralAmountLocked(
   lendingPool: string,
-  user: string,
-  reserve: string,
-  reserveAmount: BigInt
+  reserveBorrowed: Reserve,
+  reserveBorrowedAmount: BigInt
 ): BigInt {
   let priceOracle = getPriceOracle(lendingPool);
-  let assetUnitPriceInEth = priceOracle.getAssetPrice(Address.fromString(reserve));
-  let borrowAmountInEth = assetUnitPriceInEth.times(reserveAmount).div(BigInt.fromI32(10).pow(18));
+  let assetUnitPriceInEth = priceOracle.getAssetPrice(Address.fromString(reserveBorrowed.asset));
+  let borrowAmountInEth = assetUnitPriceInEth
+    .times(reserveBorrowedAmount)
+    .div(BigInt.fromI32(10).pow(18));
 
-  let contract = LendingPoolContract.bind(Address.fromString(lendingPool));
-  let accountData = contract.getUserAccountData(Address.fromString(user));
-  let LTV = accountData.value4;
-  let collateralLocked = borrowAmountInEth.div(LTV);
+  let collateralLocked = borrowAmountInEth.div(reserveBorrowed.ltv);
 
   return collateralLocked;
 }

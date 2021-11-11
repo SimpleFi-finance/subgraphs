@@ -6,13 +6,16 @@ import {
   ProxyCreated,
   LendingPoolUpdated,
   PriceOracleUpdated,
+  LendingPoolConfiguratorUpdated,
 } from "../../generated/templates/LendingPoolAddressesProvider/LendingPoolAddressesProvider";
 
 import {
   LendingPoolAddressesProvider as LendingPoolAddressesProviderTemplate,
   LendingPool as LendingPoolTemplate,
+  LendingPoolConfigurator as LendingPoolConfiguratorTemplate,
 } from "../../generated/templates";
 import { LendingPoolAddressesProvider, LendingPool } from "../../generated/schema";
+import { LendingPoolConfigurator } from "../../generated/templates/LendingPoolConfigurator/LendingPoolConfigurator";
 
 export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 
@@ -52,6 +55,11 @@ export function handleLendingPoolUpdated(event: LendingPoolUpdated): void {
   lendingPool.save();
 
   LendingPoolTemplate.create(poolAddress);
+}
+
+export function handleLendingPoolConfiguratorUpdated(event: LendingPoolConfiguratorUpdated): void {
+  let configuratorAddress = event.params.newAddress;
+  LendingPoolConfiguratorTemplate.create(configuratorAddress);
 }
 
 export function handlePriceOracleUpdated(event: PriceOracleUpdated): void {
