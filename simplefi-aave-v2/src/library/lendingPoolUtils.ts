@@ -9,6 +9,8 @@ import {
   Market,
 } from "../../generated/schema";
 
+import { LendingPool as LendingPoolContract } from "../../generated/templates/LendingPool/LendingPool";
+
 import { IPriceOracleGetter } from "../../generated/templates/LendingPool/IPriceOracleGetter";
 
 import { calculateLinearInterest, rayMul } from "./math";
@@ -112,4 +114,22 @@ export function getPriceOracle(lendingPoolId: string): IPriceOracleGetter {
   let addressProvider = LendingPoolAddressesProvider.load(lendingPool.addressProvider);
 
   return IPriceOracleGetter.bind(Address.fromString(addressProvider.priceOracle));
+}
+
+export function getCollateralAmountLocked(
+  lendingPool: string,
+  user: string,
+  reserve: string,
+  reserveAmount: BigInt
+): BigInt {
+  let priceOracle = getPriceOracle(lendingPool);
+  let assetUnitPriceInEth = priceOracle.getAssetPrice(Address.fromString(reserve));
+  let borrowAmountInEth = assetUnitPriceInEth.times(reserveAmount).div(BigInt.fromI32(10).pow(18));
+
+  let contract = LendingPoolContract.bind(Address.fromString(lendingPool));
+  let accountData = contract.getUserAccountData(Address.fromString(user));
+  let LTV = accountData.value4;
+  let collateralLocked = borrowAmountInEth.div(LTV);
+
+  return collateralLocked;
 }

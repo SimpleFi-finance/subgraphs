@@ -36,6 +36,7 @@ export function handleProxyCreated(event: ProxyCreated): void {
   if (poolId.toString() == "LENDING_POOL") {
     let lendingPool = new LendingPool(poolAddress.toHexString());
     lendingPool.address = poolAddress.toHexString();
+    lendingPool.addressProvider = event.address.toHexString();
     lendingPool.save();
 
     LendingPoolTemplate.create(poolAddress);
