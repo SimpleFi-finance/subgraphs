@@ -89,6 +89,8 @@ templates:
           file: ./abis/LendingPool.json
         - name: IERC20
           file: ./abis/IERC20.json
+        - name: IPriceOracleGetter
+          file: ./abis/IPriceOracleGetter.json
       eventHandlers:
         - event: Deposit(indexed address,address,indexed address,uint256,indexed uint16)
           handler: handleDeposit

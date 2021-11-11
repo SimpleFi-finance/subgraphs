@@ -36,13 +36,13 @@ import {
   getOrCreateMarket,
 } from "../library/common";
 
-import { calculateGrowth } from "../library/math";
 import {
   getOrCreateUserInvestmentBalance,
   getOrCreateUserDebtBalance,
   getReserveNormalizedIncome,
   getUserATokenBalance,
   getMarketATokenSupply,
+  getPriceOracle,
 } from "../library/lendingPoolUtils";
 
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
@@ -223,7 +223,10 @@ export function handleBorrow(event: Borrow): void {
   let userData = contract.getUserAccountData(Address.fromString(borrow.user));
   // TODO - this is not really correct as we store total collateral when it should be
   // only collateral locked for this specific reserve asset
-  userDebtBalance.totalCollateralInETH = userData.value0;
+  //////////////////////////////////////////////////////////////////////////////////
+  let priceOracle = getPriceOracle(event.address.toHexString());
+
+  //////////////////////////////////////////////////////////////////////////////////
   userDebtBalance.save();
 
   ////// update user's position

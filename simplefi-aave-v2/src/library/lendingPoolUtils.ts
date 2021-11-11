@@ -1,6 +1,15 @@
 import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
 
-import { Reserve, UserInvestmentBalance, UserDebtBalance, Market } from "../../generated/schema";
+import {
+  LendingPool,
+  LendingPoolAddressesProvider,
+  Reserve,
+  UserInvestmentBalance,
+  UserDebtBalance,
+  Market,
+} from "../../generated/schema";
+
+import { IPriceOracleGetter } from "../../generated/templates/LendingPool/IPriceOracleGetter";
 
 import { calculateLinearInterest, rayMul } from "./math";
 
@@ -96,4 +105,11 @@ export function getMarketATokenSupply(
   let reserveNormalIncome = getReserveNormalizedIncome(reserve, event);
 
   return rayMul(market.outputTokenTotalSupply, reserveNormalIncome);
+}
+
+export function getPriceOracle(lendingPoolId: string): IPriceOracleGetter {
+  let lendingPool = LendingPool.load(lendingPoolId) as LendingPool;
+  let addressProvider = LendingPoolAddressesProvider.load(lendingPool.addressProvider);
+
+  return IPriceOracleGetter.bind(Address.fromString(addressProvider.priceOracle));
 }
