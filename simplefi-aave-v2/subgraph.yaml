@@ -114,9 +114,6 @@ templates:
         #   handler: handleLiquidationCall
         - event: ReserveDataUpdated(indexed address,uint256,uint256,uint256,uint256,uint256)
           handler: handleReserveDataUpdated
-      callHandlers:
-        - function: initReserve(address,address,address,address,address)
-          handler: handleInitReserveCall
       file: ./src/mappings/lendingPool.ts
 
   - kind: ethereum/contract

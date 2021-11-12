@@ -119,9 +119,10 @@ export function getCollateralAmountLocked(
 ): BigInt {
   let priceOracle = getPriceOracle(lendingPool);
   let assetUnitPriceInEth = priceOracle.getAssetPrice(Address.fromString(reserveBorrowed.asset));
+  let decimals_u8: u8 = <u8>reserveBorrowed.assetDecimals;
   let borrowAmountInEth = assetUnitPriceInEth
     .times(reserveBorrowedAmount)
-    .div(BigInt.fromI32(10).pow(reserveBorrowed.assetDecimals));
+    .div(BigInt.fromI32(10).pow(decimals_u8));
 
   let collateralLocked = borrowAmountInEth.div(reserveBorrowed.ltv);
 

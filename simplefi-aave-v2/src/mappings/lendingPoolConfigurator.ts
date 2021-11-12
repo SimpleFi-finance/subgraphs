@@ -19,7 +19,7 @@ export function handleCollateralConfigurationChanged(event: CollateralConfigurat
   reserve.save();
 }
 
-export function handleReserveInitialized(event: ReserveInitialized) {
+export function handleReserveInitialized(event: ReserveInitialized): void {
   //fetch lending pool address from context
   let context = dataSource.context();
   let lendingPool = context.getString("lendingPool");
