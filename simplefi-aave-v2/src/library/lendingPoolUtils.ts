@@ -10,6 +10,7 @@ import {
 } from "../../generated/schema";
 
 import { IPriceOracleGetter } from "../../generated/templates/LendingPool/IPriceOracleGetter";
+import { ADDRESS_ZERO } from "./common";
 
 import { calculateLinearInterest, rayMul } from "./math";
 
@@ -127,4 +128,27 @@ export function getCollateralAmountLocked(
   let collateralLocked = borrowAmountInEth.div(reserveBorrowed.ltv);
 
   return collateralLocked;
+}
+
+export function getOrInitReserve(underlyingAsset: Address, event: ethereum.Event): Reserve {
+  let reserveId = underlyingAsset.toHexString();
+  let reserve = Reserve.load(reserveId);
+  if (reserve != null) {
+    return reserve as Reserve;
+  }
+
+  reserve = new Reserve(reserveId);
+  reserve.asset = reserveId;
+  reserve.assetDecimals = 0;
+  reserve.lendingPool = ADDRESS_ZERO;
+  reserve.aToken = ADDRESS_ZERO;
+  reserve.stableDebtToken = ADDRESS_ZERO;
+  reserve.variableDebtToken = ADDRESS_ZERO;
+  reserve.lastUpdateTimestamp = event.block.timestamp;
+  reserve.liquidityIndex = BigInt.fromI32(0);
+  reserve.liquidityRate = BigInt.fromI32(0);
+  reserve.ltv = BigInt.fromI32(0);
+  reserve.save();
+
+  return reserve as Reserve;
 }

@@ -44,6 +44,8 @@ export function handleProxyCreated(event: ProxyCreated): void {
     lendingPool.save();
 
     LendingPoolTemplate.create(poolAddress);
+  } else if (poolId.toString() == "LENDING_POOL_CONFIGURATOR") {
+    startIndexingLendingPoolConfigurator(poolAddress, event.address);
   }
 }
 
@@ -61,15 +63,7 @@ export function handleLendingPoolUpdated(event: LendingPoolUpdated): void {
 }
 
 export function handleLendingPoolConfiguratorUpdated(event: LendingPoolConfiguratorUpdated): void {
-  let configuratorAddress = event.params.newAddress;
-
-  // fetch lending pool address and forward it to configurator
-  let contract = AddressProviderContract.bind(event.address);
-  let lendingPool = contract.getLendingPool();
-  let context = new DataSourceContext();
-  context.setString("lendingPool", lendingPool.toHexString());
-
-  LendingPoolConfiguratorTemplate.createWithContext(configuratorAddress, context);
+  startIndexingLendingPoolConfigurator(event.params.newAddress, event.address);
 }
 
 export function handlePriceOracleUpdated(event: PriceOracleUpdated): void {
@@ -78,4 +72,17 @@ export function handlePriceOracleUpdated(event: PriceOracleUpdated): void {
 
   addressProvider.priceOracle = priceOracle;
   addressProvider.save();
+}
+
+function startIndexingLendingPoolConfigurator(
+  configurator: Address,
+  addresProvider: Address
+): void {
+  // fetch lending pool address and forward it to configurator
+  let contract = AddressProviderContract.bind(addresProvider);
+  let lendingPool = contract.getLendingPool();
+  let context = new DataSourceContext();
+  context.setString("lendingPool", lendingPool.toHexString());
+
+  LendingPoolConfiguratorTemplate.createWithContext(configurator, context);
 }

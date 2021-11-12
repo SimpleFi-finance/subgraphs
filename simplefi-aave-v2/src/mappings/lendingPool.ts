@@ -44,6 +44,7 @@ import {
   getMarketATokenSupply,
   getPriceOracle,
   getCollateralAmountLocked,
+  getOrInitReserve,
 } from "../library/lendingPoolUtils";
 
 const BORROW_MODE_STABLE = 1;
@@ -421,11 +422,15 @@ export function handleSwap(event: Swap): void {
 }
 
 export function handleReserveDataUpdated(event: ReserveDataUpdated): void {
-  let reserve = Reserve.load(event.params.reserve.toHexString()) as Reserve;
+  let reserve = getOrInitReserve(event.params.reserve, event);
 
+  let asset = getOrCreateERC20Token(event, event.params.reserve);
+
+  reserve = new Reserve(asset.id);
+  reserve.asset = asset.id;
+  reserve.assetDecimals = asset.decimals;
   reserve.liquidityRate = event.params.liquidityRate;
   reserve.liquidityIndex = event.params.liquidityIndex;
   reserve.lastUpdateTimestamp = event.block.timestamp;
-
   reserve.save();
 }

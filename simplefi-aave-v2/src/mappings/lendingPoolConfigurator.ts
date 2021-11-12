@@ -10,11 +10,12 @@ import { Reserve, Token } from "../../generated/schema";
 import { getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
 
 import { ProtocolName, ProtocolType } from "../library/constants";
+import { getOrInitReserve } from "../library/lendingPoolUtils";
 
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
 export function handleCollateralConfigurationChanged(event: CollateralConfigurationChanged): void {
-  let reserve = Reserve.load(event.params.asset.toHexString());
+  let reserve = getOrInitReserve(event.params.asset, event);
   reserve.ltv = event.params.ltv;
   reserve.save();
 }
@@ -31,7 +32,7 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
   let weth = getOrCreateERC20Token(event, Address.fromString(WETH));
 
   // store reserve data
-  let reserve = new Reserve(asset.id);
+  let reserve = getOrInitReserve(event.params.asset, event);
   reserve.asset = asset.id;
   reserve.assetDecimals = asset.decimals;
   reserve.lendingPool = lendingPool;
@@ -39,9 +40,6 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
   reserve.stableDebtToken = stableDebtToken.id;
   reserve.variableDebtToken = variableDebtToken.id;
   reserve.lastUpdateTimestamp = event.block.timestamp;
-  reserve.liquidityIndex = BigInt.fromI32(0);
-  reserve.liquidityRate = BigInt.fromI32(0);
-  reserve.ltv = BigInt.fromI32(0);
   reserve.save();
 
   // create investment market representing the token-aToken pair
