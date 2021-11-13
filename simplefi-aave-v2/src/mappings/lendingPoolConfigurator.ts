@@ -5,7 +5,7 @@ import {
   ReserveInitialized,
 } from "../../generated/templates/LendingPoolConfigurator/LendingPoolConfigurator";
 
-import { Reserve, Token } from "../../generated/schema";
+import { Token } from "../../generated/schema";
 
 import { getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
 

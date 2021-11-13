@@ -228,9 +228,9 @@ export function handleBorrow(event: Borrow): void {
   let inputTokens = market.inputTokens as string[];
   let newTotalSupply = market.outputTokenTotalSupply.plus(borrow.amount);
   let marketTotalAmountOfCollateralLocked = getCollateralAmountLocked(
-    lendingPool,
     reserve,
-    newTotalSupply
+    newTotalSupply,
+    event.block
   );
   let marketInputTokenBalances: TokenBalance[] = [
     new TokenBalance(inputTokens[0], market.id, marketTotalAmountOfCollateralLocked),
@@ -246,7 +246,7 @@ export function handleBorrow(event: Borrow): void {
   let outputTokenAmount = borrow.amount;
 
   // amount of collateral locked because of debt taken in this TX
-  let collateralAmountLocked = getCollateralAmountLocked(lendingPool, reserve, borrow.amount);
+  let collateralAmountLocked = getCollateralAmountLocked(reserve, borrow.amount, event.block);
   let inputTokensAmount: TokenBalance[] = [
     new TokenBalance(inputTokens[0], borrow.user, collateralAmountLocked),
   ];
@@ -260,9 +260,9 @@ export function handleBorrow(event: Borrow): void {
   // total amount of user's collateral locked by debt taken in this underlying token
   let inputTokenBalances: TokenBalance[] = [];
   let totalUsersCollateralAmountLocked = getCollateralAmountLocked(
-    lendingPool,
     reserve,
-    userDebtBalance.debtTakenAmount
+    userDebtBalance.debtTakenAmount,
+    event.block
   );
   inputTokenBalances.push(
     new TokenBalance(inputTokens[0], borrow.onBehalfOf, totalUsersCollateralAmountLocked)
@@ -317,9 +317,9 @@ export function handleRepay(event: Repay): void {
   let inputTokens = market.inputTokens as string[];
   let newTotalSupply = market.outputTokenTotalSupply.minus(repay.amount);
   let marketTotalAmountOfCollateralLocked = getCollateralAmountLocked(
-    lendingPool,
     reserve,
-    newTotalSupply
+    newTotalSupply,
+    event.block
   );
   let marketInputTokenBalances: TokenBalance[] = [
     new TokenBalance(inputTokens[0], market.id, marketTotalAmountOfCollateralLocked),
@@ -335,7 +335,7 @@ export function handleRepay(event: Repay): void {
   let outputTokenAmount = repay.amount;
 
   // amount of collateral unlocked because of this payment
-  let collateralAmountUnlocked = getCollateralAmountLocked(lendingPool, reserve, repay.amount);
+  let collateralAmountUnlocked = getCollateralAmountLocked(reserve, repay.amount, event.block);
   let inputTokensAmount: TokenBalance[] = [
     new TokenBalance(inputTokens[0], repay.user, collateralAmountUnlocked),
   ];
@@ -349,9 +349,9 @@ export function handleRepay(event: Repay): void {
   // total amount of user's collateral locked by debt taken in this underlying token
   let inputTokenBalances: TokenBalance[] = [];
   let totalUsersCollateralAmountLocked = getCollateralAmountLocked(
-    lendingPool,
     reserve,
-    userDebtBalance.debtTakenAmount
+    userDebtBalance.debtTakenAmount,
+    event.block
   );
   inputTokenBalances.push(
     new TokenBalance(inputTokens[0], repay.user, totalUsersCollateralAmountLocked)

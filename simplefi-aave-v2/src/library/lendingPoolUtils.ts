@@ -114,20 +114,32 @@ export function getPriceOracle(lendingPoolId: string): IPriceOracleGetter {
 }
 
 export function getCollateralAmountLocked(
-  lendingPool: string,
   reserveBorrowed: Reserve,
-  reserveBorrowedAmount: BigInt
+  reserveBorrowedAmount: BigInt,
+  block: ethereum.Block
 ): BigInt {
-  let priceOracle = getPriceOracle(lendingPool);
-  let assetUnitPriceInEth = priceOracle.getAssetPrice(Address.fromString(reserveBorrowed.asset));
-  let decimals_u8: u8 = <u8>reserveBorrowed.assetDecimals;
+  let assetUnitPriceInEth = getAssetUnitPriceInEth(reserveBorrowed, block);
   let borrowAmountInEth = assetUnitPriceInEth
     .times(reserveBorrowedAmount)
-    .div(BigInt.fromI32(10).pow(decimals_u8));
+    .div(BigInt.fromI32(10).pow(<u8>reserveBorrowed.assetDecimals));
 
   let collateralLocked = borrowAmountInEth.div(reserveBorrowed.ltv);
 
   return collateralLocked;
+}
+
+export function getAssetUnitPriceInEth(reserve: Reserve, block: ethereum.Block): BigInt {
+  if (block.timestamp == reserve.lastUpdateTimestamp) {
+    return reserve.assetUnitPriceInEth;
+  }
+
+  // make a contract call to price oracle
+  let price = getPriceOracle(reserve.lendingPool).getAssetPrice(Address.fromString(reserve.asset));
+  reserve.assetUnitPriceInEth = price;
+  reserve.lastUpdateTimestamp = block.timestamp;
+  reserve.save();
+
+  return price;
 }
 
 export function getOrInitReserve(underlyingAsset: Address, event: ethereum.Event): Reserve {
@@ -148,6 +160,8 @@ export function getOrInitReserve(underlyingAsset: Address, event: ethereum.Event
   reserve.liquidityIndex = BigInt.fromI32(0);
   reserve.liquidityRate = BigInt.fromI32(0);
   reserve.ltv = BigInt.fromI32(0);
+  reserve.assetUnitPriceInEth = BigInt.fromI32(0);
+  reserve.lastUpdateTimestamp = BigInt.fromI32(0);
   reserve.save();
 
   return reserve as Reserve;

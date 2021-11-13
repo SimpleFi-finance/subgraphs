@@ -234,6 +234,21 @@ type Reserve @entity {
   liquidityIndex: BigInt!
   liquidityRate: BigInt!
   ltv: BigInt!
+  assetUnitPriceInEth: BigInt!
+}
+
+type UserLtv @entity {
+  " address "
+  id: ID!
+
+  " Aave user "
+  user: Account!
+
+  " user's average loan-to-value "
+  ltv: BigInt!
+
+  " timestamp ltv was updated last time "
+  lastUpdateTimestamp: BigInt!
 }
 
 type UserInvestmentBalance @entity {
