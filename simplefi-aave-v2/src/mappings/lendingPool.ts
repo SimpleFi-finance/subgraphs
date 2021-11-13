@@ -5,9 +5,7 @@ import {
   Borrow,
   Repay,
   Swap,
-  InitReserveCall,
   ReserveDataUpdated,
-  LendingPool as LendingPoolContract,
 } from "../../generated/templates/LendingPool/LendingPool";
 import {
   Deposit as DepositEntity,
@@ -15,16 +13,12 @@ import {
   Repay as RepayEntity,
   Withdrawal,
   Reserve,
-  Token,
   Market,
   SwapRateMode,
 } from "../../generated/schema";
 
-import { ProtocolName, ProtocolType } from "../library/constants";
-
 import {
   getOrCreateERC20Token,
-  getOrCreateMarketWithId,
   getOrCreateAccount,
   updateMarket,
   investInMarket,
@@ -33,7 +27,6 @@ import {
   repayToMarket,
   TokenBalance,
   ADDRESS_ZERO,
-  getOrCreateMarket,
 } from "../library/common";
 
 import {
@@ -45,6 +38,7 @@ import {
   getPriceOracle,
   getCollateralAmountLocked,
   getOrInitReserve,
+  getCollateralAmountLockedForUser,
 } from "../library/lendingPoolUtils";
 
 const BORROW_MODE_STABLE = 1;
@@ -246,7 +240,13 @@ export function handleBorrow(event: Borrow): void {
   let outputTokenAmount = borrow.amount;
 
   // amount of collateral locked because of debt taken in this TX
-  let collateralAmountLocked = getCollateralAmountLocked(reserve, borrow.amount, event.block);
+  let collateralAmountLocked = getCollateralAmountLockedForUser(
+    account,
+    reserve,
+    borrow.amount,
+    event.block
+  );
+
   let inputTokensAmount: TokenBalance[] = [
     new TokenBalance(inputTokens[0], borrow.user, collateralAmountLocked),
   ];
@@ -259,7 +259,8 @@ export function handleBorrow(event: Borrow): void {
 
   // total amount of user's collateral locked by debt taken in this underlying token
   let inputTokenBalances: TokenBalance[] = [];
-  let totalUsersCollateralAmountLocked = getCollateralAmountLocked(
+  let totalUsersCollateralAmountLocked = getCollateralAmountLockedForUser(
+    account,
     reserve,
     userDebtBalance.debtTakenAmount,
     event.block
@@ -335,7 +336,13 @@ export function handleRepay(event: Repay): void {
   let outputTokenAmount = repay.amount;
 
   // amount of collateral unlocked because of this payment
-  let collateralAmountUnlocked = getCollateralAmountLocked(reserve, repay.amount, event.block);
+  let collateralAmountUnlocked = getCollateralAmountLockedForUser(
+    account,
+    reserve,
+    repay.amount,
+    event.block
+  );
+
   let inputTokensAmount: TokenBalance[] = [
     new TokenBalance(inputTokens[0], repay.user, collateralAmountUnlocked),
   ];
@@ -348,11 +355,13 @@ export function handleRepay(event: Repay): void {
 
   // total amount of user's collateral locked by debt taken in this underlying token
   let inputTokenBalances: TokenBalance[] = [];
-  let totalUsersCollateralAmountLocked = getCollateralAmountLocked(
+  let totalUsersCollateralAmountLocked = getCollateralAmountLockedForUser(
+    account,
     reserve,
     userDebtBalance.debtTakenAmount,
     event.block
   );
+
   inputTokenBalances.push(
     new TokenBalance(inputTokens[0], repay.user, totalUsersCollateralAmountLocked)
   );

@@ -7,9 +7,13 @@ import {
   UserInvestmentBalance,
   UserDebtBalance,
   Market,
+  Account,
+  UserLtv,
 } from "../../generated/schema";
 
 import { IPriceOracleGetter } from "../../generated/templates/LendingPool/IPriceOracleGetter";
+import { LendingPool as LendingPoolContract } from "../../generated/templates/LendingPool/LendingPool";
+
 import { ADDRESS_ZERO } from "./common";
 
 import { calculateLinearInterest, rayMul } from "./math";
@@ -128,6 +132,23 @@ export function getCollateralAmountLocked(
   return collateralLocked;
 }
 
+export function getCollateralAmountLockedForUser(
+  user: Account,
+  reserveBorrowed: Reserve,
+  reserveBorrowedAmount: BigInt,
+  block: ethereum.Block
+): BigInt {
+  let assetUnitPriceInEth = getAssetUnitPriceInEth(reserveBorrowed, block);
+  let borrowAmountInEth = assetUnitPriceInEth
+    .times(reserveBorrowedAmount)
+    .div(BigInt.fromI32(10).pow(<u8>reserveBorrowed.assetDecimals));
+
+  let userLtv = getOrInitUserLtv(user, reserveBorrowed.lendingPool, block);
+  let collateralLocked = borrowAmountInEth.div(userLtv);
+
+  return collateralLocked;
+}
+
 export function getAssetUnitPriceInEth(reserve: Reserve, block: ethereum.Block): BigInt {
   if (block.timestamp == reserve.lastUpdateTimestamp) {
     return reserve.assetUnitPriceInEth;
@@ -165,4 +186,26 @@ export function getOrInitReserve(underlyingAsset: Address, event: ethereum.Event
   reserve.save();
 
   return reserve as Reserve;
+}
+
+export function getOrInitUserLtv(user: Account, lendingPoolId: string, block: ethereum.Block) {
+  let userLtv = UserLtv.load(user.id);
+  if (userLtv == null) {
+    userLtv = new UserLtv(user.id);
+    userLtv.lastUpdateTimestamp = BigInt.fromI32(0);
+  }
+
+  if (block.timestamp == block.timestamp) {
+    return userLtv.lastUpdateTimestamp;
+  }
+
+  let lendingPool = LendingPoolContract.bind(Address.fromString(lendingPoolId));
+  let accountData = lendingPool.getUserAccountData(Address.fromString(user.id));
+  let ltv = accountData.value4;
+
+  userLtv.ltv = ltv;
+  userLtv.lastUpdateTimestamp = block.timestamp;
+  userLtv.save();
+
+  return ltv;
 }
