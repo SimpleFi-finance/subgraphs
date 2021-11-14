@@ -36,9 +36,8 @@ import {
   getUserATokenBalance,
   getMarketATokenSupply,
   getPriceOracle,
-  getCollateralAmountLocked,
   getOrInitReserve,
-  getCollateralAmountLockedForUser,
+  getCollateralAmountLocked,
 } from "../library/lendingPoolUtils";
 
 const BORROW_MODE_STABLE = 1;
@@ -217,36 +216,35 @@ export function handleBorrow(event: Borrow): void {
   userDebtBalance.debtTakenAmount = userDebtBalance.debtTakenAmount.plus(borrow.amount);
   userDebtBalance.save();
 
-  // update market total supply
-  let market = Market.load(marketId) as Market;
-  let inputTokens = market.inputTokens as string[];
-  let newTotalSupply = market.outputTokenTotalSupply.plus(borrow.amount);
-  let marketTotalAmountOfCollateralLocked = getCollateralAmountLocked(
-    reserve,
-    newTotalSupply,
-    event.block
-  );
-  let marketInputTokenBalances: TokenBalance[] = [
-    new TokenBalance(inputTokens[0], market.id, marketTotalAmountOfCollateralLocked),
-  ];
-  updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
-
-  ////// update user's position
-
-  // user whose debt is increased
+  // calculate how much collateral has been locked by this borrow
   let account = getOrCreateAccount(Address.fromString(borrow.onBehalfOf));
-
-  // amount of debt bearing tokens minted
-  let outputTokenAmount = borrow.amount;
-
-  // amount of collateral locked because of debt taken in this TX
-  let collateralAmountLocked = getCollateralAmountLockedForUser(
+  let collateralAmountLocked = getCollateralAmountLocked(
     account,
     reserve,
     borrow.amount,
     event.block
   );
 
+  // update market total supply
+  let market = Market.load(marketId) as Market;
+  let inputTokens = market.inputTokens as string[];
+  let inputTokenTotalBalances = market.inputTokenTotalBalances as string[];
+  let newTotalSupply = market.outputTokenTotalSupply.plus(borrow.amount);
+
+  let oldTotalCollateralLocked = TokenBalance.fromString(inputTokenTotalBalances[0]).balance;
+  let newTotalCollaterLocked = oldTotalCollateralLocked.plus(collateralAmountLocked);
+  let marketInputTokenBalances: TokenBalance[] = [
+    new TokenBalance(inputTokens[0], market.id, newTotalCollaterLocked),
+  ];
+
+  updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
+
+  ////// update user's position
+
+  // amount of debt bearing tokens minted
+  let outputTokenAmount = borrow.amount;
+
+  // amount of collateral locked because of debt taken in this TX
   let inputTokensAmount: TokenBalance[] = [
     new TokenBalance(inputTokens[0], borrow.user, collateralAmountLocked),
   ];
@@ -259,7 +257,7 @@ export function handleBorrow(event: Borrow): void {
 
   // total amount of user's collateral locked by debt taken in this underlying token
   let inputTokenBalances: TokenBalance[] = [];
-  let totalUsersCollateralAmountLocked = getCollateralAmountLockedForUser(
+  let totalUsersCollateralAmountLocked = getCollateralAmountLocked(
     account,
     reserve,
     userDebtBalance.debtTakenAmount,
@@ -313,35 +311,33 @@ export function handleRepay(event: Repay): void {
   userDebtBalance.debtTakenAmount = userDebtBalance.debtTakenAmount.minus(repay.amount);
   userDebtBalance.save();
 
-  // update market total supply
-  let market = Market.load(marketId) as Market;
-  let inputTokens = market.inputTokens as string[];
-  let newTotalSupply = market.outputTokenTotalSupply.minus(repay.amount);
-  let marketTotalAmountOfCollateralLocked = getCollateralAmountLocked(
-    reserve,
-    newTotalSupply,
-    event.block
-  );
-  let marketInputTokenBalances: TokenBalance[] = [
-    new TokenBalance(inputTokens[0], market.id, marketTotalAmountOfCollateralLocked),
-  ];
-  updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
-
-  ////// update user's position
-
   // user for whom debt is being repayed (not neccessarily the sender)
   let account = getOrCreateAccount(Address.fromString(repay.user));
-
-  // amount of debt bearing tokens burned
-  let outputTokenAmount = repay.amount;
-
   // amount of collateral unlocked because of this payment
-  let collateralAmountUnlocked = getCollateralAmountLockedForUser(
+  let collateralAmountUnlocked = getCollateralAmountLocked(
     account,
     reserve,
     repay.amount,
     event.block
   );
+
+  // update market total supply
+  let market = Market.load(marketId) as Market;
+  let inputTokens = market.inputTokens as string[];
+  let inputTokenTotalBalances = market.inputTokenTotalBalances as string[];
+  let newTotalSupply = market.outputTokenTotalSupply.minus(repay.amount);
+
+  let oldTotalCollateralLocked = TokenBalance.fromString(inputTokenTotalBalances[0]).balance;
+  let newTotalCollaterLocked = oldTotalCollateralLocked.plus(collateralAmountUnlocked);
+  let marketInputTokenBalances: TokenBalance[] = [
+    new TokenBalance(inputTokens[0], market.id, newTotalCollaterLocked),
+  ];
+  updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
+
+  ////// update user's position
+
+  // amount of debt bearing tokens burned
+  let outputTokenAmount = repay.amount;
 
   let inputTokensAmount: TokenBalance[] = [
     new TokenBalance(inputTokens[0], repay.user, collateralAmountUnlocked),
@@ -355,7 +351,7 @@ export function handleRepay(event: Repay): void {
 
   // total amount of user's collateral locked by debt taken in this underlying token
   let inputTokenBalances: TokenBalance[] = [];
-  let totalUsersCollateralAmountLocked = getCollateralAmountLockedForUser(
+  let totalUsersCollateralAmountLocked = getCollateralAmountLocked(
     account,
     reserve,
     userDebtBalance.debtTakenAmount,
