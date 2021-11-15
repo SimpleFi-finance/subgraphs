@@ -186,11 +186,12 @@ export function getOrInitUserLtv(
   let userLtv = UserLtv.load(user.id);
   if (userLtv == null) {
     userLtv = new UserLtv(user.id);
+    userLtv.user = user.id;
     userLtv.lastUpdateTimestamp = BigInt.fromI32(0);
   }
 
-  if (block.timestamp == block.timestamp) {
-    return userLtv.lastUpdateTimestamp;
+  if (block.timestamp == userLtv.lastUpdateTimestamp) {
+    return userLtv.ltv;
   }
 
   let lendingPool = LendingPoolContract.bind(Address.fromString(lendingPoolId));
