@@ -11,6 +11,7 @@ import { getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/commo
 
 import { ProtocolName, ProtocolType } from "../library/constants";
 import { getOrInitReserve } from "../library/lendingPoolUtils";
+import { VariableDebtToken, StableDebtToken } from "../../generated/templates";
 
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
@@ -41,6 +42,10 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
   reserve.variableDebtToken = variableDebtToken.id;
   reserve.lastUpdateTimestamp = event.block.timestamp;
   reserve.save();
+
+  // start indexing debt tokens
+  StableDebtToken.create(event.params.stableDebtToken);
+  VariableDebtToken.create(event.params.variableDebtToken);
 
   // create investment market representing the token-aToken pair
   let marketId = lendingPool + "-" + reserve.id;

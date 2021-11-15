@@ -16,7 +16,6 @@ import {
   LendingPoolConfigurator as LendingPoolConfiguratorTemplate,
 } from "../../generated/templates";
 import { LendingPoolAddressesProvider, LendingPool } from "../../generated/schema";
-import { LendingPoolConfigurator } from "../../generated/templates/LendingPoolConfigurator/LendingPoolConfigurator";
 
 export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 

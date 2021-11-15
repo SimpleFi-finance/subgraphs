@@ -38,6 +38,7 @@ import {
   getPriceOracle,
   getOrInitReserve,
   getCollateralAmountLocked,
+  getRepaymentRateMode,
 } from "../library/lendingPoolUtils";
 
 const BORROW_MODE_STABLE = 1;
@@ -191,15 +192,15 @@ export function handleBorrow(event: Borrow): void {
   borrow.onBehalfOf = event.params.onBehalfOf.toHexString();
   borrow.reserve = event.params.reserve.toHexString();
   borrow.user = event.params.user.toHexString();
-  borrow.borrowRateMode = event.params.borrowRateMode;
+  borrow.borrowRateMode = event.params.borrowRateMode.toI32();
   borrow.save();
 
   // fetch market based on borrow mode
   let reserve = Reserve.load(borrow.reserve) as Reserve;
   let marketId: string;
-  if (borrow.borrowRateMode == BigInt.fromI32(BORROW_MODE_STABLE)) {
+  if (borrow.borrowRateMode == BORROW_MODE_STABLE) {
     marketId = lendingPool + "-" + reserve.stableDebtToken;
-  } else if (borrow.borrowRateMode == BigInt.fromI32(BORROW_MODE_VARIABLE)) {
+  } else if (borrow.borrowRateMode == BORROW_MODE_VARIABLE) {
     marketId = lendingPool + "-" + reserve.variableDebtToken;
   } else {
     // unrecognized borrow mode
@@ -294,19 +295,30 @@ export function handleRepay(event: Repay): void {
   repay.repayer = event.params.repayer.toHexString();
   repay.reserve = event.params.reserve.toHexString();
   repay.user = event.params.user.toHexString();
+
+  // figure out if it's variable or stable debt mode
+  let reserve = Reserve.load(repay.reserve) as Reserve;
+  let repaymentRateMode = getRepaymentRateMode(event, reserve);
+  repay.rateMode = repaymentRateMode;
   repay.save();
 
-  // fetch market based on borrow mode
-  let reserve = Reserve.load(repay.reserve) as Reserve;
-  // TODO - deduce if stable or variable debt repayment based on preceding ERC20 burn event
-  let marketId = lendingPool + "-" + reserve.variableDebtToken;
+  // fetch market based on rate mode
+  let marketId: string;
+  if (repaymentRateMode == BORROW_MODE_STABLE) {
+    marketId = lendingPool + "-" + reserve.stableDebtToken;
+  } else if (repaymentRateMode == BORROW_MODE_VARIABLE) {
+    marketId = lendingPool + "-" + reserve.variableDebtToken;
+  } else {
+    // unrecognized borrow mode
+    return;
+  }
 
   // decrease user's debt balance
   let userDebtBalance = getOrCreateUserDebtBalance(
     repay.user,
     marketId,
     reserve.id,
-    BigInt.fromI32(BORROW_MODE_VARIABLE)
+    BORROW_MODE_VARIABLE
   );
   userDebtBalance.debtTakenAmount = userDebtBalance.debtTakenAmount.minus(repay.amount);
   userDebtBalance.save();
@@ -384,11 +396,11 @@ export function handleSwap(event: Swap): void {
   );
   swap.reserve = event.params.reserve.toHexString();
   swap.user = event.params.user.toHexString();
-  swap.rateMode = event.params.rateMode;
+  swap.rateMode = event.params.rateMode.toI32();
 
   let reserve = Reserve.load(swap.reserve) as Reserve;
   let marketId: string;
-  if (swap.rateMode == BigInt.fromI32(BORROW_MODE_STABLE)) {
+  if (swap.rateMode == BORROW_MODE_STABLE) {
     marketId = event.address.toHexString() + "-" + reserve.variableDebtToken;
 
     // load existing tracker
@@ -396,27 +408,27 @@ export function handleSwap(event: Swap): void {
       swap.user,
       marketId,
       reserve.id,
-      BigInt.fromI32(BORROW_MODE_VARIABLE)
+      BORROW_MODE_VARIABLE
     );
 
     // switch it to stable mode
     userDebtBalance.id = event.address.toHexString() + "-" + reserve.stableDebtToken;
-    userDebtBalance.rateMode = BigInt.fromI32(BORROW_MODE_STABLE);
+    userDebtBalance.rateMode = BORROW_MODE_STABLE;
     userDebtBalance.save();
 
     // TODO update markets
-  } else if (swap.rateMode == BigInt.fromI32(BORROW_MODE_VARIABLE)) {
+  } else if (swap.rateMode == BORROW_MODE_VARIABLE) {
     marketId = event.address.toHexString() + "-" + reserve.stableDebtToken;
     // load existing tracker
     let userDebtBalance = getOrCreateUserDebtBalance(
       swap.user,
       marketId,
       reserve.id,
-      BigInt.fromI32(BORROW_MODE_STABLE)
+      BORROW_MODE_STABLE
     );
     // switch it to variable mode
     userDebtBalance.id = event.address.toHexString() + "-" + reserve.variableDebtToken;
-    userDebtBalance.rateMode = BigInt.fromI32(BORROW_MODE_VARIABLE);
+    userDebtBalance.rateMode = BORROW_MODE_VARIABLE;
     userDebtBalance.save();
 
     // TODO update markets

@@ -204,7 +204,7 @@ type Borrow @entity {
   onBehalfOf: String!
   reserve: String!
   amount: BigInt!
-  borrowRateMode: BigInt!
+  borrowRateMode: Int!
 }
 
 type Repay @entity {
@@ -213,13 +213,16 @@ type Repay @entity {
   repayer: String!
   reserve: String!
   amount: BigInt!
+
+  " either stable or variable rate mode "
+  rateMode: Int!
 }
 
 type SwapRateMode @entity {
   id: ID! # {address}
   user: String!
   reserve: String!
-  rateMode: BigInt!
+  rateMode: Int!
 }
 
 type Reserve @entity {
@@ -279,7 +282,17 @@ type UserDebtBalance @entity {
   debtTakenAmount: BigInt!
 
   " either stable or variable rate mode "
-  rateMode: BigInt!
+  rateMode: Int!
+}
+
+type VariableDebtTokenBurn @entity {
+  " tx-tokenAdress "
+  id: ID!
+}
+
+type StableDebtTokenBurn @entity {
+  " tx-tokenAdress "
+  id: ID!
 }
 
 # END - Aave protocol entities

@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum, store, log } from "@graphprotocol/graph-ts";
 
 import {
   LendingPool,
@@ -9,6 +9,8 @@ import {
   Market,
   Account,
   UserLtv,
+  VariableDebtTokenBurn,
+  StableDebtTokenBurn,
 } from "../../generated/schema";
 
 import { IPriceOracleGetter } from "../../generated/templates/LendingPool/IPriceOracleGetter";
@@ -17,6 +19,9 @@ import { LendingPool as LendingPoolContract } from "../../generated/templates/Le
 import { ADDRESS_ZERO } from "./common";
 
 import { calculateLinearInterest, rayMul } from "./math";
+
+const BORROW_MODE_STABLE = 1;
+const BORROW_MODE_VARIABLE = 2;
 
 /**
  * Create userInvestmentBalance entity which tracks how many tokens user provided
@@ -52,7 +57,7 @@ export function getOrCreateUserDebtBalance(
   user: string,
   reserve: string,
   marketId: string,
-  rateMode: BigInt
+  rateMode: i32
 ): UserDebtBalance {
   let id = user + "-" + marketId;
   let userDebtBalance = UserDebtBalance.load(id) as UserDebtBalance;
@@ -197,4 +202,23 @@ export function getOrInitUserLtv(
   userLtv.save();
 
   return ltv;
+}
+
+export function getRepaymentRateMode(event: ethereum.Event, reserve: Reserve): i32 {
+  let borrowMode = -1;
+  let tx = event.transaction.hash.toHexString();
+  let variableId = tx + "-" + reserve.variableDebtToken;
+  let stableId = tx + "-" + reserve.stableDebtToken;
+
+  if (VariableDebtTokenBurn.load(variableId) != null) {
+    borrowMode = BORROW_MODE_VARIABLE;
+    // remove entity so that new one can be created in same transaction
+    store.remove("VariableDebtTokenBurn", variableId);
+  } else if (StableDebtTokenBurn.load(stableId) != null) {
+    borrowMode = BORROW_MODE_STABLE;
+    // remove entity so that new one can be created in same transaction
+    store.remove("StableDebtTokenBurn", stableId);
+  }
+
+  return borrowMode;
 }
