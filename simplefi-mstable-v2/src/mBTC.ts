@@ -24,6 +24,11 @@ export function handleInitialize(call: InitializeCall): void {
   fakeEvent.address = call.to
   fakeEvent.block = call.block
 
+  let exists = MAssetEntity.load(mAssetAddress.toHexString())
+  if (exists != null) {
+    return
+  }
+
   let mAsset = new MAssetEntity(mAssetAddress.toHexString())
   let forgeValidator = call.inputs._forgeValidator
   let bAssetsData = call.inputs._bAssets

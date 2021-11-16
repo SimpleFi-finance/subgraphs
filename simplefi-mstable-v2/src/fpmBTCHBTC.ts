@@ -22,6 +22,11 @@ export function handleInitialize(call: InitializeCall): void {
   fakeEvent.address = call.to
   fakeEvent.block = call.block
 
+  let exists = FeederPoolEntity.load(fpmAssetAddress.toHexString())
+  if (exists != null) {
+    return
+  }
+
   let feederPool = new FeederPoolEntity(fpmAssetAddress.toHexString())
   feederPool.impl = call.to.toHexString()
   feederPool.mAsset = call.inputs._mAsset.addr.toHexString()
