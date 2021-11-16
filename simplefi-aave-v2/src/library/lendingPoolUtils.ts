@@ -124,16 +124,20 @@ export function getPriceOracle(lendingPoolId: string): IPriceOracleGetter {
 
 export function getCollateralAmountLocked(
   user: Account,
-  reserveBorrowed: Reserve,
-  reserveBorrowedAmount: BigInt,
+  reserve: Reserve,
+  reserveAmount: BigInt,
   block: ethereum.Block
 ): BigInt {
-  let assetUnitPriceInEth = getAssetUnitPriceInEth(reserveBorrowed, block);
+  let assetUnitPriceInEth = getAssetUnitPriceInEth(reserve, block);
   let borrowAmountInEth = assetUnitPriceInEth
-    .times(reserveBorrowedAmount)
-    .div(BigInt.fromI32(10).pow(<u8>reserveBorrowed.assetDecimals));
+    .times(reserveAmount)
+    .div(BigInt.fromI32(10).pow(<u8>reserve.assetDecimals));
 
-  let userLtv = getOrInitUserLtv(user, reserveBorrowed.lendingPool, block);
+  let userLtv = getOrInitUserLtv(user, reserve.lendingPool, block);
+  if (userLtv == BigInt.fromI32(0)) {
+    return BigInt.fromI32(0);
+  }
+
   let collateralLocked = borrowAmountInEth.div(userLtv);
 
   return collateralLocked;
