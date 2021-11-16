@@ -1,36 +1,5 @@
 [
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "pool",
-                "type": "address"
-            },
-            {
-                "internalType": "address",
-                "name": "underlyingAsset",
-                "type": "address"
-            },
-            {
-                "internalType": "string",
-                "name": "name",
-                "type": "string"
-            },
-            {
-                "internalType": "string",
-                "name": "symbol",
-                "type": "string"
-            },
-            {
-                "internalType": "address",
-                "name": "incentivesController",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "constructor"
-    },
-    {
         "anonymous": false,
         "inputs": [
             {
@@ -127,6 +96,55 @@
             }
         ],
         "name": "Burn",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "underlyingAsset",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "pool",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "incentivesController",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint8",
+                "name": "debtTokenDecimals",
+                "type": "uint8"
+            },
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "debtTokenName",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "debtTokenSymbol",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "bytes",
+                "name": "params",
+                "type": "bytes"
+            }
+        ],
+        "name": "Initialized",
         "type": "event"
     },
     {
@@ -427,6 +445,19 @@
     },
     {
         "inputs": [],
+        "name": "getIncentivesController",
+        "outputs": [
+            {
+                "internalType": "contract IAaveIncentivesController",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
         "name": "getSupplyData",
         "outputs": [
             {
@@ -549,19 +580,39 @@
     {
         "inputs": [
             {
+                "internalType": "contract ILendingPool",
+                "name": "pool",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "underlyingAsset",
+                "type": "address"
+            },
+            {
+                "internalType": "contract IAaveIncentivesController",
+                "name": "incentivesController",
+                "type": "address"
+            },
+            {
                 "internalType": "uint8",
-                "name": "decimals",
+                "name": "debtTokenDecimals",
                 "type": "uint8"
             },
             {
                 "internalType": "string",
-                "name": "name",
+                "name": "debtTokenName",
                 "type": "string"
             },
             {
                 "internalType": "string",
-                "name": "symbol",
+                "name": "debtTokenSymbol",
                 "type": "string"
+            },
+            {
+                "internalType": "bytes",
+                "name": "params",
+                "type": "bytes"
             }
         ],
         "name": "initialize",

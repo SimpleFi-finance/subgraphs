@@ -295,4 +295,17 @@ type StableDebtTokenBurn @entity {
   id: ID!
 }
 
+type IncentivesController @entity {
+  " address of the incentives controller "
+  id: ID!
+}
+
+type RewardsClaimed @entity {
+  " TX "
+  id: ID!
+  user: String!
+  to: String!
+  amount: BigInt!
+}
+
 # END - Aave protocol entities

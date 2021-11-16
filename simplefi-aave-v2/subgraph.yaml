@@ -201,8 +201,8 @@ templates:
         #   handler: handleStableTokenMint
         # - event: BorrowAllowanceDelegated(indexed address,indexed address,address,uint256)
         #   handler: handleStableTokenBorrowAllowanceDelegated
-        # - event: Initialized(indexed address,indexed address,address,uint8,string,string,bytes)
-        #   handler: handleSTokenInitialized
+        - event: Initialized(indexed address,indexed address,address,uint8,string,string,bytes)
+          handler: handleStableDebtTokenInitialized
       file: src/mappings/debtToken.ts
   - kind: ethereum/contract
     name: VariableDebtToken
@@ -225,6 +225,37 @@ templates:
         #   handler: handleVariableTokenMint
         # - event: BorrowAllowanceDelegated(indexed address,indexed address,address,uint256)
         #   handler: handleVariableTokenBorrowAllowanceDelegated
-        # - event: Initialized(indexed address,indexed address,address,uint8,string,string,bytes)
-        #   handler: handleVTokenInitialized
+        - event: Initialized(indexed address,indexed address,address,uint8,string,string,bytes)
+          handler: handleVariableDebtTokenInitialized
       file: src/mappings/debtToken.ts
+  # --------------------------------------
+  #            INCENTIVES
+  # --------------------------------------
+  - kind: ethereum/contract
+    name: AaveIncentivesController
+    network: mainnet
+    source:
+      abi: AaveIncentivesController
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - IncentivesController
+      abis:
+        - name: AaveIncentivesController
+          file: ./abis/AaveIncentivesController.json
+      eventHandlers:
+        # - event: AssetConfigUpdated(indexed address,uint256)
+        #   handler: handleAssetConfigUpdated
+        # - event: RewardsAccrued(indexed address,uint256)
+        #   handler: handleRewardsAccrued
+        - event: RewardsClaimed(indexed address,indexed address,indexed address,uint256)
+          handler: handleRewardsClaimed
+        # - event: AssetIndexUpdated(indexed address,uint256)
+        #   handler: handleAssetIndexUpdated
+        # - event: UserIndexUpdated(indexed address,indexed address,uint256)
+        #   handler: handleUserIndexUpdated
+        # - event: DistributionEndUpdated(uint256)
+        #   handler: handleDistributionEndUpdated
+      file: src/mappings/incentivesController.ts
