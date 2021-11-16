@@ -22,6 +22,11 @@ export function handleInitialize(call: InitializeCall): void {
   fakeEvent.address = call.to
   fakeEvent.block = call.block
 
+  let exists = VIMAssetEntity.load(vimAssetAddress.toHexString())
+  if (exists != null) {
+    return
+  }
+
   let contract = VIMAsset.bind(vimAssetAddress)
   let imBTC = contract.stakingToken()
   let mta = contract.rewardsToken()

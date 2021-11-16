@@ -22,6 +22,11 @@ export function handleInitialize(call: InitializeCall): void {
   fakeEvent.address = call.to
   fakeEvent.block = call.block
 
+  let exists = IMAssetEntity.load(imAssetAddress.toHexString())
+  if (exists != null) {
+    return
+  }
+
   let contract = IMAsset.bind(imAssetAddress)
   let mBTC = contract.underlying()
 
