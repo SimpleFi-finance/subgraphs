@@ -308,4 +308,12 @@ type RewardsClaimed @entity {
   amount: BigInt!
 }
 
+type RewardsAccrue @entity {
+  " TX-logIndex "
+  id: ID!
+  user: String!
+  to: String!
+  amount: BigInt!
+}
+
 # END - Aave protocol entities

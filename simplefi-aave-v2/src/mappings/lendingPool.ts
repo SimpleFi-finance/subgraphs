@@ -443,7 +443,6 @@ export function handleReserveDataUpdated(event: ReserveDataUpdated): void {
 
   let asset = getOrCreateERC20Token(event, event.params.reserve);
 
-  reserve = new Reserve(asset.id);
   reserve.asset = asset.id;
   reserve.assetDecimals = asset.decimals;
   reserve.liquidityRate = event.params.liquidityRate;

@@ -248,8 +248,8 @@ templates:
       eventHandlers:
         # - event: AssetConfigUpdated(indexed address,uint256)
         #   handler: handleAssetConfigUpdated
-        # - event: RewardsAccrued(indexed address,uint256)
-        #   handler: handleRewardsAccrued
+        - event: RewardsAccrued(indexed address,uint256)
+          handler: handleRewardsAccrued
         - event: RewardsClaimed(indexed address,indexed address,indexed address,uint256)
           handler: handleRewardsClaimed
         # - event: AssetIndexUpdated(indexed address,uint256)
