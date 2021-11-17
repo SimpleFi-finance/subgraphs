@@ -16,7 +16,11 @@ import { VariableDebtToken, StableDebtToken } from "../../generated/templates";
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
 export function handleCollateralConfigurationChanged(event: CollateralConfigurationChanged): void {
-  let reserve = getOrInitReserve(event.params.asset, event);
+  //fetch lending pool address from context
+  let context = dataSource.context();
+  let lendingPool = context.getString("lendingPool");
+
+  let reserve = getOrInitReserve(event.params.asset.toHexString(), lendingPool, event);
   reserve.ltv = event.params.ltv;
   reserve.save();
 }
@@ -33,7 +37,7 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
   let weth = getOrCreateERC20Token(event, Address.fromString(WETH));
 
   // store reserve data
-  let reserve = getOrInitReserve(event.params.asset, event);
+  let reserve = getOrInitReserve(event.params.asset.toHexString(), lendingPool, event);
   reserve.asset = asset.id;
   reserve.assetDecimals = asset.decimals;
   reserve.lendingPool = lendingPool;
@@ -48,7 +52,7 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
   VariableDebtToken.create(event.params.variableDebtToken);
 
   // create investment market representing the token-aToken pair
-  let marketId = lendingPool + "-" + reserve.id;
+  let marketId = lendingPool + "-" + reserve.asset;
   let marketAddress = Address.fromString(lendingPool);
   let protocolName = ProtocolName.AAVE_POOL;
   let protocolType = ProtocolType.LENDING;

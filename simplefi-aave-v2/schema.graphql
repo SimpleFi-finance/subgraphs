@@ -226,7 +226,8 @@ type SwapRateMode @entity {
 }
 
 type Reserve @entity {
-  id: ID! # {lendingPool-asset}
+  " lendingPool-asset "
+  id: ID!
   asset: String!
   assetDecimals: Int!
   lendingPool: LendingPool!
@@ -301,7 +302,7 @@ type IncentivesController @entity {
 }
 
 type RewardsClaimed @entity {
-  " TX "
+  " TX-logIndex "
   id: ID!
   user: String!
   to: String!

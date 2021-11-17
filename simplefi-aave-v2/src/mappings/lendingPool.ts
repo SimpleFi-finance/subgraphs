@@ -57,15 +57,16 @@ export function handleDeposit(event: Deposit): void {
   deposit.save();
 
   // increase user's balance of provided tokens
-  let userInvestmentBalance = getOrCreateUserInvestmentBalance(deposit.onBehalfOf, deposit.reserve);
+  let reserveId = event.address.toHexString() + "-" + deposit.reserve;
+  let userInvestmentBalance = getOrCreateUserInvestmentBalance(deposit.onBehalfOf, reserveId);
   userInvestmentBalance.underlyingTokenProvidedAmount = userInvestmentBalance.underlyingTokenProvidedAmount.plus(
     deposit.amount
   );
   userInvestmentBalance.save();
 
   // update market total supply
-  let market = Market.load(event.address.toHexString() + "-" + deposit.reserve) as Market;
-  let oldTotalSupply = getMarketATokenSupply(market, deposit.reserve, event);
+  let market = Market.load(reserveId) as Market;
+  let oldTotalSupply = getMarketATokenSupply(market, reserveId, event);
   let newTotalSupply = oldTotalSupply.plus(deposit.amount);
   let marketInputTokenBalances: TokenBalance[] = [
     new TokenBalance(deposit.reserve, market.id, newTotalSupply),
@@ -125,15 +126,16 @@ export function handleWithdraw(event: Withdraw): void {
   withdrawal.save();
 
   // decrease user's balance of provided tokens
-  let userInvestmentBalance = getOrCreateUserInvestmentBalance(withdrawal.user, withdrawal.reserve);
+  let reserveId = event.address.toHexString() + "-" + withdrawal.reserve;
+  let userInvestmentBalance = getOrCreateUserInvestmentBalance(withdrawal.user, reserveId);
   userInvestmentBalance.underlyingTokenProvidedAmount = userInvestmentBalance.underlyingTokenProvidedAmount.minus(
     withdrawal.amount
   );
   userInvestmentBalance.save();
 
   // update market total supply
-  let market = Market.load(event.address.toHexString() + "-" + withdrawal.reserve) as Market;
-  let oldTotalSupply = getMarketATokenSupply(market, withdrawal.reserve, event);
+  let market = Market.load(reserveId) as Market;
+  let oldTotalSupply = getMarketATokenSupply(market, reserveId, event);
   let newTotalSupply = oldTotalSupply.minus(withdrawal.amount);
   let marketInputTokenBalances: TokenBalance[] = [
     new TokenBalance(withdrawal.reserve, market.id, newTotalSupply),
@@ -196,7 +198,7 @@ export function handleBorrow(event: Borrow): void {
   borrow.save();
 
   // fetch market based on borrow mode
-  let reserve = Reserve.load(borrow.reserve) as Reserve;
+  let reserve = Reserve.load(lendingPool + "-" + borrow.reserve) as Reserve;
   let marketId: string;
   if (borrow.borrowRateMode == BORROW_MODE_STABLE) {
     marketId = lendingPool + "-" + reserve.stableDebtToken;
@@ -297,7 +299,7 @@ export function handleRepay(event: Repay): void {
   repay.user = event.params.user.toHexString();
 
   // figure out if it's variable or stable debt mode
-  let reserve = Reserve.load(repay.reserve) as Reserve;
+  let reserve = Reserve.load(lendingPool + "-" + repay.reserve) as Reserve;
   let repaymentRateMode = getRepaymentRateMode(event, reserve);
   repay.rateMode = repaymentRateMode;
   repay.save();
@@ -391,6 +393,8 @@ export function handleRepay(event: Repay): void {
 }
 
 export function handleSwap(event: Swap): void {
+  let lendingPool = event.address.toHexString();
+
   let swap = new SwapRateMode(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
   );
@@ -398,7 +402,7 @@ export function handleSwap(event: Swap): void {
   swap.user = event.params.user.toHexString();
   swap.rateMode = event.params.rateMode.toI32();
 
-  let reserve = Reserve.load(swap.reserve) as Reserve;
+  let reserve = Reserve.load(lendingPool + "-" + swap.reserve) as Reserve;
   let marketId: string;
   if (swap.rateMode == BORROW_MODE_STABLE) {
     marketId = event.address.toHexString() + "-" + reserve.variableDebtToken;
@@ -439,7 +443,11 @@ export function handleSwap(event: Swap): void {
 }
 
 export function handleReserveDataUpdated(event: ReserveDataUpdated): void {
-  let reserve = getOrInitReserve(event.params.reserve, event);
+  let reserve = getOrInitReserve(
+    event.params.reserve.toHexString(),
+    event.address.toHexString(),
+    event
+  );
 
   let asset = getOrCreateERC20Token(event, event.params.reserve);
 

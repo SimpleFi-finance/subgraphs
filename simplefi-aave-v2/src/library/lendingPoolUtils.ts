@@ -55,7 +55,7 @@ export function getOrCreateUserInvestmentBalance(
  */
 export function getOrCreateUserDebtBalance(
   user: string,
-  reserve: string,
+  reserveId: string,
   marketId: string,
   rateMode: i32
 ): UserDebtBalance {
@@ -65,7 +65,7 @@ export function getOrCreateUserDebtBalance(
   if (userDebtBalance == null) {
     userDebtBalance = new UserDebtBalance(id);
     userDebtBalance.user = user;
-    userDebtBalance.reserve = reserve;
+    userDebtBalance.reserve = reserveId;
     userDebtBalance.debtTakenAmount = BigInt.fromI32(0);
     userDebtBalance.rateMode = rateMode;
     userDebtBalance.save();
@@ -157,15 +157,19 @@ export function getAssetUnitPriceInEth(reserve: Reserve, block: ethereum.Block):
   return price;
 }
 
-export function getOrInitReserve(underlyingAsset: Address, event: ethereum.Event): Reserve {
-  let reserveId = underlyingAsset.toHexString();
+export function getOrInitReserve(
+  asset: string,
+  lendingPool: string,
+  event: ethereum.Event
+): Reserve {
+  let reserveId = lendingPool + "-" + asset;
   let reserve = Reserve.load(reserveId);
   if (reserve != null) {
     return reserve as Reserve;
   }
 
   reserve = new Reserve(reserveId);
-  reserve.asset = reserveId;
+  reserve.asset = asset;
   reserve.assetDecimals = 0;
   reserve.lendingPool = ADDRESS_ZERO;
   reserve.aToken = ADDRESS_ZERO;
