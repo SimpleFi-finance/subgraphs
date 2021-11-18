@@ -299,6 +299,8 @@ type StableDebtTokenBurn @entity {
 type IncentivesController @entity {
   " address of the incentives controller "
   id: ID!
+  rewardToken: Token!
+  emissionEndTimestamp: BigInt!
 }
 
 type RewardsClaimed @entity {
@@ -306,6 +308,7 @@ type RewardsClaimed @entity {
   id: ID!
   user: String!
   to: String!
+  claimer: String!
   amount: BigInt!
 }
 

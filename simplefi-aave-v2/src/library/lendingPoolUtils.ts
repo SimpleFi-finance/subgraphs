@@ -1,6 +1,10 @@
 import { Address, BigInt, ethereum, store, log } from "@graphprotocol/graph-ts";
 
+import { getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
+
+import { ProtocolName, ProtocolType } from "../library/constants";
 import {
+  Token,
   LendingPool,
   LendingPoolAddressesProvider,
   Reserve,
@@ -11,10 +15,14 @@ import {
   UserLtv,
   VariableDebtTokenBurn,
   StableDebtTokenBurn,
+  IncentivesController,
 } from "../../generated/schema";
 
 import { IPriceOracleGetter } from "../../generated/templates/LendingPool/IPriceOracleGetter";
 import { LendingPool as LendingPoolContract } from "../../generated/templates/LendingPool/LendingPool";
+
+import { IncentivesController as IncentivesControllerTemplate } from "../../generated/templates";
+import { AaveIncentivesController as IncentivesControllerContract } from "../../generated/templates/IncentivesController/AaveIncentivesController";
 
 import { ADDRESS_ZERO } from "./common";
 
@@ -22,6 +30,7 @@ import { calculateLinearInterest, rayMul } from "./math";
 
 const BORROW_MODE_STABLE = 1;
 const BORROW_MODE_VARIABLE = 2;
+const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
 /**
  * Create userInvestmentBalance entity which tracks how many tokens user provided
@@ -230,4 +239,51 @@ export function getRepaymentRateMode(event: ethereum.Event, reserve: Reserve): i
   }
 
   return borrowMode;
+}
+
+export function getOrCreateIncentivesController(
+  event: ethereum.Event,
+  controllerAddress: string
+): IncentivesController {
+  let incentivesController = IncentivesController.load(controllerAddress);
+  if (incentivesController != null) {
+    return incentivesController as IncentivesController;
+  }
+
+  // fetch data from contract
+  let contract = IncentivesControllerContract.bind(Address.fromString(controllerAddress));
+  let rewardToken = getOrCreateERC20Token(event, contract.REWARD_TOKEN());
+  let emissionEndTimestamp = contract.DISTRIBUTION_END();
+
+  // create entity
+  incentivesController = new IncentivesController(controllerAddress);
+  incentivesController.rewardToken = rewardToken.id;
+  incentivesController.emissionEndTimestamp = emissionEndTimestamp;
+  incentivesController.save();
+
+  // start indexing incentive controller
+  IncentivesControllerTemplate.create(Address.fromString(controllerAddress));
+
+  // create staking market
+  let weth = getOrCreateERC20Token(event, Address.fromString(WETH));
+  let marketId = controllerAddress;
+  let marketAddress = Address.fromString(controllerAddress);
+  let protocolName = ProtocolName.AAVE_POOL;
+  let protocolType = ProtocolType.STAKING;
+  let inputTokens: Token[] = [weth];
+  let outputToken = weth;
+  let rewardTokens: Token[] = [rewardToken];
+
+  getOrCreateMarketWithId(
+    event,
+    marketId,
+    marketAddress,
+    protocolName,
+    protocolType,
+    inputTokens,
+    outputToken,
+    rewardTokens
+  );
+
+  return incentivesController as IncentivesController;
 }

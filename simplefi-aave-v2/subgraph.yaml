@@ -232,7 +232,7 @@ templates:
   #            INCENTIVES
   # --------------------------------------
   - kind: ethereum/contract
-    name: AaveIncentivesController
+    name: IncentivesController
     network: mainnet
     source:
       abi: AaveIncentivesController

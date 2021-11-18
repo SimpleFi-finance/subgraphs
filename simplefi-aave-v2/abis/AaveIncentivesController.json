@@ -2,8 +2,8 @@
     {
         "inputs": [
             {
-                "internalType": "contract IERC20",
-                "name": "rewardToken",
+                "internalType": "contract IStakedTokenWithConfig",
+                "name": "stakeToken",
                 "type": "address"
             },
             {
@@ -78,24 +78,11 @@
             {
                 "indexed": false,
                 "internalType": "uint256",
-                "name": "ditributionEnd",
+                "name": "newDistributionEnd",
                 "type": "uint256"
             }
         ],
         "name": "DistributionEndUpdated",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "newPendingAdmin",
-                "type": "address"
-            }
-        ],
-        "name": "PendingAdminChanged",
         "type": "event"
     },
     {
@@ -133,31 +120,6 @@
                 "type": "address"
             },
             {
-                "indexed": false,
-                "internalType": "uint256",
-                "name": "amount",
-                "type": "uint256"
-            }
-        ],
-        "name": "RewardsClaimed",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "user",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "to",
-                "type": "address"
-            },
-            {
                 "indexed": true,
                 "internalType": "address",
                 "name": "claimer",
@@ -171,38 +133,6 @@
             }
         ],
         "name": "RewardsClaimed",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "vault",
-                "type": "address"
-            }
-        ],
-        "name": "RewardsVaultUpdated",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "newAdming",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "internalType": "uint256",
-                "name": "role",
-                "type": "uint256"
-            }
-        ],
-        "name": "RoleClaimed",
         "type": "event"
     },
     {
@@ -296,6 +226,19 @@
         "type": "function"
     },
     {
+        "inputs": [],
+        "name": "STAKE_TOKEN",
+        "outputs": [
+            {
+                "internalType": "contract IStakedTokenWithConfig",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
         "inputs": [
             {
                 "internalType": "address",
@@ -306,19 +249,19 @@
         "name": "assets",
         "outputs": [
             {
-                "internalType": "uint128",
+                "internalType": "uint104",
                 "name": "emissionPerSecond",
-                "type": "uint128"
+                "type": "uint104"
             },
             {
-                "internalType": "uint128",
-                "name": "lastUpdateTimestamp",
-                "type": "uint128"
-            },
-            {
-                "internalType": "uint256",
+                "internalType": "uint104",
                 "name": "index",
-                "type": "uint256"
+                "type": "uint104"
+            },
+            {
+                "internalType": "uint40",
+                "name": "lastUpdateTimestamp",
+                "type": "uint40"
             }
         ],
         "stateMutability": "view",
@@ -390,19 +333,6 @@
     {
         "inputs": [
             {
-                "internalType": "uint256",
-                "name": "role",
-                "type": "uint256"
-            }
-        ],
-        "name": "claimRoleAdmin",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
                 "internalType": "address[]",
                 "name": "assets",
                 "type": "address[]"
@@ -421,17 +351,27 @@
     {
         "inputs": [
             {
-                "internalType": "uint256",
-                "name": "role",
-                "type": "uint256"
+                "internalType": "address",
+                "name": "asset",
+                "type": "address"
             }
         ],
-        "name": "getAdmin",
+        "name": "getAssetData",
         "outputs": [
             {
-                "internalType": "address",
+                "internalType": "uint256",
                 "name": "",
-                "type": "address"
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
             }
         ],
         "stateMutability": "view",
@@ -472,25 +412,6 @@
     {
         "inputs": [
             {
-                "internalType": "uint256",
-                "name": "role",
-                "type": "uint256"
-            }
-        ],
-        "name": "getPendingAdmin",
-        "outputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
                 "internalType": "address[]",
                 "name": "assets",
                 "type": "address[]"
@@ -507,19 +428,6 @@
                 "internalType": "uint256",
                 "name": "",
                 "type": "uint256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "getRewardsVault",
-        "outputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
             }
         ],
         "stateMutability": "view",
@@ -595,7 +503,7 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "rewardsVault",
+                "name": "addressesProvider",
                 "type": "address"
             }
         ],
@@ -631,37 +539,6 @@
             }
         ],
         "name": "setDistributionEnd",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "uint256",
-                "name": "role",
-                "type": "uint256"
-            },
-            {
-                "internalType": "address",
-                "name": "newPendingAdmin",
-                "type": "address"
-            }
-        ],
-        "name": "setPendingAdmin",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "rewardsVault",
-                "type": "address"
-            }
-        ],
-        "name": "setRewardsVault",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
