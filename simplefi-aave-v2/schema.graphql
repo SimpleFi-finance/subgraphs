@@ -223,6 +223,17 @@ type SwapRateMode @entity {
   user: String!
   reserve: String!
   rateMode: Int!
+  transactionHash: String!
+}
+
+type FlashLoan @entity {
+  id: ID! # {address}
+  target: String!
+  initiator: String!
+  asset: String!
+  amount: BigInt!
+  premium: BigInt!
+  transactionHash: String!
 }
 
 type Reserve @entity {
