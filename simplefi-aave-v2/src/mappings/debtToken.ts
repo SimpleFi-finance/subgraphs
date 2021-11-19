@@ -7,15 +7,9 @@ import {
   Initialized as VariableDebtTokenInitialized,
 } from "../../generated/templates/VariableDebtToken/VariableDebtToken";
 
-import { IncentivesController as IncentivesControllerTemplate } from "../../generated/templates";
-
 import { getOrCreateIncentivesController } from "../library/lendingPoolUtils";
 
-import {
-  StableDebtTokenBurn,
-  VariableDebtTokenBurn,
-  IncentivesController,
-} from "../../generated/schema";
+import { StableDebtTokenBurn, VariableDebtTokenBurn } from "../../generated/schema";
 
 import { ADDRESS_ZERO } from "../library/common";
 
@@ -41,7 +35,8 @@ export function handleStableDebtTokenInitialized(event: StableDebtTokenInitializ
     return;
   }
 
-  getOrCreateIncentivesController(event, controllerAddress);
+  let lendingPool = event.params.pool.toHexString();
+  getOrCreateIncentivesController(event, controllerAddress, lendingPool);
 }
 
 export function handleVariableDebtTokenInitialized(event: VariableDebtTokenInitialized): void {
@@ -50,5 +45,6 @@ export function handleVariableDebtTokenInitialized(event: VariableDebtTokenIniti
     return;
   }
 
-  getOrCreateIncentivesController(event, controllerAddress);
+  let lendingPool = event.params.pool.toHexString();
+  getOrCreateIncentivesController(event, controllerAddress, lendingPool);
 }

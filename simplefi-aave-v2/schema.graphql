@@ -255,6 +255,16 @@ type UserLtv @entity {
   lastUpdateTimestamp: BigInt!
 }
 
+type AaveUser @entity {
+  " address "
+  id: ID!
+
+  #incentives
+  unclaimedRewards: BigInt!
+  claimedRewards: BigInt!
+  lifetimeRewards: BigInt!
+}
+
 type UserInvestmentBalance @entity {
   " userAddress-marketId"
   id: ID!
@@ -301,6 +311,7 @@ type IncentivesController @entity {
   id: ID!
   rewardToken: Token!
   emissionEndTimestamp: BigInt!
+  lendingPool: String!
 }
 
 type RewardsClaimed @entity {
@@ -313,7 +324,7 @@ type RewardsClaimed @entity {
 }
 
 type RewardsAccrue @entity {
-  " TX-logIndex "
+  " TX-userAddress "
   id: ID!
   user: String!
   to: String!

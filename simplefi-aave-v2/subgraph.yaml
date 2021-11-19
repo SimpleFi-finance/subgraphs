@@ -194,6 +194,8 @@ templates:
       abis:
         - name: StableDebtToken
           file: ./abis/StableDebtToken.json
+        - name: AaveIncentivesController
+          file: ./abis/AaveIncentivesController.json
       eventHandlers:
         - event: Burn(indexed address,uint256,uint256,uint256,uint256,uint256)
           handler: handleStableTokenBurn
@@ -218,6 +220,8 @@ templates:
       abis:
         - name: VariableDebtToken
           file: ./abis/VariableDebtToken.json
+        - name: AaveIncentivesController
+          file: ./abis/AaveIncentivesController.json
       eventHandlers:
         - event: Burn(indexed address,uint256,uint256)
           handler: handleVariableTokenBurn

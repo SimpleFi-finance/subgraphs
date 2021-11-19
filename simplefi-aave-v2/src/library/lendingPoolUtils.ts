@@ -16,6 +16,7 @@ import {
   VariableDebtTokenBurn,
   StableDebtTokenBurn,
   IncentivesController,
+  AaveUser,
 } from "../../generated/schema";
 
 import { IPriceOracleGetter } from "../../generated/templates/LendingPool/IPriceOracleGetter";
@@ -243,7 +244,8 @@ export function getRepaymentRateMode(event: ethereum.Event, reserve: Reserve): i
 
 export function getOrCreateIncentivesController(
   event: ethereum.Event,
-  controllerAddress: string
+  controllerAddress: string,
+  lendingPool: string
 ): IncentivesController {
   let incentivesController = IncentivesController.load(controllerAddress);
   if (incentivesController != null) {
@@ -259,6 +261,7 @@ export function getOrCreateIncentivesController(
   incentivesController = new IncentivesController(controllerAddress);
   incentivesController.rewardToken = rewardToken.id;
   incentivesController.emissionEndTimestamp = emissionEndTimestamp;
+  incentivesController.lendingPool = lendingPool;
   incentivesController.save();
 
   // start indexing incentive controller
@@ -286,4 +289,20 @@ export function getOrCreateIncentivesController(
   );
 
   return incentivesController as IncentivesController;
+}
+
+export function getOrCreateAaveUser(userAddress: string): AaveUser {
+  let id = userAddress;
+  let user = AaveUser.load(id);
+  if (user != null) {
+    return user as AaveUser;
+  }
+
+  user = new AaveUser(id);
+  user.lifetimeRewards = BigInt.fromI32(0);
+  user.claimedRewards = BigInt.fromI32(0);
+  user.unclaimedRewards = BigInt.fromI32(0);
+  user.save();
+
+  return user as AaveUser;
 }
