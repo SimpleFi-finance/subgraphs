@@ -113,7 +113,7 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
   let marketId = sushiFarm.id;
   let marketAddress = Address.fromString(sushiFarm.masterChef);
   let protocolName = ProtocolName.SUSHISWAP_FARM;
-  let protocolType = ProtocolType.TOKEN_MANAGEMENT;
+  let protocolType = ProtocolType.LP_FARMING;
   let inputTokens: Token[] = [inputToken];
   let rewardTokens: Token[] = getRewardTokens(sushiFarm, event);
 

@@ -32,7 +32,9 @@ export namespace ProtocolType {
   export const SYNTHETIC_TOKEN = "SYNTHETIC_TOKEN";
   export const TOKEN_MANAGEMENT = "TOKEN_MANAGEMENT";
   export const PREDICTION_MARKET = "PREDICTION_MARKET";
+  export const LP_FARMING = "LP_FARMING";
 }
+
 
 export namespace PositionType {
   export const INVESTMENT = "INVESTMENT";
