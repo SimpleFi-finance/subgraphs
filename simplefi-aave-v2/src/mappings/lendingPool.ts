@@ -508,8 +508,6 @@ export function handleReserveDataUpdated(event: ReserveDataUpdated): void {
 }
 
 export function handleFlashLoan(event: FlashLoan): void {
-  let lendingPool = event.address.toHexString();
-
   let flashLoan = new FlashLoanEntity(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
   );
@@ -520,84 +518,4 @@ export function handleFlashLoan(event: FlashLoan): void {
   flashLoan.premium = event.params.premium;
   flashLoan.transactionHash = event.transaction.hash.toHexString();
   flashLoan.save();
-
-  // when flashloaning borrow is done with variable rate
-  let reserve = Reserve.load(lendingPool + "-" + flashLoan.asset) as Reserve;
-  let marketId = lendingPool + "-" + reserve.variableDebtToken;
-
-  // increase user's debt balance
-  let userDebtBalance = getOrCreateUserDebtBalance(
-    flashLoan.initiator,
-    reserve.id,
-    marketId,
-    BORROW_MODE_VARIABLE
-  );
-  userDebtBalance.debtTakenAmount = userDebtBalance.debtTakenAmount.plus(flashLoan.amount);
-  userDebtBalance.save();
-
-  // calculate how much collateral has been locked by this flashloan borrow
-  let account = getOrCreateAccount(event.params.initiator);
-  let collateralAmountLocked = getCollateralAmountLocked(
-    account,
-    reserve,
-    flashLoan.amount,
-    event.block
-  );
-
-  // update market total supply
-  let market = Market.load(marketId) as Market;
-  let inputTokens = market.inputTokens as string[];
-  let inputTokenTotalBalances = market.inputTokenTotalBalances as string[];
-  let newTotalSupply = market.outputTokenTotalSupply.plus(flashLoan.amount);
-
-  let oldTotalCollateralLocked = TokenBalance.fromString(inputTokenTotalBalances[0]).balance;
-  let newTotalCollaterLocked = oldTotalCollateralLocked.plus(collateralAmountLocked);
-  let marketInputTokenBalances: TokenBalance[] = [
-    new TokenBalance(inputTokens[0], market.id, newTotalCollaterLocked),
-  ];
-
-  updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
-
-  ////// update user's position
-
-  // amount of debt bearing tokens minted
-  let outputTokenAmount = flashLoan.amount;
-
-  // amount of collateral locked because of debt taken in this TX
-  let inputTokensAmount: TokenBalance[] = [
-    new TokenBalance(inputTokens[0], flashLoan.initiator, collateralAmountLocked),
-  ];
-
-  // number of reward tokens claimed by user in this transaction
-  let rewardTokenAmounts: TokenBalance[] = [];
-
-  // total balance of debt bearing tokens
-  let outputTokenBalance = userDebtBalance.debtTakenAmount;
-
-  // total amount of user's collateral locked by debt taken in this underlying token
-  let inputTokenBalances: TokenBalance[] = [];
-  let totalUsersCollateralAmountLocked = getCollateralAmountLocked(
-    account,
-    reserve,
-    userDebtBalance.debtTakenAmount,
-    event.block
-  );
-  inputTokenBalances.push(
-    new TokenBalance(inputTokens[0], flashLoan.initiator, totalUsersCollateralAmountLocked)
-  );
-
-  // reward token amounts claimable by user
-  let rewardTokenBalances: TokenBalance[] = [];
-
-  borrowFromMarket(
-    event,
-    account,
-    market,
-    outputTokenAmount,
-    inputTokensAmount,
-    rewardTokenAmounts,
-    outputTokenBalance,
-    inputTokenBalances,
-    rewardTokenBalances
-  );
 }

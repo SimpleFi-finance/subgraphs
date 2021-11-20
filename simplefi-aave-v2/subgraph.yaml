@@ -196,6 +196,12 @@ templates:
           file: ./abis/StableDebtToken.json
         - name: AaveIncentivesController
           file: ./abis/AaveIncentivesController.json
+        - name: LendingPool
+          file: ./abis/LendingPool.json
+        - name: IERC20
+          file: ./abis/IERC20.json
+        - name: IPriceOracleGetter
+          file: ./abis/IPriceOracleGetter.json
       eventHandlers:
         - event: Burn(indexed address,uint256,uint256,uint256,uint256,uint256)
           handler: handleStableTokenBurn
@@ -222,6 +228,12 @@ templates:
           file: ./abis/VariableDebtToken.json
         - name: AaveIncentivesController
           file: ./abis/AaveIncentivesController.json
+        - name: LendingPool
+          file: ./abis/LendingPool.json
+        - name: IERC20
+          file: ./abis/IERC20.json
+        - name: IPriceOracleGetter
+          file: ./abis/IPriceOracleGetter.json
       eventHandlers:
         - event: Burn(indexed address,uint256,uint256)
           handler: handleVariableTokenBurn
@@ -249,6 +261,16 @@ templates:
       abis:
         - name: AaveIncentivesController
           file: ./abis/AaveIncentivesController.json
+        - name: VariableDebtToken
+          file: ./abis/VariableDebtToken.json
+        - name: StableDebtToken
+          file: ./abis/StableDebtToken.json
+        - name: LendingPool
+          file: ./abis/LendingPool.json
+        - name: IERC20
+          file: ./abis/IERC20.json
+        - name: IPriceOracleGetter
+          file: ./abis/IPriceOracleGetter.json
       eventHandlers:
         # - event: AssetConfigUpdated(indexed address,uint256)
         #   handler: handleAssetConfigUpdated
