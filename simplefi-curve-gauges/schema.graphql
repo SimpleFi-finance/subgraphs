@@ -32,6 +32,7 @@ enum ProtocolType {
   SYNTHETIC_TOKEN
   TOKEN_MANAGEMENT # Meta LP vaults
   PREDICTION_MARKET
+  LP_FARMING
 }
 
 enum PositionType {
