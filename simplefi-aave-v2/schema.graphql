@@ -252,7 +252,7 @@ type Reserve @entity {
   assetUnitPriceInEth: BigInt!
 }
 
-type UserLtv @entity {
+type UserAccountData @entity {
   " address "
   id: ID!
 
@@ -262,7 +262,13 @@ type UserLtv @entity {
   " user's average loan-to-value "
   ltv: BigInt!
 
-  " timestamp ltv was updated last time "
+  totalCollateralEth: BigInt!
+  totalDebtETH: BigInt!
+  availableBorrowsETH: BigInt!
+  currentLiquidationThreshold: BigInt!
+  healthFactor: BigInt!
+
+  " timestamp data was updated last time "
   lastUpdateTimestamp: BigInt!
 }
 

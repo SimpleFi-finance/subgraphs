@@ -4,9 +4,15 @@ import {
   RewardsClaimed,
   RewardsAccrued,
 } from "../../generated/templates/IncentivesController/AaveIncentivesController";
-import { RewardsClaim, RewardsAccrue, Market } from "../../generated/schema";
+import {
+  RewardsClaim,
+  RewardsAccrue,
+  Market,
+  IncentivesController,
+  UserAccountData,
+} from "../../generated/schema";
 
-import { getOrCreateAaveUser, getOrInitReserve } from "../library/lendingPoolUtils";
+import { getOrCreateAaveUser, getOrInitUserAccountData } from "../library/lendingPoolUtils";
 import {
   ADDRESS_ZERO,
   getOrCreateAccount,
@@ -53,11 +59,20 @@ export function handleRewardsClaimed(event: RewardsClaimed): void {
     new TokenBalance(rewardTokens[0], claim.to, claim.amount),
   ];
 
-  /// TODO this should be collateral amount in ETH
-  let outputTokenBalance = BigInt.fromI32(0);
+  // total collateral amount in ETH
+  let incentivesController = IncentivesController.load(event.address.toHexString());
+  let userAccountData = getOrInitUserAccountData(
+    getOrCreateAccount(Address.fromString(claim.user)),
+    incentivesController.lendingPool,
+    event.block
+  );
+  let outputTokenBalance = userAccountData.totalCollateralEth;
 
-  /// TODO this should be collateral amount in ETH
-  let inputTokenBalances: TokenBalance[] = [];
+  // total collateral amount in ETH
+  let inputTokens = market.inputTokens as string[];
+  let inputTokenBalances: TokenBalance[] = [
+    new TokenBalance(inputTokens[0], userAccountData.user, userAccountData.totalCollateralEth),
+  ];
 
   // reward token amounts claimable by user
   let rewardTokenBalances: TokenBalance[] = [

@@ -12,7 +12,7 @@ import {
   UserDebtBalance,
   Market,
   Account,
-  UserLtv,
+  UserAccountData,
   VariableDebtTokenBurn,
   StableDebtTokenBurn,
   IncentivesController,
@@ -143,12 +143,12 @@ export function getCollateralAmountLocked(
     .times(reserveAmount)
     .div(BigInt.fromI32(10).pow(<u8>reserve.assetDecimals));
 
-  let userLtv = getOrInitUserLtv(user, reserve.lendingPool, block);
-  if (userLtv == BigInt.fromI32(0)) {
+  let userAccountData = getOrInitUserAccountData(user, reserve.lendingPool, block);
+  if (userAccountData.ltv == BigInt.fromI32(0)) {
     return BigInt.fromI32(0);
   }
 
-  let collateralLocked = borrowAmountInEth.div(userLtv);
+  let collateralLocked = borrowAmountInEth.div(userAccountData.ltv);
 
   return collateralLocked;
 }
@@ -196,31 +196,46 @@ export function getOrInitReserve(
   return reserve as Reserve;
 }
 
-export function getOrInitUserLtv(
+export function getOrInitUserAccountData(
   user: Account,
   lendingPoolId: string,
   block: ethereum.Block
-): BigInt {
-  let userLtv = UserLtv.load(user.id);
-  if (userLtv == null) {
-    userLtv = new UserLtv(user.id);
-    userLtv.user = user.id;
-    userLtv.lastUpdateTimestamp = BigInt.fromI32(0);
+): UserAccountData {
+  let userAccountData = UserAccountData.load(user.id);
+  if (userAccountData == null) {
+    userAccountData = new UserAccountData(user.id);
+    userAccountData.user = user.id;
+    userAccountData.totalCollateralEth = BigInt.fromI32(0);
+    userAccountData.totalDebtETH = BigInt.fromI32(0);
+    userAccountData.availableBorrowsETH = BigInt.fromI32(0);
+    userAccountData.currentLiquidationThreshold = BigInt.fromI32(0);
+    userAccountData.healthFactor = BigInt.fromI32(0);
+    userAccountData.lastUpdateTimestamp = BigInt.fromI32(0);
   }
 
-  if (block.timestamp == userLtv.lastUpdateTimestamp) {
-    return userLtv.ltv;
+  if (block.timestamp == userAccountData.lastUpdateTimestamp) {
+    return userAccountData as UserAccountData;
   }
 
   let lendingPool = LendingPoolContract.bind(Address.fromString(lendingPoolId));
   let accountData = lendingPool.getUserAccountData(Address.fromString(user.id));
+  let totalCollateralEth = accountData.value0;
+  let totalDebtETH = accountData.value1;
+  let availableBorrowsETH = accountData.value2;
+  let currentLiquidationThreshold = accountData.value3;
   let ltv = accountData.value4;
+  let healthFactor = accountData.value5;
 
-  userLtv.ltv = ltv;
-  userLtv.lastUpdateTimestamp = block.timestamp;
-  userLtv.save();
+  userAccountData.ltv = ltv;
+  userAccountData.totalCollateralEth = totalCollateralEth;
+  userAccountData.totalDebtETH = totalDebtETH;
+  userAccountData.availableBorrowsETH = availableBorrowsETH;
+  userAccountData.currentLiquidationThreshold = currentLiquidationThreshold;
+  userAccountData.healthFactor = healthFactor;
+  userAccountData.lastUpdateTimestamp = block.timestamp;
+  userAccountData.save();
 
-  return ltv;
+  return userAccountData as UserAccountData;
 }
 
 export function getRepaymentRateMode(event: ethereum.Event, reserve: Reserve): i32 {
