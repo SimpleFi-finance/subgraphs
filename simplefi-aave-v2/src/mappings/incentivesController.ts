@@ -4,11 +4,7 @@ import {
   RewardsClaimed,
   RewardsAccrued,
 } from "../../generated/templates/IncentivesController/AaveIncentivesController";
-import {
-  RewardsClaimed as RewardsClaimedEntity,
-  RewardsAccrue,
-  Market,
-} from "../../generated/schema";
+import { RewardsClaim, RewardsAccrue, Market } from "../../generated/schema";
 
 import { getOrCreateAaveUser, getOrInitReserve } from "../library/lendingPoolUtils";
 import {
@@ -22,7 +18,7 @@ export function handleRewardsClaimed(event: RewardsClaimed): void {
   let userAddress = event.params.user.toHexString();
 
   // create entity
-  let claim = new RewardsClaimedEntity(
+  let claim = new RewardsClaim(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
   );
   claim.user = event.params.user.toHexString();

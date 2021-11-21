@@ -325,7 +325,7 @@ type IncentivesController @entity {
   lendingPool: String!
 }
 
-type RewardsClaimed @entity {
+type RewardsClaim @entity {
   " TX-logIndex "
   id: ID!
   user: String!
@@ -338,7 +338,6 @@ type RewardsAccrue @entity {
   " TX-userAddress "
   id: ID!
   user: String!
-  to: String!
   amount: BigInt!
 }
 
