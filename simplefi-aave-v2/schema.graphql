@@ -341,4 +341,15 @@ type RewardsAccrue @entity {
   amount: BigInt!
 }
 
+type Liquidation @entity {
+  id: ID!
+  collateralAsset: String!
+  debtAsset: String!
+  debtToCover: BigInt!
+  liquidatedCollateralAmount: BigInt!
+  liquidator: String!
+  receiveAToken: Boolean!
+  user: String!
+}
+
 # END - Aave protocol entities

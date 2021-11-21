@@ -110,8 +110,8 @@ templates:
         #   handler: handleRebalanceStableBorrowRate
         - event: FlashLoan(indexed address,indexed address,indexed address,uint256,uint256,uint16)
           handler: handleFlashLoan
-        # - event: LiquidationCall(indexed address,indexed address,indexed address,uint256,uint256,address,bool)
-        #   handler: handleLiquidationCall
+        - event: LiquidationCall(indexed address,indexed address,indexed address,uint256,uint256,address,bool)
+          handler: handleLiquidationCall
         - event: ReserveDataUpdated(indexed address,uint256,uint256,uint256,uint256,uint256)
           handler: handleReserveDataUpdated
       file: ./src/mappings/lendingPool.ts

@@ -7,6 +7,7 @@ import {
   Swap,
   ReserveDataUpdated,
   FlashLoan,
+  LiquidationCall,
 } from "../../generated/templates/LendingPool/LendingPool";
 import {
   Deposit as DepositEntity,
@@ -18,6 +19,7 @@ import {
   Market,
   SwapRateMode,
   UserDebtBalance,
+  Liquidation,
 } from "../../generated/schema";
 
 import {
@@ -479,6 +481,19 @@ export function handleSwap(event: Swap): void {
     // unrecognized borrow rate mode
     return;
   }
+}
+
+export function handleLiquidationCall(event: LiquidationCall): void {
+  let liquidation = new Liquidation(
+    event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
+  );
+  liquidation.collateralAsset = event.params.collateralAsset.toHexString();
+  liquidation.debtAsset = event.params.debtAsset.toHexString();
+  liquidation.debtToCover = event.params.debtToCover;
+  liquidation.liquidatedCollateralAmount = event.params.liquidatedCollateralAmount;
+  liquidation.liquidator = event.params.liquidator.toHexString();
+  liquidation.receiveAToken = event.params.receiveAToken;
+  liquidation.user = event.params.user.toHexString();
 }
 
 function borrowOrRepayDebt(
