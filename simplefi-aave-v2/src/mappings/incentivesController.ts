@@ -16,6 +16,7 @@ import { getOrCreateAaveUser, getOrInitUserAccountData } from "../library/lendin
 import {
   ADDRESS_ZERO,
   getOrCreateAccount,
+  investInMarket,
   redeemFromMarket,
   TokenBalance,
 } from "../library/common";
@@ -98,14 +99,66 @@ export function handleRewardsAccrued(event: RewardsAccrued): void {
   let userAddress = event.params.user.toHexString();
 
   // create reward accrual entity so it can be processed by upcoming lendingPool events
-  let entity = new RewardsAccrue(event.transaction.hash.toHexString() + "-" + userAddress);
-  entity.user = userAddress;
-  entity.amount = event.params.amount;
-  entity.save();
+  let accrue = new RewardsAccrue(event.transaction.hash.toHexString() + "-" + userAddress);
+  accrue.user = userAddress;
+  accrue.amount = event.params.amount;
+  accrue.save();
 
   // keep track of total rewards
   let user = getOrCreateAaveUser(userAddress);
-  user.lifetimeRewards = user.lifetimeRewards.plus(entity.amount);
-  user.unclaimedRewards = user.unclaimedRewards.plus(entity.amount);
+  user.lifetimeRewards = user.lifetimeRewards.plus(accrue.amount);
+  user.unclaimedRewards = user.unclaimedRewards.plus(accrue.amount);
   user.save();
+
+  ////// update user's position
+
+  // staking market which controlls rewards
+  let market = Market.load(event.address.toHexString()) as Market;
+
+  // user whose position is updated
+  let account = getOrCreateAccount(Address.fromString(accrue.user));
+
+  // no change
+  let outputTokenAmount = BigInt.fromI32(0);
+
+  // no change
+  let inputTokensAmount: TokenBalance[] = [];
+
+  // no change
+  let rewardTokenAmounts: TokenBalance[] = [];
+
+  // total collateral amount in ETH
+  let incentivesController = IncentivesController.load(event.address.toHexString());
+  let userAccountData = getOrInitUserAccountData(
+    getOrCreateAccount(Address.fromString(accrue.user)),
+    incentivesController.lendingPool,
+    event.block
+  );
+  let outputTokenBalance = userAccountData.totalCollateralEth;
+
+  // total collateral amount in ETH
+  let inputTokens = market.inputTokens as string[];
+  let inputTokenBalances: TokenBalance[] = [
+    new TokenBalance(inputTokens[0], userAccountData.user, userAccountData.totalCollateralEth),
+  ];
+
+  // reward token amounts claimable by user
+  let rewardTokens = market.rewardTokens as string[];
+  let rewardTokenBalances: TokenBalance[] = [
+    new TokenBalance(rewardTokens[0], accrue.user, user.unclaimedRewards),
+  ];
+
+  // use common function to update position and store transaction
+  investInMarket(
+    event,
+    account,
+    market,
+    outputTokenAmount,
+    inputTokensAmount,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
 }
