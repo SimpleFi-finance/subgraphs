@@ -16,7 +16,7 @@ import {
   VariableDebtTokenBurn,
   StableDebtTokenBurn,
   IncentivesController,
-  AaveUser,
+  UserRewardBalances,
 } from "../../generated/schema";
 
 import { IPriceOracleGetter } from "../../generated/templates/LendingPool/IPriceOracleGetter";
@@ -306,18 +306,18 @@ export function getOrCreateIncentivesController(
   return incentivesController as IncentivesController;
 }
 
-export function getOrCreateAaveUser(userAddress: string): AaveUser {
+export function getOrCreateUserRewardBalances(userAddress: string): UserRewardBalances {
   let id = userAddress;
-  let user = AaveUser.load(id);
+  let user = UserRewardBalances.load(id);
   if (user != null) {
-    return user as AaveUser;
+    return user as UserRewardBalances;
   }
 
-  user = new AaveUser(id);
+  user = new UserRewardBalances(id);
   user.lifetimeRewards = BigInt.fromI32(0);
   user.claimedRewards = BigInt.fromI32(0);
   user.unclaimedRewards = BigInt.fromI32(0);
   user.save();
 
-  return user as AaveUser;
+  return user as UserRewardBalances;
 }

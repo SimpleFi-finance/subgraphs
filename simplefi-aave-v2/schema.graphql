@@ -272,7 +272,7 @@ type UserAccountData @entity {
   lastUpdateTimestamp: BigInt!
 }
 
-type AaveUser @entity {
+type UserRewardBalances @entity {
   " address "
   id: ID!
 

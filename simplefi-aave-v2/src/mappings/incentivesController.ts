@@ -12,7 +12,10 @@ import {
   UserAccountData,
 } from "../../generated/schema";
 
-import { getOrCreateAaveUser, getOrInitUserAccountData } from "../library/lendingPoolUtils";
+import {
+  getOrCreateUserRewardBalances,
+  getOrInitUserAccountData,
+} from "../library/lendingPoolUtils";
 import {
   ADDRESS_ZERO,
   getOrCreateAccount,
@@ -35,7 +38,7 @@ export function handleRewardsClaimed(event: RewardsClaimed): void {
   claim.save();
 
   // keep track of total rewards
-  let user = getOrCreateAaveUser(userAddress);
+  let user = getOrCreateUserRewardBalances(userAddress);
   user.claimedRewards = user.claimedRewards.plus(claim.amount);
   user.unclaimedRewards = user.unclaimedRewards.minus(claim.amount);
   user.save();
@@ -105,7 +108,7 @@ export function handleRewardsAccrued(event: RewardsAccrued): void {
   accrue.save();
 
   // keep track of total rewards
-  let user = getOrCreateAaveUser(userAddress);
+  let user = getOrCreateUserRewardBalances(userAddress);
   user.lifetimeRewards = user.lifetimeRewards.plus(accrue.amount);
   user.unclaimedRewards = user.unclaimedRewards.plus(accrue.amount);
   user.save();
