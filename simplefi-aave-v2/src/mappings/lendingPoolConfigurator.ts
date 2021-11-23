@@ -1,4 +1,11 @@
-import { Address, BigInt, ethereum, log, dataSource } from "@graphprotocol/graph-ts";
+import {
+  Address,
+  BigInt,
+  ethereum,
+  log,
+  dataSource,
+  DataSourceContext,
+} from "@graphprotocol/graph-ts";
 
 import {
   CollateralConfigurationChanged,
@@ -11,7 +18,7 @@ import { getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/commo
 
 import { ProtocolName, ProtocolType } from "../library/constants";
 import { getOrInitReserve } from "../library/lendingPoolUtils";
-import { VariableDebtToken, StableDebtToken } from "../../generated/templates";
+import { AToken, VariableDebtToken, StableDebtToken } from "../../generated/templates";
 
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
@@ -46,6 +53,12 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
   reserve.variableDebtToken = variableDebtToken.id;
   reserve.lastUpdateTimestamp = event.block.timestamp;
   reserve.save();
+
+  // start indexing atoken and forward the lending pool
+  let aTokenContext = new DataSourceContext();
+  aTokenContext.setString("lendingPool", lendingPool);
+  aTokenContext.setString("baseAsset", reserve.asset);
+  AToken.createWithContext(event.params.aToken, aTokenContext);
 
   // start indexing debt tokens
   StableDebtToken.create(event.params.stableDebtToken);

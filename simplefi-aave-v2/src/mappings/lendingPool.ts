@@ -31,16 +31,11 @@ import {
   redeemFromMarket,
   repayToMarket,
   TokenBalance,
-  ADDRESS_ZERO,
 } from "../library/common";
 
 import {
   getOrCreateUserInvestmentBalance,
   getOrCreateUserDebtBalance,
-  getReserveNormalizedIncome,
-  getUserATokenBalance,
-  getMarketATokenSupply,
-  getPriceOracle,
   getOrInitReserve,
   getCollateralAmountLocked,
   getRepaymentRateMode,
@@ -69,16 +64,10 @@ export function handleDeposit(event: Deposit): void {
   );
   userInvestmentBalance.save();
 
-  // update market total supply
-  let market = Market.load(reserveId) as Market;
-  let oldTotalSupply = getMarketATokenSupply(market, reserveId, event);
-  let newTotalSupply = oldTotalSupply.plus(deposit.amount);
-  let marketInputTokenBalances: TokenBalance[] = [
-    new TokenBalance(deposit.reserve, market.id, newTotalSupply),
-  ];
-  updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
-
   ////// update user's position
+
+  // "deposit" market
+  let market = Market.load(reserveId) as Market;
 
   // position shall be updated for user on whose behalf deposit is made
   let account = getOrCreateAccount(Address.fromString(deposit.onBehalfOf));
@@ -94,8 +83,8 @@ export function handleDeposit(event: Deposit): void {
   // number of reward tokens claimed by user in this transaction
   let rewardTokenAmounts: TokenBalance[] = [];
 
-  // user's total balance of aTokens
-  let outputTokenBalance = getUserATokenBalance(userInvestmentBalance, event);
+  // user's balance of provided deposits
+  let outputTokenBalance = userInvestmentBalance.underlyingTokenProvidedAmount;
 
   // number of tokens that can be redeemed by deposit receiver - it's equal to user's aToken balance
   let inputTokenBalances: TokenBalance[] = [];
@@ -138,16 +127,10 @@ export function handleWithdraw(event: Withdraw): void {
   );
   userInvestmentBalance.save();
 
-  // update market total supply
-  let market = Market.load(reserveId) as Market;
-  let oldTotalSupply = getMarketATokenSupply(market, reserveId, event);
-  let newTotalSupply = oldTotalSupply.minus(withdrawal.amount);
-  let marketInputTokenBalances: TokenBalance[] = [
-    new TokenBalance(withdrawal.reserve, market.id, newTotalSupply),
-  ];
-  updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
-
   ////// update user's position
+
+  // market
+  let market = Market.load(reserveId) as Market;
 
   // withdrawer (msg.sender)
   let account = getOrCreateAccount(Address.fromString(withdrawal.user));
@@ -163,8 +146,8 @@ export function handleWithdraw(event: Withdraw): void {
   // number of reward tokens claimed by user in this transaction
   let rewardTokenAmounts: TokenBalance[] = [];
 
-  // user's total balance of aTokens
-  let outputTokenBalance = getUserATokenBalance(userInvestmentBalance, event);
+  // user's balance of provided deposits
+  let outputTokenBalance = userInvestmentBalance.underlyingTokenProvidedAmount;
 
   // number of tokens that can be redeemed by withdrawer - it's equal to his aToken balance
   let inputTokenBalances: TokenBalance[] = [];
@@ -605,17 +588,9 @@ export function handleLiquidationCall(event: LiquidationCall): void {
   );
   liquidatorInvestmentBalance.save();
 
-  // update market total supply
-  let collateralMarket = Market.load(collateralReserveId) as Market;
-  let oldTotalSupply = getMarketATokenSupply(collateralMarket, collateralReserveId, event);
-  let newTotalSupply = oldTotalSupply.minus(liquidation.liquidatedCollateralAmount);
-  let marketInputTokenBalances: TokenBalance[] = [
-    new TokenBalance(collateralReserveId, collateralMarket.id, newTotalSupply),
-  ];
-  updateMarket(event, collateralMarket, marketInputTokenBalances, newTotalSupply);
-
   ////// update user's position
 
+  let collateralMarket = Market.load(collateralReserveId) as Market;
   let liquidatedUser = getOrCreateAccount(Address.fromString(liquidation.user));
 
   // amount of collateral aTokens burned
@@ -629,8 +604,8 @@ export function handleLiquidationCall(event: LiquidationCall): void {
   // no reward tokens in this TX
   let rewardTokenAmounts: TokenBalance[] = [];
 
-  // user's new total balance of aTokens
-  let outputTokenBalance = getUserATokenBalance(userInvestmentBalance, event);
+  // user's balance of provided deposits
+  let outputTokenBalance = userInvestmentBalance.underlyingTokenProvidedAmount;
 
   // number of tokens that can be redeemed by user - it's equal to his new aToken balance
   let inputTokenBalances: TokenBalance[] = [];
@@ -668,7 +643,7 @@ export function handleLiquidationCall(event: LiquidationCall): void {
   ];
 
   // liquidator's new total balance of aTokens
-  let liquidatorOutputTokenBalance = getUserATokenBalance(liquidatorInvestmentBalance, event);
+  let liquidatorOutputTokenBalance = liquidatorInvestmentBalance.underlyingTokenProvidedAmount;
 
   // number of tokens that can be redeemed by user - it's equal to his new aToken balance
   let liquidatorInputTokenBalances: TokenBalance[] = [];

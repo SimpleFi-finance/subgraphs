@@ -104,16 +104,6 @@ export function getReserveNormalizedIncome(reserve: Reserve, event: ethereum.Eve
   return result;
 }
 
-export function getUserATokenBalance(
-  balance: UserInvestmentBalance,
-  event: ethereum.Event
-): BigInt {
-  let reserve = Reserve.load(balance.reserve) as Reserve;
-  let reserveNormalIncome = getReserveNormalizedIncome(reserve, event);
-
-  return rayMul(balance.underlyingTokenProvidedAmount, reserveNormalIncome);
-}
-
 export function getMarketATokenSupply(
   market: Market,
   reserveId: string,
@@ -320,4 +310,15 @@ export function getOrCreateUserRewardBalances(userAddress: string): UserRewardBa
   user.save();
 
   return user as UserRewardBalances;
+}
+
+export function aTokenScaledTotalSupply(market: Market, event: ethereum.Event): BigInt {
+  let baseSupply = market.outputTokenTotalSupply;
+
+  if (baseSupply == BigInt.fromI32(0)) {
+    return BigInt.fromI32(0);
+  }
+
+  let reserve = Reserve.load(market.id) as Reserve;
+  return rayMul(baseSupply, getReserveNormalizedIncome(reserve, event));
 }

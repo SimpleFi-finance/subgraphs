@@ -313,6 +313,17 @@ type UserDebtBalance @entity {
   rateMode: Int!
 }
 
+type AToken @entity {
+  id: ID!
+  underlyingAsset: String!
+  treasury: String!
+  incentivesController: String!
+  lendingPool: String!
+  aTokenName: String!
+  aTokenSymbol: String!
+  aTokenDecimals: Int!
+}
+
 type VariableDebtTokenBurn @entity {
   " tx-tokenAdress "
   id: ID!
