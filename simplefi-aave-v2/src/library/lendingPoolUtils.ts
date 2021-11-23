@@ -284,7 +284,7 @@ export function getOrCreateIncentivesController(
 
   // create staking market
   let weth = getOrCreateERC20Token(event, Address.fromString(WETH));
-  let marketId = controllerAddress;
+  let marketId = lendingPool + "-" + controllerAddress;
   let marketAddress = Address.fromString(controllerAddress);
   let protocolName = ProtocolName.AAVE_POOL;
   let protocolType = ProtocolType.STAKING;

@@ -116,7 +116,9 @@ export function handleRewardsAccrued(event: RewardsAccrued): void {
   ////// update user's position
 
   // staking market which controlls rewards
-  let market = Market.load(event.address.toHexString()) as Market;
+  let incentivesController = IncentivesController.load(event.address.toHexString());
+  let marketId = incentivesController.lendingPool + "-" + event.address.toHexString();
+  let market = Market.load(marketId) as Market;
 
   // user whose position is updated
   let account = getOrCreateAccount(Address.fromString(accrue.user));
@@ -131,7 +133,6 @@ export function handleRewardsAccrued(event: RewardsAccrued): void {
   let rewardTokenAmounts: TokenBalance[] = [];
 
   // total collateral amount in ETH
-  let incentivesController = IncentivesController.load(event.address.toHexString());
   let userAccountData = getOrInitUserAccountData(
     getOrCreateAccount(Address.fromString(accrue.user)),
     incentivesController.lendingPool,
