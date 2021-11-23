@@ -168,7 +168,9 @@ export function handleWithdraw(event: Withdraw): void {
 
   // number of tokens that can be redeemed by withdrawer - it's equal to his aToken balance
   let inputTokenBalances: TokenBalance[] = [];
-  inputTokenBalances.push(new TokenBalance(withdrawal.reserve, withdrawal.user, outputTokenAmount));
+  inputTokenBalances.push(
+    new TokenBalance(withdrawal.reserve, withdrawal.user, outputTokenBalance)
+  );
 
   // reward token amounts claimable by user
   let rewardTokenBalances: TokenBalance[] = [];
@@ -431,6 +433,7 @@ export function handleFlashLoan(event: FlashLoan): void {
 export function handleSwap(event: Swap): void {
   let lendingPool = event.address.toHexString();
 
+  // create swap entity
   let swap = new SwapRateMode(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
   );
@@ -444,46 +447,98 @@ export function handleSwap(event: Swap): void {
   let stableMarketId = lendingPool + "-" + reserve.stableDebtToken;
   let variableMarketId = lendingPool + "-" + reserve.variableDebtToken;
 
+  // load debt trackers
+  let userVariableDebtBalance = getOrCreateUserDebtBalance(
+    swap.user,
+    reserve.id,
+    variableMarketId,
+    BORROW_MODE_VARIABLE
+  );
+
+  let userStableDebtBalance = getOrCreateUserDebtBalance(
+    swap.user,
+    reserve.id,
+    variableMarketId,
+    BORROW_MODE_VARIABLE
+  );
+
   if (swap.rateMode == BORROW_MODE_STABLE) {
-    // load existing tracker
-    let userDebtBalance = getOrCreateUserDebtBalance(
-      swap.user,
-      reserve.id,
+    // increase stable debt
+    userStableDebtBalance.debtTakenAmount = userStableDebtBalance.debtTakenAmount.plus(
+      userVariableDebtBalance.debtTakenAmount
+    );
+    userStableDebtBalance.save();
+
+    //decrease variable debt
+    userVariableDebtBalance.debtTakenAmount = BigInt.fromI32(0);
+    userVariableDebtBalance.save();
+
+    // update user position - repay variable debt
+    borrowOrRepayDebt(
+      userVariableDebtBalance,
+      userVariableDebtBalance.debtTakenAmount,
+      reserve,
+      event,
       variableMarketId,
-      BORROW_MODE_VARIABLE
+      false
     );
 
-    // switch it to stable mode
-    userDebtBalance.id = stableMarketId;
-    userDebtBalance.rateMode = BORROW_MODE_STABLE;
-    userDebtBalance.save();
-
-    // update user positions in both debt markets
-    borrowOrRepayDebt(userDebtBalance, reserve, event, stableMarketId, false);
-    borrowOrRepayDebt(userDebtBalance, reserve, event, stableMarketId, true);
-  } else if (swap.rateMode == BORROW_MODE_VARIABLE) {
-    // load existing tracker
-    let userDebtBalance = getOrCreateUserDebtBalance(
-      swap.user,
-      reserve.id,
+    // update user position - borrow stable debt
+    borrowOrRepayDebt(
+      userStableDebtBalance,
+      userStableDebtBalance.debtTakenAmount,
+      reserve,
+      event,
       stableMarketId,
-      BORROW_MODE_STABLE
+      true
     );
-    // switch it to variable mode
-    userDebtBalance.id = variableMarketId;
-    userDebtBalance.rateMode = BORROW_MODE_VARIABLE;
-    userDebtBalance.save();
+  } else if (swap.rateMode == BORROW_MODE_VARIABLE) {
+    // increase variable debt
+    userVariableDebtBalance.debtTakenAmount = userVariableDebtBalance.debtTakenAmount.plus(
+      userStableDebtBalance.debtTakenAmount
+    );
+    userVariableDebtBalance.save();
 
-    // update user positions in both debt markets
-    borrowOrRepayDebt(userDebtBalance, reserve, event, stableMarketId, false);
-    borrowOrRepayDebt(userDebtBalance, reserve, event, stableMarketId, true);
+    // decrease stable debt
+    userStableDebtBalance.debtTakenAmount = BigInt.fromI32(0);
+    userStableDebtBalance.save();
+
+    // update user position - repay stable debt
+    borrowOrRepayDebt(
+      userStableDebtBalance,
+      userStableDebtBalance.debtTakenAmount,
+      reserve,
+      event,
+      stableMarketId,
+      false
+    );
+
+    // update user position - borrow variable debt
+    borrowOrRepayDebt(
+      userVariableDebtBalance,
+      userVariableDebtBalance.debtTakenAmount,
+      reserve,
+      event,
+      variableMarketId,
+      true
+    );
   } else {
     // unrecognized borrow rate mode
     return;
   }
 }
 
+/**
+ * Liquidated user:
+ * - part of debt repayed
+ * - part of collateral (aTokens) burned
+ * Liquidator:
+ * - receives underlying tokens of burned collateral
+ * @param event
+ */
 export function handleLiquidationCall(event: LiquidationCall): void {
+  let lendingPool = event.address.toHexString();
+
   let liquidation = new Liquidation(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
   );
@@ -494,23 +549,164 @@ export function handleLiquidationCall(event: LiquidationCall): void {
   liquidation.liquidator = event.params.liquidator.toHexString();
   liquidation.receiveAToken = event.params.receiveAToken;
   liquidation.user = event.params.user.toHexString();
+  liquidation.save();
+
+  let debtAssetId = lendingPool + "-" + liquidation.debtAsset;
+  let liquidatedReserve = Reserve.load(debtAssetId) as Reserve;
+
+  // fetch market based on rate mode
+  let debtMarketId: string;
+  let repaymentRateMode = getRepaymentRateMode(event, liquidatedReserve);
+
+  if (repaymentRateMode == BORROW_MODE_STABLE) {
+    debtMarketId = lendingPool + "-" + liquidatedReserve.stableDebtToken;
+  } else if (repaymentRateMode == BORROW_MODE_VARIABLE) {
+    debtMarketId = lendingPool + "-" + liquidatedReserve.variableDebtToken;
+  }
+
+  // load existing tracker
+  let userDebtBalance = getOrCreateUserDebtBalance(
+    liquidation.user,
+    debtAssetId,
+    debtMarketId,
+    getRepaymentRateMode(event, liquidatedReserve)
+  );
+
+  // debt liquidation is in effect debt repayment
+  borrowOrRepayDebt(
+    userDebtBalance,
+    liquidation.debtToCover,
+    liquidatedReserve,
+    event,
+    debtMarketId,
+    false
+  );
+
+  //// process liquidated collateral
+
+  // decrease user's balance of collateral asset
+  let collateralReserveId = event.address.toHexString() + "-" + liquidation.collateralAsset;
+  let userInvestmentBalance = getOrCreateUserInvestmentBalance(
+    liquidation.user,
+    collateralReserveId
+  );
+  userInvestmentBalance.underlyingTokenProvidedAmount = userInvestmentBalance.underlyingTokenProvidedAmount.minus(
+    liquidation.liquidatedCollateralAmount
+  );
+  userInvestmentBalance.save();
+
+  // increase liquidator's balance of collateral asset
+  let liquidatorInvestmentBalance = getOrCreateUserInvestmentBalance(
+    liquidation.user,
+    collateralReserveId
+  );
+  liquidatorInvestmentBalance.underlyingTokenProvidedAmount = liquidatorInvestmentBalance.underlyingTokenProvidedAmount.plus(
+    liquidation.liquidatedCollateralAmount
+  );
+  liquidatorInvestmentBalance.save();
+
+  // update market total supply
+  let collateralMarket = Market.load(collateralReserveId) as Market;
+  let oldTotalSupply = getMarketATokenSupply(collateralMarket, collateralReserveId, event);
+  let newTotalSupply = oldTotalSupply.minus(liquidation.liquidatedCollateralAmount);
+  let marketInputTokenBalances: TokenBalance[] = [
+    new TokenBalance(collateralReserveId, collateralMarket.id, newTotalSupply),
+  ];
+  updateMarket(event, collateralMarket, marketInputTokenBalances, newTotalSupply);
+
+  ////// update user's position
+
+  let liquidatedUser = getOrCreateAccount(Address.fromString(liquidation.user));
+
+  // amount of collateral aTokens burned
+  let outputTokenAmount = liquidation.liquidatedCollateralAmount;
+
+  // liquidated user received 0 of collateral that was liquidated
+  let inputTokensAmount: TokenBalance[] = [
+    new TokenBalance(liquidation.collateralAsset, liquidation.user, BigInt.fromI32(0)),
+  ];
+
+  // no reward tokens in this TX
+  let rewardTokenAmounts: TokenBalance[] = [];
+
+  // user's new total balance of aTokens
+  let outputTokenBalance = getUserATokenBalance(userInvestmentBalance, event);
+
+  // number of tokens that can be redeemed by user - it's equal to his new aToken balance
+  let inputTokenBalances: TokenBalance[] = [];
+  inputTokenBalances.push(
+    new TokenBalance(liquidation.collateralAsset, liquidation.user, outputTokenBalance)
+  );
+
+  // reward token amounts claimable by user
+  let rewardTokenBalances: TokenBalance[] = [];
+
+  // use common function to update position and store transaction
+  redeemFromMarket(
+    event,
+    liquidatedUser,
+    collateralMarket,
+    outputTokenAmount,
+    inputTokensAmount,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
+
+  ///// update liquidator's position
+  let liquidator = getOrCreateAccount(event.params.liquidator);
+
+  // liquidator received `liquidatedCollateralAmount` of collateral
+  let liquidatorInputTokensAmount: TokenBalance[] = [
+    new TokenBalance(
+      liquidation.collateralAsset,
+      liquidation.liquidator,
+      liquidation.liquidatedCollateralAmount
+    ),
+  ];
+
+  // liquidator's new total balance of aTokens
+  let liquidatorOutputTokenBalance = getUserATokenBalance(liquidatorInvestmentBalance, event);
+
+  // number of tokens that can be redeemed by user - it's equal to his new aToken balance
+  let liquidatorInputTokenBalances: TokenBalance[] = [];
+  liquidatorInputTokenBalances.push(
+    new TokenBalance(
+      liquidation.collateralAsset,
+      liquidation.liquidator,
+      liquidatorOutputTokenBalance
+    )
+  );
+
+  investInMarket(
+    event,
+    liquidator,
+    collateralMarket,
+    outputTokenAmount,
+    liquidatorInputTokensAmount,
+    rewardTokenAmounts,
+    liquidatorOutputTokenBalance,
+    liquidatorInputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
 }
 
 function borrowOrRepayDebt(
   userDebtBalance: UserDebtBalance,
+  amount: BigInt,
   reserve: Reserve,
-  event: Swap,
+  event: ethereum.Event,
   marketId: string,
   isBorrow: boolean
 ): void {
-  // amount of debt to be borrowed/repayed
-  let debtAmount = userDebtBalance.debtTakenAmount;
-
   // user for whom debt is being borrowed/repayed
   let account = getOrCreateAccount(Address.fromString(userDebtBalance.user));
 
   // amount of collateral locked/unlocked because of this payment
-  let collateralAmount = getCollateralAmountLocked(account, reserve, debtAmount, event.block);
+  let collateralAmount = getCollateralAmountLocked(account, reserve, amount, event.block);
 
   ///// update market
 
@@ -520,9 +716,9 @@ function borrowOrRepayDebt(
   let inputTokenTotalBalances = market.inputTokenTotalBalances as string[];
   let newTotalSupply: BigInt;
   if (isBorrow) {
-    newTotalSupply = market.outputTokenTotalSupply.plus(debtAmount);
+    newTotalSupply = market.outputTokenTotalSupply.plus(amount);
   } else {
-    newTotalSupply = market.outputTokenTotalSupply.minus(debtAmount);
+    newTotalSupply = market.outputTokenTotalSupply.minus(amount);
   }
 
   let oldTotalCollateralLocked = TokenBalance.fromString(inputTokenTotalBalances[0]).balance;
@@ -539,15 +735,15 @@ function borrowOrRepayDebt(
 
   ///// update position
 
-  // amount of debt bearing tokens swapped
-  let outputTokenAmount = debtAmount;
+  // amount of debt bearing tokens minted/burned
+  let outputTokenAmount = amount;
 
-  // amount of collateral locked/unlocked because of swap
+  // amount of collateral locked/unlocked
   let inputTokensAmount: TokenBalance[] = [
     new TokenBalance(inputTokens[0], userDebtBalance.user, collateralAmount),
   ];
 
-  // no reward tokens claimed by user in this transaction
+  // rewards are handled in separate contract
   let rewardTokenAmounts: TokenBalance[] = [];
 
   // total balance of debt bearing tokens ->
@@ -570,7 +766,7 @@ function borrowOrRepayDebt(
       event.block
     );
   } else {
-    // debt reppayed -> no collateral locked
+    // debt repayed -> no collateral locked
     balance = BigInt.fromI32(0);
   }
   inputTokenBalances.push(new TokenBalance(inputTokens[0], userDebtBalance.user, balance));
