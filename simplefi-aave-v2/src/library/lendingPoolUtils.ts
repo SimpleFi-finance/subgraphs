@@ -27,7 +27,7 @@ import { AaveIncentivesController as IncentivesControllerContract } from "../../
 
 import { ADDRESS_ZERO } from "./common";
 
-import { calculateLinearInterest, rayMul } from "./math";
+import { calculateCompoundedInterest, calculateLinearInterest, rayMul } from "./math";
 
 const BORROW_MODE_STABLE = 1;
 const BORROW_MODE_VARIABLE = 2;
@@ -100,6 +100,24 @@ export function getReserveNormalizedIncome(reserve: Reserve, event: ethereum.Eve
 
   let cumulated = calculateLinearInterest(reserve.liquidityRate, timestamp, event.block.timestamp);
   let result = rayMul(cumulated, reserve.liquidityIndex);
+
+  return result;
+}
+
+export function getReserveNormalizedVariableDebt(reserve: Reserve, event: ethereum.Event): BigInt {
+  let timestamp = reserve.lastUpdateTimestamp;
+
+  if (timestamp.equals(event.block.timestamp)) {
+    //if the index was updated in the same block, no need to perform any calculation
+    return reserve.variableBorrowIndex;
+  }
+
+  let cumulated = calculateCompoundedInterest(
+    reserve.variableBorrowRate,
+    timestamp,
+    event.block.timestamp
+  );
+  let result = rayMul(cumulated, reserve.variableBorrowIndex);
 
   return result;
 }
@@ -178,6 +196,8 @@ export function getOrInitReserve(
   reserve.lastUpdateTimestamp = event.block.timestamp;
   reserve.liquidityIndex = BigInt.fromI32(0);
   reserve.liquidityRate = BigInt.fromI32(0);
+  reserve.variableBorrowIndex = BigInt.fromI32(0);
+  reserve.variableBorrowRate = BigInt.fromI32(0);
   reserve.ltv = BigInt.fromI32(0);
   reserve.assetUnitPriceInEth = BigInt.fromI32(0);
   reserve.lastUpdateTimestamp = BigInt.fromI32(0);

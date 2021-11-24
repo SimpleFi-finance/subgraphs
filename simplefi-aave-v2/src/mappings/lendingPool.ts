@@ -396,6 +396,8 @@ export function handleReserveDataUpdated(event: ReserveDataUpdated): void {
   reserve.assetDecimals = asset.decimals;
   reserve.liquidityRate = event.params.liquidityRate;
   reserve.liquidityIndex = event.params.liquidityIndex;
+  reserve.variableBorrowIndex = event.params.variableBorrowIndex;
+  reserve.variableBorrowRate = event.params.variableBorrowRate;
   reserve.lastUpdateTimestamp = event.block.timestamp;
   reserve.save();
 }

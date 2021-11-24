@@ -248,6 +248,8 @@ type Reserve @entity {
   lastUpdateTimestamp: BigInt!
   liquidityIndex: BigInt!
   liquidityRate: BigInt!
+  variableBorrowIndex: BigInt!
+  variableBorrowRate: BigInt!
   ltv: BigInt!
   assetUnitPriceInEth: BigInt!
 }
@@ -322,6 +324,26 @@ type AToken @entity {
   aTokenName: String!
   aTokenSymbol: String!
   aTokenDecimals: Int!
+}
+
+type VariableDebtToken @entity {
+  id: ID!
+  underlyingAsset: String!
+  lendingPool: String!
+  incentivesController: String!
+  debtTokenName: String!
+  debtTokenSymbol: String!
+  debtTokenDecimals: Int!
+}
+
+type StableDebtToken @entity {
+  id: ID!
+  underlyingAsset: String!
+  lendingPool: String!
+  incentivesController: String!
+  debtTokenName: String!
+  debtTokenSymbol: String!
+  debtTokenDecimals: Int!
 }
 
 type VariableDebtTokenBurn @entity {

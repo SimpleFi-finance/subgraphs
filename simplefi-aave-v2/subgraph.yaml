@@ -237,8 +237,8 @@ templates:
       eventHandlers:
         - event: Burn(indexed address,uint256,uint256,uint256,uint256,uint256)
           handler: handleStableTokenBurn
-        # - event: Mint(indexed address,indexed address,uint256,uint256,uint256,uint256,uint256,uint256)
-        #   handler: handleStableTokenMint
+        - event: Mint(indexed address,indexed address,uint256,uint256,uint256,uint256,uint256,uint256)
+          handler: handleStableTokenMint
         # - event: BorrowAllowanceDelegated(indexed address,indexed address,address,uint256)
         #   handler: handleStableTokenBorrowAllowanceDelegated
         - event: Initialized(indexed address,indexed address,address,uint8,string,string,bytes)

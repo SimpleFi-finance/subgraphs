@@ -1,5 +1,3 @@
-import { Address, BigInt, ethereum, log, dataSource } from "@graphprotocol/graph-ts";
-
 import { Burn, Mint, Initialized, BalanceTransfer } from "../../generated/templates/AToken/AToken";
 
 import { Market, AToken } from "../../generated/schema";
