@@ -194,6 +194,14 @@ templates:
       abis:
         - name: AToken
           file: ./abis/AToken.json
+        - name: AaveIncentivesController
+          file: ./abis/AaveIncentivesController.json
+        - name: LendingPool
+          file: ./abis/LendingPool.json
+        - name: IERC20
+          file: ./abis/IERC20.json
+        - name: IPriceOracleGetter
+          file: ./abis/IPriceOracleGetter.json
       eventHandlers:
         - event: Burn(indexed address,indexed address,uint256,uint256)
           handler: handleATokenBurn

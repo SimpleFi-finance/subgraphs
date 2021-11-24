@@ -4,7 +4,8 @@ import { Burn, Mint, Initialized } from "../../generated/templates/AToken/AToken
 
 import { Market, AToken } from "../../generated/schema";
 
-import { updateMarket, TokenBalance } from "../library/common";
+import { updateMarket, TokenBalance, ADDRESS_ZERO } from "../library/common";
+
 import {
   aTokenScaledTotalSupply,
   getOrCreateIncentivesController,
@@ -71,6 +72,8 @@ export function handleATokenInitialized(event: Initialized): void {
   aToken.aTokenDecimals = event.params.aTokenDecimals;
   aToken.save();
 
-  // create incentive controller if it's not already created
-  getOrCreateIncentivesController(event, aToken.incentivesController, aToken.lendingPool);
+  if (aToken.incentivesController != ADDRESS_ZERO) {
+    // create incentive controller if it's not already created
+    getOrCreateIncentivesController(event, aToken.incentivesController, aToken.lendingPool);
+  }
 }
