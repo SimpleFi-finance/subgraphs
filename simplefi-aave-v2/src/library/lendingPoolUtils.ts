@@ -312,7 +312,7 @@ export function getOrCreateUserRewardBalances(userAddress: string): UserRewardBa
   return user as UserRewardBalances;
 }
 
-export function aTokenScaledTotalSupply(market: Market, event: ethereum.Event): BigInt {
+export function aTokenTotalSupply(market: Market, event: ethereum.Event): BigInt {
   let baseSupply = market.outputTokenTotalSupply;
 
   if (baseSupply == BigInt.fromI32(0)) {
@@ -321,4 +321,15 @@ export function aTokenScaledTotalSupply(market: Market, event: ethereum.Event): 
 
   let reserve = Reserve.load(market.id) as Reserve;
   return rayMul(baseSupply, getReserveNormalizedIncome(reserve, event));
+}
+
+export function getRedeemeableAmountOfTokens(
+  userInvestmentBalance: UserInvestmentBalance,
+  event: ethereum.Event
+): BigInt {
+  let reserve = Reserve.load(userInvestmentBalance.reserve) as Reserve;
+  return rayMul(
+    userInvestmentBalance.underlyingTokenProvidedAmount,
+    getReserveNormalizedIncome(reserve, event)
+  );
 }
