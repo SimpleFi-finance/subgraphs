@@ -12,47 +12,255 @@ import {
 } from "../library/common";
 
 import {
-  aTokenTotalSupply,
   getOrCreateIncentivesController,
   getOrCreateUserInvestmentBalance,
   getOrCreateUserRewardBalances,
-  getRedeemeableAmountOfTokens,
 } from "../library/lendingPoolUtils";
+import { rayDiv, rayMul } from "../library/math";
 
 export function handleATokenMint(event: Mint): void {
-  let mintedAmount = event.params.value;
-
   let aToken = AToken.load(event.address.toHexString());
   let market = Market.load(aToken.lendingPool + "-" + aToken.underlyingAsset) as Market;
 
+  let mintedAmount = event.params.value;
+  let liquidityIndex = event.params.index;
+  let scaledMintedAmount = rayDiv(mintedAmount, liquidityIndex);
+
   // update market total supply
-  let prevTotalSupply = market.outputTokenTotalSupply;
-  let newTotalSupply = prevTotalSupply.plus(mintedAmount);
+  let prevScaledTotalSupply = market.outputTokenTotalSupply;
+  let newScaledTotalSupply = prevScaledTotalSupply.plus(scaledMintedAmount);
 
   let inputTokens = market.inputTokens as string[];
-  let scaledATokens = aTokenTotalSupply(market, event);
-  let inputTokenBalances: TokenBalance[] = [
-    new TokenBalance(inputTokens[0], market.id, scaledATokens),
+  let newTotalATokenSupply = rayMul(newScaledTotalSupply, liquidityIndex);
+  let newInputTokenBalances: TokenBalance[] = [
+    new TokenBalance(inputTokens[0], market.id, newTotalATokenSupply),
   ];
-  updateMarket(event, market, inputTokenBalances, newTotalSupply);
+  updateMarket(event, market, newInputTokenBalances, newScaledTotalSupply);
+
+  /// increase user's investment balance
+  let user = getOrCreateAccount(event.params.from);
+  let investmentBalance = getOrCreateUserInvestmentBalance(user.id, market.id);
+  investmentBalance.scaledATokenBalance = investmentBalance.scaledATokenBalance.plus(
+    scaledMintedAmount
+  );
+  investmentBalance.aTokenBalance = rayMul(investmentBalance.scaledATokenBalance, liquidityIndex);
+  investmentBalance.save();
+
+  //// update user's  position
+
+  // user's scaled balance is decreased by this amount
+  let outputTokenAmount = scaledMintedAmount;
+
+  // user sent `mintedAmount` of underlying tokens
+  let inputTokensAmount: TokenBalance[] = [
+    new TokenBalance(aToken.underlyingAsset, user.id, mintedAmount),
+  ];
+
+  // user's total scaled balance of aTokens
+  let outputTokenBalance = investmentBalance.scaledATokenBalance;
+
+  // number of tokens that can be redeemed by user
+  let inputTokenBalances: TokenBalance[] = [
+    new TokenBalance(aToken.underlyingAsset, user.id, investmentBalance.aTokenBalance),
+  ];
+
+  // reward token amounts claimable by user
+  let rewardTokens = market.rewardTokens as string[];
+  let unclaimedRewards = getOrCreateUserRewardBalances(user.id).unclaimedRewards;
+  let rewardTokenBalances: TokenBalance[] = [
+    new TokenBalance(rewardTokens[0], user.id, unclaimedRewards),
+  ];
+
+  investInMarket(
+    event,
+    user,
+    market,
+    outputTokenAmount,
+    inputTokensAmount,
+    [],
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    user.id
+  );
 }
 
 export function handleATokenBurn(event: Burn): void {
-  let burnedAmount = event.params.value;
-
   let aToken = AToken.load(event.address.toHexString());
   let market = Market.load(aToken.lendingPool + "-" + aToken.underlyingAsset) as Market;
 
+  let burnedAmount = event.params.value;
+  let liquidityIndex = event.params.index;
+  let scaledBurnedAmount = rayDiv(burnedAmount, liquidityIndex);
+
   // update market total supply
-  let prevTotalSupply = market.outputTokenTotalSupply;
-  let newTotalSupply = prevTotalSupply.minus(burnedAmount);
+  let prevScaledTotalSupply = market.outputTokenTotalSupply;
+  let newScaledTotalSupply = prevScaledTotalSupply.minus(scaledBurnedAmount);
 
   let inputTokens = market.inputTokens as string[];
-  let scaledATokens = aTokenTotalSupply(market, event);
+  let newTotalATokenSupply = rayMul(newScaledTotalSupply, liquidityIndex);
   let inputTokenBalances: TokenBalance[] = [
-    new TokenBalance(inputTokens[0], market.id, scaledATokens),
+    new TokenBalance(inputTokens[0], market.id, newScaledTotalSupply),
   ];
-  updateMarket(event, market, inputTokenBalances, newTotalSupply);
+  updateMarket(event, market, inputTokenBalances, newTotalATokenSupply);
+
+  /// decrease user's investment balance
+  let user = getOrCreateAccount(event.params.from);
+  let investmentBalance = getOrCreateUserInvestmentBalance(user.id, market.id);
+  investmentBalance.scaledATokenBalance = investmentBalance.scaledATokenBalance.minus(
+    scaledBurnedAmount
+  );
+  investmentBalance.aTokenBalance = rayMul(investmentBalance.scaledATokenBalance, liquidityIndex);
+  investmentBalance.save();
+
+  //// update user's  position
+
+  // user's scaled balance is decreased by this amount
+  let outputTokenAmount = scaledBurnedAmount;
+
+  // user received `burnedAmount` of underlying asset
+  let inputTokensAmount: TokenBalance[] = [
+    new TokenBalance(aToken.underlyingAsset, user.id, burnedAmount),
+  ];
+
+  // user's total scaled balance of aTokens
+  let outputTokenBalance = investmentBalance.scaledATokenBalance;
+
+  // number of tokens that can be redeemed by user
+  let toInputTokenBalances: TokenBalance[] = [
+    new TokenBalance(aToken.underlyingAsset, user.id, investmentBalance.aTokenBalance),
+  ];
+
+  // reward token amounts claimable by user
+  let rewardTokens = market.rewardTokens as string[];
+  let unclaimedRewards = getOrCreateUserRewardBalances(user.id).unclaimedRewards;
+  let rewardTokenBalances: TokenBalance[] = [
+    new TokenBalance(rewardTokens[0], user.id, unclaimedRewards),
+  ];
+
+  redeemFromMarket(
+    event,
+    user,
+    market,
+    outputTokenAmount,
+    inputTokensAmount,
+    [],
+    outputTokenBalance,
+    toInputTokenBalances,
+    rewardTokenBalances,
+    user.id
+  );
+}
+
+export function handleATokenTransfer(event: BalanceTransfer): void {
+  let from = getOrCreateAccount(event.params.from);
+  let to = getOrCreateAccount(event.params.to);
+
+  let amountTransfered = event.params.value;
+  let liquidityIndex = event.params.index;
+  let scaledAmountTransfered = rayDiv(amountTransfered, liquidityIndex);
+
+  let aToken = AToken.load(event.address.toHexString());
+  let marketId = aToken.lendingPool + "-" + aToken.underlyingAsset;
+
+  // decrease sender's balance of provided tokens
+  let fromInvestmentBalance = getOrCreateUserInvestmentBalance(from.id, marketId);
+  fromInvestmentBalance.scaledATokenBalance = fromInvestmentBalance.scaledATokenBalance.minus(
+    scaledAmountTransfered
+  );
+  fromInvestmentBalance.aTokenBalance = rayMul(
+    fromInvestmentBalance.scaledATokenBalance,
+    liquidityIndex
+  );
+  fromInvestmentBalance.save();
+
+  //// update sender's  position
+
+  let market = Market.load(marketId) as Market;
+
+  // sender's scaled balance is decreased by this amount
+  let fromOutputTokenAmount = scaledAmountTransfered;
+
+  // sender sent `amountTransfered` of aTokens
+  let fromInputTokensAmount: TokenBalance[] = [
+    new TokenBalance(aToken.underlyingAsset, from.id, amountTransfered),
+  ];
+
+  // user's total scaled balance of aTokens
+  let fromOutputTokenBalance = fromInvestmentBalance.scaledATokenBalance;
+
+  // number of tokens that can be redeemed by sender
+  let fromInputTokenBalances: TokenBalance[] = [
+    new TokenBalance(aToken.underlyingAsset, from.id, fromInvestmentBalance.aTokenBalance),
+  ];
+
+  // reward token amounts claimable by user
+  let rewardTokens = market.rewardTokens as string[];
+  let fromUnclaimedRewards = getOrCreateUserRewardBalances(from.id).unclaimedRewards;
+  let fromRewardTokenBalances: TokenBalance[] = [
+    new TokenBalance(rewardTokens[0], from.id, fromUnclaimedRewards),
+  ];
+
+  redeemFromMarket(
+    event,
+    from,
+    market,
+    fromOutputTokenAmount,
+    fromInputTokensAmount,
+    [],
+    fromOutputTokenBalance,
+    fromInputTokenBalances,
+    fromRewardTokenBalances,
+    to.id
+  );
+
+  //// update receiver's position
+
+  // increase to's balance of provided tokens
+  let toInvestmentBalance = getOrCreateUserInvestmentBalance(to.id, marketId);
+  toInvestmentBalance.scaledATokenBalance = toInvestmentBalance.scaledATokenBalance.plus(
+    scaledAmountTransfered
+  );
+  toInvestmentBalance.aTokenBalance = rayMul(
+    toInvestmentBalance.scaledATokenBalance,
+    liquidityIndex
+  );
+  toInvestmentBalance.save();
+
+  // receiver's scaled balance is decreased by this amount
+  let receiverOutputTokenAmount = scaledAmountTransfered;
+
+  // receiver received `amountTransfered` of aTokens
+  let toInputTokensAmount: TokenBalance[] = [
+    new TokenBalance(aToken.underlyingAsset, to.id, amountTransfered),
+  ];
+
+  // receiver's total scaled balance of aTokens
+  let toOutputTokenBalance = toInvestmentBalance.scaledATokenBalance;
+
+  // number of tokens that can be redeemed by receiver
+  let toInputTokenBalances: TokenBalance[] = [
+    new TokenBalance(aToken.underlyingAsset, to.id, toInvestmentBalance.aTokenBalance),
+  ];
+
+  // reward token amounts claimable by user
+  let toUnclaimedRewards = getOrCreateUserRewardBalances(to.id).unclaimedRewards;
+  let rewardTokenBalances: TokenBalance[] = [
+    new TokenBalance(rewardTokens[0], to.id, toUnclaimedRewards),
+  ];
+
+  investInMarket(
+    event,
+    to,
+    market,
+    receiverOutputTokenAmount,
+    toInputTokensAmount,
+    [],
+    toOutputTokenBalance,
+    toInputTokenBalances,
+    rewardTokenBalances,
+    from.id
+  );
 }
 
 export function handleATokenInitialized(event: Initialized): void {
@@ -76,94 +284,4 @@ export function handleATokenInitialized(event: Initialized): void {
     // create incentive controller if it's not already created
     getOrCreateIncentivesController(event, aToken.incentivesController, aToken.lendingPool);
   }
-}
-
-export function handleATokenTransfer(event: BalanceTransfer): void {
-  let from = getOrCreateAccount(event.params.from);
-  let to = getOrCreateAccount(event.params.to);
-  let amount = event.params.value;
-
-  let aToken = AToken.load(event.address.toHexString());
-  let marketId = aToken.lendingPool + "-" + aToken.underlyingAsset;
-
-  // decrease from's balance of provided tokens
-  let fromInvestmentBalance = getOrCreateUserInvestmentBalance(from.id, marketId);
-  fromInvestmentBalance.underlyingTokenProvidedAmount = fromInvestmentBalance.underlyingTokenProvidedAmount.minus(
-    amount
-  );
-  fromInvestmentBalance.save();
-
-  // increase to's balance of provided tokens
-  let toInvestmentBalance = getOrCreateUserInvestmentBalance(to.id, marketId);
-  toInvestmentBalance.underlyingTokenProvidedAmount = toInvestmentBalance.underlyingTokenProvidedAmount.plus(
-    amount
-  );
-  toInvestmentBalance.save();
-
-  //// update sender's  position
-
-  let market = Market.load(marketId) as Market;
-
-  // sender sent `amount` of tokens
-  let fromInputTokensAmount: TokenBalance[] = [
-    new TokenBalance(aToken.underlyingAsset, from.id, amount),
-  ];
-
-  // number of tokens that can be redeemed by sender
-  let fromRedeemableAmount = getRedeemeableAmountOfTokens(fromInvestmentBalance, event);
-  let fromInputTokenBalances: TokenBalance[] = [
-    new TokenBalance(aToken.underlyingAsset, from.id, fromRedeemableAmount),
-  ];
-
-  // reward token amounts claimable by user
-  let rewardTokens = market.rewardTokens as string[];
-  let fromUnclaimedRewards = getOrCreateUserRewardBalances(from.id).unclaimedRewards;
-  let fromRewardTokenBalances: TokenBalance[] = [
-    new TokenBalance(rewardTokens[0], from.id, fromUnclaimedRewards),
-  ];
-
-  redeemFromMarket(
-    event,
-    from,
-    market,
-    amount,
-    fromInputTokensAmount,
-    [],
-    fromInvestmentBalance.underlyingTokenProvidedAmount,
-    fromInputTokenBalances,
-    fromRewardTokenBalances,
-    to.id
-  );
-
-  //// update receiver's position
-
-  // receiver received `amount` of tokens
-  let toInputTokensAmount: TokenBalance[] = [
-    new TokenBalance(aToken.underlyingAsset, to.id, amount),
-  ];
-
-  // number of tokens that can be redeemed by receiver
-  let toRedeemableAmount = getRedeemeableAmountOfTokens(toInvestmentBalance, event);
-  let toInputTokenBalances: TokenBalance[] = [
-    new TokenBalance(aToken.underlyingAsset, to.id, toRedeemableAmount),
-  ];
-
-  // reward token amounts claimable by user
-  let toUnclaimedRewards = getOrCreateUserRewardBalances(to.id).unclaimedRewards;
-  let rewardTokenBalances: TokenBalance[] = [
-    new TokenBalance(rewardTokens[0], to.id, toUnclaimedRewards),
-  ];
-
-  investInMarket(
-    event,
-    to,
-    market,
-    amount,
-    toInputTokensAmount,
-    [],
-    fromInvestmentBalance.underlyingTokenProvidedAmount,
-    toInputTokenBalances,
-    rewardTokenBalances,
-    from.id
-  );
 }

@@ -188,6 +188,7 @@ type Deposit @entity {
   reserve: String!
   amount: BigInt!
   referral: BigInt!
+  transactionHash: String!
 }
 
 type Withdrawal @entity {
@@ -196,6 +197,7 @@ type Withdrawal @entity {
   to: String!
   reserve: String!
   amount: BigInt!
+  transactionHash: String!
 }
 
 type Borrow @entity {
@@ -294,8 +296,11 @@ type UserInvestmentBalance @entity {
   " reserve to which user position belongs to "
   reserve: Reserve!
 
-  " input token amount the user has provided "
-  underlyingTokenProvidedAmount: BigInt!
+  " total aToken balance -> amount of underlying asset tokens that can be redeemed "
+  aTokenBalance: BigInt!
+
+  " principal amount of aTokens without the interest "
+  scaledATokenBalance: BigInt!
 }
 
 type UserDebtBalance @entity {
