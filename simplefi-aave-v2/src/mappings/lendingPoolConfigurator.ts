@@ -1,10 +1,6 @@
 import {
   Address,
-  BigInt,
-  ethereum,
-  log,
   dataSource,
-  DataSourceContext,
 } from "@graphprotocol/graph-ts";
 
 import {
@@ -59,9 +55,6 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
   aToken.underlyingAsset = reserve.asset;
   aToken.lendingPool = reserve.lendingPool;
   aToken.save();
-
-  // start indexing atoken
-  AToken.create(event.params.aToken);
 
   // start indexing debt tokens
   StableDebtToken.create(event.params.stableDebtToken);

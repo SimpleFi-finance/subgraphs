@@ -24,7 +24,10 @@ import {
 import { IPriceOracleGetter } from "../../generated/templates/LendingPool/IPriceOracleGetter";
 import { LendingPool as LendingPoolContract } from "../../generated/templates/LendingPool/LendingPool";
 
-import { IncentivesController as IncentivesControllerTemplate } from "../../generated/templates";
+import {
+  IncentivesController as IncentivesControllerTemplate,
+  AToken as ATokenTemplate,
+} from "../../generated/templates";
 import { AaveIncentivesController as IncentivesControllerContract } from "../../generated/templates/IncentivesController/AaveIncentivesController";
 
 import { ADDRESS_ZERO } from "./common";
@@ -351,6 +354,9 @@ export function getOrCreateAToken(aTokenAdress: string): AToken {
   aToken.aTokenSymbol = "";
   aToken.aTokenDecimals = 18;
   aToken.save();
+
+  // start indexing atoken
+  ATokenTemplate.create(Address.fromString(aTokenAdress));
 
   return aToken as AToken;
 }
