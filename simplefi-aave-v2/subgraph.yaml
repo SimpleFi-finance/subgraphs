@@ -237,13 +237,13 @@ templates:
       eventHandlers:
         - event: Burn(indexed address,uint256,uint256,uint256,uint256,uint256)
           handler: handleStableTokenBurn
-        - event: Mint(indexed address,indexed address,uint256,uint256,uint256,uint256,uint256,uint256)
-          handler: handleStableTokenMint
+        # - event: Mint(indexed address,indexed address,uint256,uint256,uint256,uint256,uint256,uint256)
+        #   handler: handleStableTokenMint
         # - event: BorrowAllowanceDelegated(indexed address,indexed address,address,uint256)
         #   handler: handleStableTokenBorrowAllowanceDelegated
         - event: Initialized(indexed address,indexed address,address,uint8,string,string,bytes)
           handler: handleStableDebtTokenInitialized
-      file: src/mappings/debtToken.ts
+      file: src/mappings/stableDebtToken.ts
   - kind: ethereum/contract
     name: VariableDebtToken
     network: mainnet
@@ -269,13 +269,13 @@ templates:
       eventHandlers:
         - event: Burn(indexed address,uint256,uint256)
           handler: handleVariableTokenBurn
-        # - event: Mint(indexed address,indexed address,uint256,uint256)
-        #   handler: handleVariableTokenMint
+        - event: Mint(indexed address,indexed address,uint256,uint256)
+          handler: handleVariableTokenMint
         # - event: BorrowAllowanceDelegated(indexed address,indexed address,address,uint256)
         #   handler: handleVariableTokenBorrowAllowanceDelegated
         - event: Initialized(indexed address,indexed address,address,uint8,string,string,bytes)
           handler: handleVariableDebtTokenInitialized
-      file: src/mappings/debtToken.ts
+      file: src/mappings/variableDebtToken.ts
   # --------------------------------------
   #            INCENTIVES
   # --------------------------------------

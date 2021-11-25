@@ -1,3 +1,5 @@
+import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
+
 import { Burn, Mint, Initialized, BalanceTransfer } from "../../generated/templates/AToken/AToken";
 
 import { Market, AToken } from "../../generated/schema";
@@ -12,6 +14,7 @@ import {
 } from "../library/common";
 
 import {
+  getOrCreateAToken,
   getOrCreateIncentivesController,
   getOrCreateUserInvestmentBalance,
   getOrCreateUserRewardBalances,
@@ -19,7 +22,7 @@ import {
 import { rayDiv, rayMul } from "../library/math";
 
 export function handleATokenMint(event: Mint): void {
-  let aToken = AToken.load(event.address.toHexString());
+  let aToken = getOrCreateAToken(event.address.toHexString());
   let market = Market.load(aToken.lendingPool + "-" + aToken.underlyingAsset) as Market;
 
   let mintedAmount = event.params.value;
@@ -35,6 +38,7 @@ export function handleATokenMint(event: Mint): void {
   let newInputTokenBalances: TokenBalance[] = [
     new TokenBalance(inputTokens[0], market.id, newTotalATokenSupply),
   ];
+
   updateMarket(event, market, newInputTokenBalances, newScaledTotalSupply);
 
   /// increase user's investment balance
@@ -64,13 +68,6 @@ export function handleATokenMint(event: Mint): void {
     new TokenBalance(aToken.underlyingAsset, user.id, investmentBalance.aTokenBalance),
   ];
 
-  // reward token amounts claimable by user
-  let rewardTokens = market.rewardTokens as string[];
-  let unclaimedRewards = getOrCreateUserRewardBalances(user.id).unclaimedRewards;
-  let rewardTokenBalances: TokenBalance[] = [
-    new TokenBalance(rewardTokens[0], user.id, unclaimedRewards),
-  ];
-
   investInMarket(
     event,
     user,
@@ -80,13 +77,13 @@ export function handleATokenMint(event: Mint): void {
     [],
     outputTokenBalance,
     inputTokenBalances,
-    rewardTokenBalances,
+    [],
     user.id
   );
 }
 
 export function handleATokenBurn(event: Burn): void {
-  let aToken = AToken.load(event.address.toHexString());
+  let aToken = getOrCreateAToken(event.address.toHexString());
   let market = Market.load(aToken.lendingPool + "-" + aToken.underlyingAsset) as Market;
 
   let burnedAmount = event.params.value;
@@ -131,13 +128,6 @@ export function handleATokenBurn(event: Burn): void {
     new TokenBalance(aToken.underlyingAsset, user.id, investmentBalance.aTokenBalance),
   ];
 
-  // reward token amounts claimable by user
-  let rewardTokens = market.rewardTokens as string[];
-  let unclaimedRewards = getOrCreateUserRewardBalances(user.id).unclaimedRewards;
-  let rewardTokenBalances: TokenBalance[] = [
-    new TokenBalance(rewardTokens[0], user.id, unclaimedRewards),
-  ];
-
   redeemFromMarket(
     event,
     user,
@@ -147,7 +137,7 @@ export function handleATokenBurn(event: Burn): void {
     [],
     outputTokenBalance,
     toInputTokenBalances,
-    rewardTokenBalances,
+    [],
     user.id
   );
 }
@@ -160,7 +150,7 @@ export function handleATokenTransfer(event: BalanceTransfer): void {
   let liquidityIndex = event.params.index;
   let scaledAmountTransfered = rayDiv(amountTransfered, liquidityIndex);
 
-  let aToken = AToken.load(event.address.toHexString());
+  let aToken = getOrCreateAToken(event.address.toHexString());
   let marketId = aToken.lendingPool + "-" + aToken.underlyingAsset;
 
   // decrease sender's balance of provided tokens
@@ -194,13 +184,6 @@ export function handleATokenTransfer(event: BalanceTransfer): void {
     new TokenBalance(aToken.underlyingAsset, from.id, fromInvestmentBalance.aTokenBalance),
   ];
 
-  // reward token amounts claimable by user
-  let rewardTokens = market.rewardTokens as string[];
-  let fromUnclaimedRewards = getOrCreateUserRewardBalances(from.id).unclaimedRewards;
-  let fromRewardTokenBalances: TokenBalance[] = [
-    new TokenBalance(rewardTokens[0], from.id, fromUnclaimedRewards),
-  ];
-
   redeemFromMarket(
     event,
     from,
@@ -210,7 +193,7 @@ export function handleATokenTransfer(event: BalanceTransfer): void {
     [],
     fromOutputTokenBalance,
     fromInputTokenBalances,
-    fromRewardTokenBalances,
+    [],
     to.id
   );
 
@@ -243,12 +226,6 @@ export function handleATokenTransfer(event: BalanceTransfer): void {
     new TokenBalance(aToken.underlyingAsset, to.id, toInvestmentBalance.aTokenBalance),
   ];
 
-  // reward token amounts claimable by user
-  let toUnclaimedRewards = getOrCreateUserRewardBalances(to.id).unclaimedRewards;
-  let rewardTokenBalances: TokenBalance[] = [
-    new TokenBalance(rewardTokens[0], to.id, toUnclaimedRewards),
-  ];
-
   investInMarket(
     event,
     to,
@@ -258,18 +235,14 @@ export function handleATokenTransfer(event: BalanceTransfer): void {
     [],
     toOutputTokenBalance,
     toInputTokenBalances,
-    rewardTokenBalances,
+    [],
     from.id
   );
 }
 
 export function handleATokenInitialized(event: Initialized): void {
   let aTokenAdress = event.address.toHexString();
-
-  let aToken = AToken.load(aTokenAdress);
-  if (aToken == null) {
-    aToken = new AToken(aTokenAdress);
-  }
+  let aToken = getOrCreateAToken(aTokenAdress);
 
   aToken.underlyingAsset = event.params.underlyingAsset.toHexString();
   aToken.treasury = event.params.treasury.toHexString();

@@ -313,8 +313,11 @@ type UserDebtBalance @entity {
   " reserve in which debt is taken "
   reserve: Reserve!
 
-  " amount of debt taken by user "
-  debtTakenAmount: BigInt!
+  " scaled amount of debt tokens "
+  scaledDebtTokenBalance: BigInt!
+
+  " amount of undelying asset tokens borrowed "
+  amountBorrowedBalance: BigInt!
 
   " either stable or variable rate mode "
   rateMode: Int!

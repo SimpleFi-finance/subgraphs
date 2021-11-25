@@ -17,7 +17,7 @@ import { Token } from "../../generated/schema";
 import { getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
 
 import { ProtocolName, ProtocolType } from "../library/constants";
-import { getOrInitReserve } from "../library/lendingPoolUtils";
+import { getOrCreateAToken, getOrInitReserve } from "../library/lendingPoolUtils";
 import { AToken, VariableDebtToken, StableDebtToken } from "../../generated/templates";
 
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
@@ -38,7 +38,7 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
   let lendingPool = context.getString("lendingPool");
 
   let asset = getOrCreateERC20Token(event, event.params.asset);
-  let aToken = getOrCreateERC20Token(event, event.params.aToken);
+  let aTokenERC20 = getOrCreateERC20Token(event, event.params.aToken);
   let stableDebtToken = getOrCreateERC20Token(event, event.params.stableDebtToken);
   let variableDebtToken = getOrCreateERC20Token(event, event.params.variableDebtToken);
   let weth = getOrCreateERC20Token(event, Address.fromString(WETH));
@@ -48,17 +48,20 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
   reserve.asset = asset.id;
   reserve.assetDecimals = asset.decimals;
   reserve.lendingPool = lendingPool;
-  reserve.aToken = aToken.id;
+  reserve.aToken = aTokenERC20.id;
   reserve.stableDebtToken = stableDebtToken.id;
   reserve.variableDebtToken = variableDebtToken.id;
   reserve.lastUpdateTimestamp = event.block.timestamp;
   reserve.save();
 
-  // start indexing atoken and forward the lending pool
-  let aTokenContext = new DataSourceContext();
-  aTokenContext.setString("lendingPool", lendingPool);
-  aTokenContext.setString("baseAsset", reserve.asset);
-  AToken.createWithContext(event.params.aToken, aTokenContext);
+  // store basic aToken info
+  let aToken = getOrCreateAToken(aTokenERC20.id);
+  aToken.underlyingAsset = reserve.asset;
+  aToken.lendingPool = reserve.lendingPool;
+  aToken.save();
+
+  // start indexing atoken
+  AToken.create(event.params.aToken);
 
   // start indexing debt tokens
   StableDebtToken.create(event.params.stableDebtToken);
@@ -70,7 +73,7 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
   let protocolName = ProtocolName.AAVE_POOL;
   let protocolType = ProtocolType.LENDING;
   let inputTokens: Token[] = [asset];
-  let outputToken = aToken;
+  let outputToken = aTokenERC20;
   let rewardTokens: Token[] = [];
 
   getOrCreateMarketWithId(

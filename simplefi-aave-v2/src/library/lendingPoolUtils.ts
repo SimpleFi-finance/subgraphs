@@ -17,6 +17,8 @@ import {
   StableDebtTokenBurn,
   IncentivesController,
   UserRewardBalances,
+  AToken,
+  VariableDebtToken,
 } from "../../generated/schema";
 
 import { IPriceOracleGetter } from "../../generated/templates/LendingPool/IPriceOracleGetter";
@@ -77,7 +79,8 @@ export function getOrCreateUserDebtBalance(
     userDebtBalance = new UserDebtBalance(id);
     userDebtBalance.user = user;
     userDebtBalance.reserve = reserveId;
-    userDebtBalance.debtTakenAmount = BigInt.fromI32(0);
+    userDebtBalance.scaledDebtTokenBalance = BigInt.fromI32(0);
+    userDebtBalance.amountBorrowedBalance = BigInt.fromI32(0);
     userDebtBalance.rateMode = rateMode;
     userDebtBalance.save();
   }
@@ -144,12 +147,12 @@ export function getPriceOracle(lendingPoolId: string): IPriceOracleGetter {
 export function getCollateralAmountLocked(
   user: Account,
   reserve: Reserve,
-  reserveAmount: BigInt,
+  borrowedAmount: BigInt,
   block: ethereum.Block
 ): BigInt {
   let assetUnitPriceInEth = getAssetUnitPriceInEth(reserve, block);
   let borrowAmountInEth = assetUnitPriceInEth
-    .times(reserveAmount)
+    .times(borrowedAmount)
     .div(BigInt.fromI32(10).pow(<u8>reserve.assetDecimals));
 
   let userAccountData = getOrInitUserAccountData(user, reserve.lendingPool, block);
@@ -331,4 +334,41 @@ export function getOrCreateUserRewardBalances(userAddress: string): UserRewardBa
   user.save();
 
   return user as UserRewardBalances;
+}
+
+export function getOrCreateAToken(aTokenAdress: string): AToken {
+  let aToken = AToken.load(aTokenAdress);
+  if (aToken != null) {
+    return aToken as AToken;
+  }
+
+  aToken = new AToken(aTokenAdress);
+  aToken.underlyingAsset = ADDRESS_ZERO;
+  aToken.treasury = ADDRESS_ZERO;
+  aToken.lendingPool = ADDRESS_ZERO;
+  aToken.incentivesController = ADDRESS_ZERO;
+  aToken.aTokenName = "";
+  aToken.aTokenSymbol = "";
+  aToken.aTokenDecimals = 18;
+  aToken.save();
+
+  return aToken as AToken;
+}
+
+export function getOrCreateVariableDebtToken(vTokenAdress: string): VariableDebtToken {
+  let vToken = VariableDebtToken.load(vTokenAdress);
+  if (vToken != null) {
+    return vToken as VariableDebtToken;
+  }
+
+  vToken = new VariableDebtToken(vTokenAdress);
+  vToken.underlyingAsset = ADDRESS_ZERO;
+  vToken.lendingPool = ADDRESS_ZERO;
+  vToken.incentivesController = ADDRESS_ZERO;
+  vToken.debtTokenName = "";
+  vToken.debtTokenSymbol = "";
+  vToken.debtTokenDecimals = 18;
+  vToken.save();
+
+  return vToken as VariableDebtToken;
 }
