@@ -11,7 +11,7 @@ How is Aave mapped to SimpleFi's common model? We create 4 markets types:
   - id: lendingPoolAddress-tokenAddress
   - type LENDING
   - input tokens: token (i.e. USDC)
-    - balance of input tokens = amount of tokens times `liquidityIndex`
+    - balance of input tokens = amount of output tokens times `liquidityIndex`
   - output token: aTokens (i.e. aUSDC)
     - balance: "scaled" amount of aTokens -> amount of input tokens divided by `liquidityIndex`
   - reward token: none
