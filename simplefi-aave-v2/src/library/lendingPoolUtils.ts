@@ -130,17 +130,6 @@ export function getReserveNormalizedVariableDebt(reserve: Reserve, event: ethere
   return result;
 }
 
-export function getMarketATokenSupply(
-  market: Market,
-  reserveId: string,
-  event: ethereum.Event
-): BigInt {
-  let reserve = Reserve.load(reserveId) as Reserve;
-  let reserveNormalIncome = getReserveNormalizedIncome(reserve, event);
-
-  return rayMul(market.outputTokenTotalSupply, reserveNormalIncome);
-}
-
 export function getPriceOracle(lendingPoolId: string): IPriceOracleGetter {
   let lendingPool = LendingPool.load(lendingPoolId) as LendingPool;
   let addressProvider = LendingPoolAddressesProvider.load(lendingPool.addressProvider);

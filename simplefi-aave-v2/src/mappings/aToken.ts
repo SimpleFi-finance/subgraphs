@@ -1,5 +1,3 @@
-import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
-
 import { Burn, Mint, Initialized, BalanceTransfer } from "../../generated/templates/AToken/AToken";
 
 import { Market, AToken } from "../../generated/schema";
@@ -17,7 +15,6 @@ import {
   getOrCreateAToken,
   getOrCreateIncentivesController,
   getOrCreateUserInvestmentBalance,
-  getOrCreateUserRewardBalances,
 } from "../library/lendingPoolUtils";
 import { rayDiv, rayMul } from "../library/math";
 

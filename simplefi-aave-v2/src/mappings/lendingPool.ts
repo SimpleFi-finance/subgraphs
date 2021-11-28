@@ -17,11 +17,13 @@ import {
   Withdrawal,
   SwapRateMode,
   Liquidation,
+  Market,
 } from "../../generated/schema";
 
-import { getOrCreateERC20Token } from "../library/common";
+import { getOrCreateERC20Token, TokenBalance, updateMarket } from "../library/common";
 
 import { getOrInitReserve } from "../library/lendingPoolUtils";
+import { rayMul } from "../library/math";
 
 const BORROW_MODE_STABLE = 1;
 const BORROW_MODE_VARIABLE = 2;
@@ -95,6 +97,18 @@ export function handleReserveDataUpdated(event: ReserveDataUpdated): void {
   reserve.stableBorrowRate = event.params.stableBorrowRate;
   reserve.lastUpdateTimestamp = event.block.timestamp;
   reserve.save();
+
+  // update market supply due to liquidity index change
+  let market = Market.load(reserve.lendingPool + "-" + reserve.asset) as Market;
+  let scaledTotalSupply = market.outputTokenTotalSupply;
+
+  let inputTokens = market.inputTokens as string[];
+  let newTotalATokenSupply = rayMul(scaledTotalSupply, reserve.liquidityIndex);
+  let newInputTokenBalances: TokenBalance[] = [
+    new TokenBalance(inputTokens[0], market.id, newTotalATokenSupply),
+  ];
+
+  updateMarket(event, market, newInputTokenBalances, scaledTotalSupply);
 }
 
 export function handleFlashLoan(event: FlashLoan): void {
