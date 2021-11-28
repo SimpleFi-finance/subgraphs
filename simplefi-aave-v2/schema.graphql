@@ -252,6 +252,7 @@ type Reserve @entity {
   liquidityRate: BigInt!
   variableBorrowIndex: BigInt!
   variableBorrowRate: BigInt!
+  stableBorrowRate: BigInt!
   ltv: BigInt!
   assetUnitPriceInEth: BigInt!
 }

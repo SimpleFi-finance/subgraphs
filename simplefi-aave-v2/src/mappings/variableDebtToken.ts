@@ -1,3 +1,5 @@
+import { Address, BigInt, ethereum, store, log } from "@graphprotocol/graph-ts";
+
 import {
   Mint,
   Burn,

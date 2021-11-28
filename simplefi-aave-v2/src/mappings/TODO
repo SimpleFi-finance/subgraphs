@@ -1,0 +1,7 @@
+YY - on repayment figure out if stable of variable
+YY - use user average LTV for collateral locked calculation
+YY - store last asset price in entity (and last timestamp)
+- flashloan - 
+- calculate rewards
+- liquidations
+YY - handle swap
