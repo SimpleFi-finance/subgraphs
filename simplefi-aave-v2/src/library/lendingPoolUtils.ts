@@ -19,6 +19,7 @@ import {
   UserRewardBalances,
   AToken,
   VariableDebtToken,
+  StableDebtToken,
 } from "../../generated/schema";
 
 import { IPriceOracleGetter } from "../../generated/templates/LendingPool/IPriceOracleGetter";
@@ -27,6 +28,8 @@ import { LendingPool as LendingPoolContract } from "../../generated/templates/Le
 import {
   IncentivesController as IncentivesControllerTemplate,
   AToken as ATokenTemplate,
+  VariableDebtToken as VariableDebtTokenTemplate,
+  StableDebtToken as StableDebtTokenTemplate,
 } from "../../generated/templates";
 import { AaveIncentivesController as IncentivesControllerContract } from "../../generated/templates/IncentivesController/AaveIncentivesController";
 
@@ -205,6 +208,7 @@ export function getOrInitReserve(
   reserve.liquidityRate = BigInt.fromI32(0);
   reserve.variableBorrowIndex = BigInt.fromI32(0);
   reserve.variableBorrowRate = BigInt.fromI32(0);
+  reserve.stableBorrowRate = BigInt.fromI32(0);
   reserve.ltv = BigInt.fromI32(0);
   reserve.assetUnitPriceInEth = BigInt.fromI32(0);
   reserve.lastUpdateTimestamp = BigInt.fromI32(0);
@@ -376,5 +380,29 @@ export function getOrCreateVariableDebtToken(vTokenAdress: string): VariableDebt
   vToken.debtTokenDecimals = 18;
   vToken.save();
 
+  // start indexing variable debt token
+  VariableDebtTokenTemplate.create(Address.fromString(vTokenAdress));
+
   return vToken as VariableDebtToken;
+}
+
+export function getOrCreateStableDebtToken(sTokenAdress: string): StableDebtToken {
+  let sToken = StableDebtToken.load(sTokenAdress);
+  if (sToken != null) {
+    return sToken as StableDebtToken;
+  }
+
+  sToken = new StableDebtToken(sTokenAdress);
+  sToken.underlyingAsset = ADDRESS_ZERO;
+  sToken.lendingPool = ADDRESS_ZERO;
+  sToken.incentivesController = ADDRESS_ZERO;
+  sToken.debtTokenName = "";
+  sToken.debtTokenSymbol = "";
+  sToken.debtTokenDecimals = 18;
+  sToken.save();
+
+  // start indexing stable debt token
+  StableDebtTokenTemplate.create(Address.fromString(sTokenAdress));
+
+  return sToken as StableDebtToken;
 }

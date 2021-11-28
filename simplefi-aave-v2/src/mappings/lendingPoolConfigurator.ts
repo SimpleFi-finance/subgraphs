@@ -1,7 +1,4 @@
-import {
-  Address,
-  dataSource,
-} from "@graphprotocol/graph-ts";
+import { Address, dataSource } from "@graphprotocol/graph-ts";
 
 import {
   CollateralConfigurationChanged,
@@ -13,7 +10,12 @@ import { Token } from "../../generated/schema";
 import { getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
 
 import { ProtocolName, ProtocolType } from "../library/constants";
-import { getOrCreateAToken, getOrInitReserve } from "../library/lendingPoolUtils";
+import {
+  getOrCreateAToken,
+  getOrCreateStableDebtToken,
+  getOrCreateVariableDebtToken,
+  getOrInitReserve,
+} from "../library/lendingPoolUtils";
 import { AToken, VariableDebtToken, StableDebtToken } from "../../generated/templates";
 
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
@@ -56,9 +58,17 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
   aToken.lendingPool = reserve.lendingPool;
   aToken.save();
 
-  // start indexing debt tokens
-  StableDebtToken.create(event.params.stableDebtToken);
-  VariableDebtToken.create(event.params.variableDebtToken);
+  // store basic vToken info
+  let vToken = getOrCreateVariableDebtToken(event.params.variableDebtToken.toHexString());
+  vToken.underlyingAsset = reserve.asset;
+  vToken.lendingPool = reserve.lendingPool;
+  vToken.save();
+
+  // store basic sToken info
+  let sToken = getOrCreateStableDebtToken(event.params.stableDebtToken.toHexString());
+  sToken.underlyingAsset = reserve.asset;
+  sToken.lendingPool = reserve.lendingPool;
+  sToken.save();
 
   // create investment market representing the token-aToken pair
   let marketId = lendingPool + "-" + reserve.asset;
