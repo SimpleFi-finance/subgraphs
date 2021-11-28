@@ -13,8 +13,6 @@ import {
   Market,
   Account,
   UserAccountData,
-  VariableDebtTokenBurn,
-  StableDebtTokenBurn,
   IncentivesController,
   UserRewardBalances,
   AToken,
@@ -257,25 +255,6 @@ export function getOrInitUserAccountData(
   userAccountData.save();
 
   return userAccountData as UserAccountData;
-}
-
-export function getRepaymentRateMode(event: ethereum.Event, reserve: Reserve): i32 {
-  let borrowMode = -1;
-  let tx = event.transaction.hash.toHexString();
-  let variableId = tx + "-" + reserve.variableDebtToken;
-  let stableId = tx + "-" + reserve.stableDebtToken;
-
-  if (VariableDebtTokenBurn.load(variableId) != null) {
-    borrowMode = BORROW_MODE_VARIABLE;
-    // remove entity so that new one can be created in same transaction
-    store.remove("VariableDebtTokenBurn", variableId);
-  } else if (StableDebtTokenBurn.load(stableId) != null) {
-    borrowMode = BORROW_MODE_STABLE;
-    // remove entity so that new one can be created in same transaction
-    store.remove("StableDebtTokenBurn", stableId);
-  }
-
-  return borrowMode;
 }
 
 export function getOrCreateIncentivesController(

@@ -14,26 +14,21 @@ import {
 const BORROW_MODE_STABLE = 1;
 const BORROW_MODE_VARIABLE = 2;
 
-import { Market, Reserve, StableDebtTokenBurn } from "../../generated/schema";
+import { Market, Reserve } from "../../generated/schema";
 
 import {
   ADDRESS_ZERO,
   borrowFromMarket,
   getOrCreateAccount,
+  repayToMarket,
   TokenBalance,
   updateMarket,
 } from "../library/common";
-import { rayMul } from "../library/math";
 
 export function handleStableTokenMint(event: Mint): void {
-
   let mintedAmount = event.params.amount;
-  let currentUsersBalance = event.params.currentBalance;
-  event.params.newRate;
-  event.params.avgStableRate;
-  event.params.newTotalSupply;
-
   let scaledMintedAmount = mintedAmount.plus(event.params.balanceIncrease);
+  let currentUsersBalance = event.params.currentBalance;
 
   // user receives borrowed tokens
   let user = getOrCreateAccount(event.params.user);
@@ -118,12 +113,87 @@ export function handleStableTokenMint(event: Mint): void {
 }
 
 export function handleStableTokenBurn(event: Burn): void {
-  ////// old stuff TODO remove
-  let tx = event.transaction.hash.toHexString();
-  let token = event.address.toHexString();
+  let burnedAmount = event.params.amount;
+  let scaledBurnedAmount = burnedAmount.minus(event.params.balanceIncrease);
+  let currentUsersBalance = event.params.currentBalance;
 
-  let burn = new StableDebtTokenBurn(tx + "-" + token);
-  burn.save();
+  // user whose debt is getting burned
+  let user = getOrCreateAccount(event.params.user);
+
+  let sToken = getOrCreateStableDebtToken(event.address.toHexString());
+  let market = Market.load(sToken.lendingPool + "-" + sToken.id) as Market;
+  let reserve = Reserve.load(sToken.lendingPool + "-" + sToken.underlyingAsset) as Reserve;
+
+  // decrease user's debt balance
+  let userDebtBalance = getOrCreateUserDebtBalance(
+    user.id,
+    reserve.id,
+    market.id,
+    BORROW_MODE_STABLE
+  );
+  userDebtBalance.scaledDebtTokenBalance = userDebtBalance.scaledDebtTokenBalance.minus(
+    scaledBurnedAmount
+  );
+  userDebtBalance.amountBorrowedBalance = userDebtBalance.amountBorrowedBalance.minus(burnedAmount);
+  userDebtBalance.save();
+
+  // calculate how much collateral has been unlocked
+  let collateralAmountUnlocked = getCollateralAmountLocked(
+    user,
+    reserve,
+    burnedAmount,
+    event.block
+  );
+
+  // update market total supply
+  let inputTokens = market.inputTokens as string[];
+  let inputTokenTotalBalances = market.inputTokenTotalBalances as string[];
+  let newTotalSupply = market.outputTokenTotalSupply.minus(scaledBurnedAmount);
+
+  let prevTotalCollateralLocked = TokenBalance.fromString(inputTokenTotalBalances[0]).balance;
+  let newTotalCollaterLocked = prevTotalCollateralLocked.minus(collateralAmountUnlocked);
+  let marketInputTokenBalances: TokenBalance[] = [
+    new TokenBalance(inputTokens[0], market.id, newTotalCollaterLocked),
+  ];
+
+  updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
+
+  ////// update user's position
+
+  // amount of debt bearing tokens burned
+  let outputTokenAmount = scaledBurnedAmount;
+
+  // amount of collateral unlocked
+  let inputTokensAmount: TokenBalance[] = [
+    new TokenBalance(inputTokens[0], user.id, collateralAmountUnlocked),
+  ];
+
+  // total scaled balance of debt bearing tokens
+  let outputTokenBalance = userDebtBalance.scaledDebtTokenBalance;
+
+  // total amount of user's collateral locked by debt taken in this underlying token
+  let inputTokenBalances: TokenBalance[] = [];
+  let totalUsersCollateralAmountLocked = getCollateralAmountLocked(
+    user,
+    reserve,
+    currentUsersBalance,
+    event.block
+  );
+  inputTokenBalances.push(
+    new TokenBalance(inputTokens[0], user.id, totalUsersCollateralAmountLocked)
+  );
+
+  repayToMarket(
+    event,
+    user,
+    market,
+    outputTokenAmount,
+    inputTokensAmount,
+    [],
+    outputTokenBalance,
+    inputTokenBalances,
+    []
+  );
 }
 
 export function handleStableDebtTokenInitialized(event: StableDebtTokenInitialized): void {

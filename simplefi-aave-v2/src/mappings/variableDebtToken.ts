@@ -13,7 +13,7 @@ import {
   getOrCreateVariableDebtToken,
 } from "../library/lendingPoolUtils";
 
-import { Market, Reserve, VariableDebtTokenBurn } from "../../generated/schema";
+import { Market, Reserve } from "../../generated/schema";
 
 import {
   ADDRESS_ZERO,
@@ -199,13 +199,6 @@ export function handleVariableTokenBurn(event: Burn): void {
     inputTokenBalances,
     []
   );
-
-  ////// old stuff TODO remove
-  let tx = event.transaction.hash.toHexString();
-  let variableToken = event.address.toHexString();
-
-  let burn = new VariableDebtTokenBurn(tx + "-" + variableToken);
-  burn.save();
 }
 
 export function handleVariableDebtTokenInitialized(event: Initialized): void {

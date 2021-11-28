@@ -355,16 +355,6 @@ type StableDebtToken @entity {
   debtTokenDecimals: Int!
 }
 
-type VariableDebtTokenBurn @entity {
-  " tx-tokenAdress "
-  id: ID!
-}
-
-type StableDebtTokenBurn @entity {
-  " tx-tokenAdress "
-  id: ID!
-}
-
 type IncentivesController @entity {
   " address of the incentives controller "
   id: ID!

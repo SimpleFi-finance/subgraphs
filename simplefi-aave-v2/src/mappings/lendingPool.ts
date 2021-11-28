@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
+import { BigInt, log } from "@graphprotocol/graph-ts";
 import {
   Deposit,
   Withdraw,
@@ -15,28 +15,13 @@ import {
   Repay as RepayEntity,
   FlashLoan as FlashLoanEntity,
   Withdrawal,
-  Reserve,
-  Market,
   SwapRateMode,
-  UserDebtBalance,
   Liquidation,
 } from "../../generated/schema";
 
-import {
-  getOrCreateERC20Token,
-  getOrCreateAccount,
-  updateMarket,
-  borrowFromMarket,
-  repayToMarket,
-  TokenBalance,
-} from "../library/common";
+import { getOrCreateERC20Token } from "../library/common";
 
-import {
-  getOrCreateUserDebtBalance,
-  getOrInitReserve,
-  getCollateralAmountLocked,
-  getRepaymentRateMode,
-} from "../library/lendingPoolUtils";
+import { getOrInitReserve } from "../library/lendingPoolUtils";
 
 const BORROW_MODE_STABLE = 1;
 const BORROW_MODE_VARIABLE = 2;
