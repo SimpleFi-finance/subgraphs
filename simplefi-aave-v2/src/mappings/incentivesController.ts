@@ -12,10 +12,7 @@ import {
   UserAccountData,
 } from "../../generated/schema";
 
-import {
-  getOrCreateUserRewardBalances,
-  getOrInitUserAccountData,
-} from "../library/lendingPoolUtils";
+import { getOrCreateUserRewardBalances } from "../library/lendingPoolUtils";
 import {
   ADDRESS_ZERO,
   getOrCreateAccount,
@@ -65,19 +62,11 @@ export function handleRewardsClaimed(event: RewardsClaimed): void {
     new TokenBalance(rewardTokens[0], claim.to, claim.amount),
   ];
 
-  // total collateral amount in ETH
-  let userAccountData = getOrInitUserAccountData(
-    getOrCreateAccount(Address.fromString(claim.user)),
-    incentivesController.lendingPool,
-    event.block
-  );
-  let outputTokenBalance = userAccountData.totalCollateralEth;
+  // TODO - for now there is no definition of output token for incentive controlelr
+  let outputTokenBalance = BigInt.fromI32(0);
 
-  // total collateral amount in ETH
-  let inputTokens = market.inputTokens as string[];
-  let inputTokenBalances: TokenBalance[] = [
-    new TokenBalance(inputTokens[0], userAccountData.user, userAccountData.totalCollateralEth),
-  ];
+  // TODO - for now there is no definition of input token for incentive controlelr
+  let inputTokenBalances: TokenBalance[] = [];
 
   // reward token amounts claimable by user
   let rewardTokenBalances: TokenBalance[] = [
@@ -133,19 +122,11 @@ export function handleRewardsAccrued(event: RewardsAccrued): void {
   // no change
   let rewardTokenAmounts: TokenBalance[] = [];
 
-  // total collateral amount in ETH
-  let userAccountData = getOrInitUserAccountData(
-    getOrCreateAccount(Address.fromString(accrue.user)),
-    incentivesController.lendingPool,
-    event.block
-  );
-  let outputTokenBalance = userAccountData.totalCollateralEth;
+  // TODO - for now there is no definition of output token for incentive controller
+  let outputTokenBalance = BigInt.fromI32(0);
 
-  // total collateral amount in ETH
-  let inputTokens = market.inputTokens as string[];
-  let inputTokenBalances: TokenBalance[] = [
-    new TokenBalance(inputTokens[0], userAccountData.user, userAccountData.totalCollateralEth),
-  ];
+  // TODO - for now there is no definition of input token for incentive controller
+  let inputTokenBalances: TokenBalance[] = [];
 
   // reward token amounts claimable by user
   let rewardTokens = market.rewardTokens as string[];

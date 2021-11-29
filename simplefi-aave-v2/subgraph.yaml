@@ -46,22 +46,10 @@ templates:
           handler: handleProxyCreated
         - event: PriceOracleUpdated(indexed address)
           handler: handlePriceOracleUpdated
-        # - event: LendingRateOracleUpdated(indexed address)
-        #   handler: handleLendingRateOracleUpdated
         - event: LendingPoolUpdated(indexed address)
           handler: handleLendingPoolUpdated
         - event: LendingPoolConfiguratorUpdated(indexed address)
           handler: handleLendingPoolConfiguratorUpdated
-        # - event: LendingPoolCollateralManagerUpdated(indexed address)
-        #   handler: handleLendingPoolCollateralManagerUpdated
-        # - event: ConfigurationAdminUpdated(indexed address) # past aaveadminupdated todo: change
-        #   handler: handleConfigurationAdminUpdated
-        # - event: EmergencyAdminUpdated(indexed address) #new
-        #   handler: handleEmergencyAdminUpdated
-        # - event: EthereumAddressUpdated(indexed address) #new
-        #   handler: handleEthereumAddressUpdated
-        # - event: OwnershipTransferred(indexed address,indexed address) #new
-        #   handler: handleOwnershipTransferred
         # - event: AddressSet(bytes32,indexed address,bool) #new
         #   handler: handleAddressSet
       file: ./src/mappings/lendingPoolAddressProvider.ts
@@ -102,12 +90,6 @@ templates:
           handler: handleRepay
         - event: Swap(indexed address,indexed address,uint256)
           handler: handleSwap
-        # - event: ReserveUsedAsCollateralEnabled(indexed address,indexed address)
-        #   handler: handleReserveUsedAsCollateralEnabled
-        # - event: ReserveUsedAsCollateralDisabled(indexed address,indexed address)
-        #   handler: handleReserveUsedAsCollateralDisabled
-        # - event: RebalanceStableBorrowRate(indexed address,indexed address)
-        #   handler: handleRebalanceStableBorrowRate
         - event: FlashLoan(indexed address,indexed address,indexed address,uint256,uint256,uint16)
           handler: handleFlashLoan
         - event: LiquidationCall(indexed address,indexed address,indexed address,uint256,uint256,address,bool)
@@ -239,8 +221,6 @@ templates:
           handler: handleStableTokenBurn
         - event: Mint(indexed address,indexed address,uint256,uint256,uint256,uint256,uint256,uint256)
           handler: handleStableTokenMint
-        # - event: BorrowAllowanceDelegated(indexed address,indexed address,address,uint256)
-        #   handler: handleStableTokenBorrowAllowanceDelegated
         - event: Initialized(indexed address,indexed address,address,uint8,string,string,bytes)
           handler: handleStableDebtTokenInitialized
       file: src/mappings/stableDebtToken.ts
@@ -271,8 +251,6 @@ templates:
           handler: handleVariableTokenBurn
         - event: Mint(indexed address,indexed address,uint256,uint256)
           handler: handleVariableTokenMint
-        # - event: BorrowAllowanceDelegated(indexed address,indexed address,address,uint256)
-        #   handler: handleVariableTokenBorrowAllowanceDelegated
         - event: Initialized(indexed address,indexed address,address,uint8,string,string,bytes)
           handler: handleVariableDebtTokenInitialized
       file: src/mappings/variableDebtToken.ts
