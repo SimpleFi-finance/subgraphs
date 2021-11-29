@@ -38,6 +38,7 @@ import { calculateCompoundedInterest, calculateLinearInterest, rayMul } from "./
 const BORROW_MODE_STABLE = 1;
 const BORROW_MODE_VARIABLE = 2;
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+let RAY: BigInt = BigInt.fromI32(10).pow(27);
 
 /**
  * Create userInvestmentBalance entity which tracks how many tokens user provided
@@ -128,6 +129,23 @@ export function getReserveNormalizedVariableDebt(reserve: Reserve, event: ethere
   let result = rayMul(cumulated, reserve.variableBorrowIndex);
 
   return result;
+}
+
+export function getAvgCumulatedInterest(reserve: Reserve, event: ethereum.Event): BigInt {
+  let timestamp = reserve.lastUpdateTimestamp;
+
+  if (timestamp.equals(event.block.timestamp)) {
+    //if the index was updated in the same block return 1e27
+    return RAY;
+  }
+
+  let cumulatedInterest = calculateCompoundedInterest(
+    reserve.stableBorrowRate,
+    timestamp,
+    event.block.timestamp
+  );
+
+  return cumulatedInterest;
 }
 
 export function getPriceOracle(lendingPoolId: string): IPriceOracleGetter {

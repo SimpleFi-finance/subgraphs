@@ -25,6 +25,7 @@ enum ProtocolName {
 enum ProtocolType {
   STAKING
   LENDING
+  DEBT
   EXCHANGE
   INSURANCE
   STABLECOIN
@@ -78,6 +79,7 @@ type Market @entity {
   rewardTokens: [Token!] # Aditional tokens that are given as reward for position in a protocol
   inputTokenTotalBalances: [String!]! # Total balance of this market contract of all input tokens in TokenBalance string format
   outputTokenTotalSupply: BigInt! # Total supply of output token
+  balanceMultiplier: BigInt # optional; defines multiplier to derive inputTokenBalance from outputTokenBalance of a user
   blockNumber: BigInt!
   timestamp: BigInt!
   positions: [Position!]! @derivedFrom(field: "market")
@@ -89,6 +91,7 @@ type MarketSnapshot @entity {
   market: Market!
   inputTokenBalances: [String!]! # TokenBalance string format
   outputTokenTotalSupply: BigInt!
+  balanceMultiplier: BigInt # optional; defines multiplier to derive inputTokenBalance from outputTokenBalance of a user
   blockNumber: BigInt!
   timestamp: BigInt!
   transactionHash: String!

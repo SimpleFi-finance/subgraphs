@@ -92,6 +92,7 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
 
   // create stable debt market representing the debt taken in reserve asset
   marketId = lendingPool + "-" + stableDebtToken.id;
+  protocolType = ProtocolType.DEBT;
   inputTokens = [weth];
   outputToken = stableDebtToken;
 
@@ -108,6 +109,7 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
 
   // create variable debt market representing the debt taken in reserve asset
   marketId = lendingPool + "-" + variableDebtToken.id;
+  protocolType = ProtocolType.DEBT;
   inputTokens = [weth];
   outputToken = variableDebtToken;
 

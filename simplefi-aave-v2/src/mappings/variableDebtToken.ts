@@ -75,7 +75,11 @@ export function handleVariableTokenMint(event: Mint): void {
     new TokenBalance(inputTokens[0], market.id, newTotalCollaterLocked),
   ];
 
-  updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
+  let marketSnaphost = updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
+  marketSnaphost.balanceMultiplier = variableBorrowIndex;
+  marketSnaphost.save();
+  market.balanceMultiplier = variableBorrowIndex;
+  market.save();
 
   ////// update user's position
 
@@ -160,7 +164,11 @@ export function handleVariableTokenBurn(event: Burn): void {
     new TokenBalance(inputTokens[0], market.id, newTotalCollaterLocked),
   ];
 
-  updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
+  let marketSnaphost = updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
+  marketSnaphost.balanceMultiplier = variableBorrowIndex;
+  marketSnaphost.save();
+  market.balanceMultiplier = variableBorrowIndex;
+  market.save();
 
   ////// update user's position
 

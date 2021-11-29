@@ -25,6 +25,7 @@ export namespace ProtocolName {
 export namespace ProtocolType {
   export const STAKING = "STAKING";
   export const LENDING = "LENDING";
+  export const DEBT = "DEBT";
   export const EXCHANGE = "EXCHANGE";
   export const INSURANCE = "INSURANCE";
   export const STABLECOIN = "STABLECOIN";

@@ -5,6 +5,7 @@ import {
 } from "../../generated/templates/StableDebtToken/StableDebtToken";
 
 import {
+  getAvgCumulatedInterest,
   getCollateralAmountLocked,
   getOrCreateIncentivesController,
   getOrCreateStableDebtToken,
@@ -72,7 +73,11 @@ export function handleStableTokenMint(event: Mint): void {
     new TokenBalance(inputTokens[0], market.id, newTotalCollaterLocked),
   ];
 
-  updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
+  let marketSnaphost = updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
+  marketSnaphost.balanceMultiplier = getAvgCumulatedInterest(reserve, event);
+  marketSnaphost.save();
+  market.balanceMultiplier = marketSnaphost.balanceMultiplier;
+  market.save();
 
   ////// update user's position
 
@@ -156,7 +161,11 @@ export function handleStableTokenBurn(event: Burn): void {
     new TokenBalance(inputTokens[0], market.id, newTotalCollaterLocked),
   ];
 
-  updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
+  let marketSnaphost = updateMarket(event, market, marketInputTokenBalances, newTotalSupply);
+  marketSnaphost.balanceMultiplier = getAvgCumulatedInterest(reserve, event);
+  marketSnaphost.save();
+  market.balanceMultiplier = marketSnaphost.balanceMultiplier;
+  market.save();
 
   ////// update user's position
 
