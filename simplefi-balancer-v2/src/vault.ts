@@ -1,4 +1,9 @@
-import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts"
+import { 
+  Address, 
+  BigInt, 
+  ethereum, 
+  log,
+} from "@graphprotocol/graph-ts"
 
 import {
   PoolRegistered,
@@ -44,10 +49,6 @@ export function handlePoolRegistered(event: PoolRegistered): void {
 export function handleTokensRegistered(event: TokensRegistered): void {
   let pool = Pool.load(event.params.poolId.toHexString())
 
-  if (!pool) {
-    return;
-  }
-  
   // @todo: what if the pool already existed? (more tokens added)
   // Create a tokens and market entity
   let tokens: Token[] = []

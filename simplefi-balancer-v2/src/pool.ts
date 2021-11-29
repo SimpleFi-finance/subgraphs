@@ -41,11 +41,7 @@ export function handleTransfer(event: Transfer): void {
 
   let poolId = PoolIdEntity.load(poolAddressHex)
   let pool = PoolEntity.load(poolId.poolId)
-
-  if (!pool) {
-    return;
-  }
-
+  
   let accountTo: AccountEntity, accountFrom: AccountEntity
 
   // update account balances

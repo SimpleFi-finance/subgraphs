@@ -4,9 +4,9 @@ import { WeightedPool } from "../generated/templates"
 import { PoolCreated } from "../generated/WeightedPoolFactory/WeightedPoolFactory"
 
 export function handlePoolCreated(event: PoolCreated): void {
-  let poolId = PoolId.load(event.address.toHexString())
+  let poolId = PoolId.load(event.params.pool.toHexString())
   let pool = Pool.load(poolId.poolId)
-  
+
   pool.poolType = PoolType.WEIGHTED_POOL
   pool.save()
 

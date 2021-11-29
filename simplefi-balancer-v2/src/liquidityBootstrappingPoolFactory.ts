@@ -4,7 +4,7 @@ import { LiquidityBootstrappingPool } from "../generated/templates"
 import { PoolCreated } from "../generated/LiquidityBootstrappingPoolFactory/LiquidityBootstrappingPoolFactory"
 
 export function handlePoolCreated(event: PoolCreated): void {
-  let poolId = PoolId.load(event.address.toHexString())
+  let poolId = PoolId.load(event.params.pool.toHexString())
   let pool = Pool.load(poolId.poolId)
   
   pool.poolType = PoolType.LIQUIDITY_BOOTSTRAPPING_POOL
