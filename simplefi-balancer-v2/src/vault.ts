@@ -16,12 +16,17 @@ import {
   getOrCreateAccount,
   getOrCreateERC20Token,
   getOrCreateMarket,
+  updateMarket,
+  TokenBalance,
 } from "./common"
 
 import {
-  Pool,
-  PoolId,
-  Token,
+  Pool as PoolEntity,
+  PoolId as PoolIdEntity,
+  Token as TokenEntity,
+  Mint as MintEntity,
+  Burn as BurnEntity,
+  Market as MarketEntity,
 } from "../generated/schema"
 
 import { 
@@ -30,8 +35,13 @@ import {
   PoolSpecialization
 } from "./constants"
 
+import {
+  createOrUpdatePositionOnMint,
+  createOrUpdatePositionOnBurn
+} from "./market"
+
 export function handlePoolRegistered(event: PoolRegistered): void {
-  let pool = new Pool(event.params.poolId.toHexString())
+  let pool = new PoolEntity(event.params.poolId.toHexString())
   pool.address = event.params.poolAddress.toHexString();
 
   let evmEvent = event as ethereum.Event
@@ -41,17 +51,17 @@ export function handlePoolRegistered(event: PoolRegistered): void {
   pool.save()
 
   // Solely purpose to retrive poolId from poolAddress when needed
-  let poolId = new PoolId(event.params.poolAddress.toHexString())
+  let poolId = new PoolIdEntity(event.params.poolAddress.toHexString())
   poolId.poolId = pool.id
   poolId.save()
 }
 
 export function handleTokensRegistered(event: TokensRegistered): void {
-  let pool = Pool.load(event.params.poolId.toHexString())
+  let pool = PoolEntity.load(event.params.poolId.toHexString())
 
   // @todo: what if the pool already existed? (more tokens added)
   // Create a tokens and market entity
-  let tokens: Token[] = []
+  let tokens: TokenEntity[] = []
   let tokensStr: string[] = [] // @todo: Is there any workaround to avoid 2 arrays?
   let reserves: BigInt[] = []
 
@@ -84,9 +94,6 @@ export function handleTokensRegistered(event: TokensRegistered): void {
   pool.reserves = reserves
   pool.totalSupply = BigInt.fromI32(0)
   pool.save()
-
-  // Start listening for market events
-  //UniswapV2Pair.create(event.params.pair)
 }
 
 export function handleTokensDeregistered(event: TokensDeregistered): void {
@@ -94,5 +101,74 @@ export function handleTokensDeregistered(event: TokensDeregistered): void {
 }
 
 export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
+  let poolId = PoolIdEntity.load(event.params.poolId.toHexString())
+  let pool = PoolEntity.load(poolId.id)
 
+  let transactionHash = event.transaction.hash.toHexString()
+
+  if (pool.reserves === null) {
+    // @todo: can I trust ordering?
+    pool.reserves = event.params.deltas
+  } else {
+    let reserves = pool.reserves;
+    for (let i = 0; i < pool.reserves.length; i++) {
+      let poolDeposit = event.params.deltas
+      reserves[i].plus(poolDeposit[i])
+    }
+  }
+  
+  pool.save()
+
+  let isMintOrBurn = false
+
+  let possibleMint = MintEntity.load(transactionHash)
+  if (possibleMint != null) {
+    isMintOrBurn = true
+    let mint = possibleMint as MintEntity
+    mint.poolBalanceEventApplied = true
+
+    // @todo: can I trust event.params.deltas ordering?
+    mint.amounts = event.params.deltas
+    mint.save()
+
+    pool.totalSupply = pool.totalSupply.plus(mint.liquityAmount as BigInt)
+    pool.save()
+
+    createOrUpdatePositionOnMint(event, pool, mint)
+  }
+
+  let possibleBurn = BurnEntity.load(transactionHash)
+  if (possibleBurn != null) {
+    isMintOrBurn = true
+    let burn = possibleBurn as BurnEntity
+    burn.poolBalanceEventApplied = true
+
+    // @todo: can I trust event.params.deltas ordering?
+    burn.amounts = event.params.deltas
+    burn.save()
+
+    pool.totalSupply = pool.totalSupply.minus(burn.liquityAmount as BigInt)
+    pool.save()
+
+    createOrUpdatePositionOnBurn(event, pool, burn)
+  }
+
+  if (!isMintOrBurn) {
+    let inputTokenBalances: TokenBalance[] = []
+
+    for (let i = 0; i < pool.tokens.length; i++) {
+      let tokens = pool.tokens
+      let poolReserves = pool.reserves
+      inputTokenBalances.push(new TokenBalance(tokens[i], pool.id, poolReserves[i]))
+    }
+
+    // Update market
+    let market = MarketEntity.load(event.address.toHexString()) as MarketEntity
+    updateMarket(
+      event,
+      market,
+      inputTokenBalances,
+      pool.totalSupply
+    )
+  }
 }

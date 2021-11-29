@@ -2,6 +2,7 @@ import {
   BigInt, 
   ethereum,
   Address,
+  log,
 } from "@graphprotocol/graph-ts"
 
 import { Transfer } from "../generated/templates/WeightedPool/WeightedPool"
@@ -41,7 +42,7 @@ export function handleTransfer(event: Transfer): void {
 
   let poolId = PoolIdEntity.load(poolAddressHex)
   let pool = PoolEntity.load(poolId.poolId)
-  
+
   let accountTo: AccountEntity, accountFrom: AccountEntity
 
   // update account balances
@@ -56,17 +57,26 @@ export function handleTransfer(event: Transfer): void {
     accountLiquidityTo.balance = accountLiquidityTo.balance.plus(event.params.value)
     accountLiquidityTo.save()
   }
+
+  // @todo: research required on why we have TX like these
+  if (toHex == ADDRESS_ZERO && fromHex == ADDRESS_ZERO) {
+    return
+  }
   
   // Protocol doesn't allow user transfers to zero address so only case is burning
   if (toHex == ADDRESS_ZERO) {
+    log.info("log handleBurn {} - {} - {} - {}", [event.transaction.hash.toHexString(), toHex, fromHex, event.params.value.toString()])
     accountFrom = getOrCreateAccount(event.params.from)
     handleBurn(event, pool as PoolEntity, accountFrom)
     return
   } else if (fromHex == ADDRESS_ZERO) {
+    log.info("log handleMint {} - {} - {} - {}", [event.transaction.hash.toHexString(), toHex, fromHex, event.params.value.toString()])
     accountTo = getOrCreateAccount(event.params.to)
     handleMint(event, pool as PoolEntity, accountTo)
     return
-  } 
+  }
+
+  log.info("log handleTransfer {} - {} - {} - {}", [event.transaction.hash.toHexString(), toHex, fromHex, event.params.value.toString()])
 
   // Normal LP transfers
   transferLPToken(event, pool as PoolEntity, event.params.from, event.params.to, event.params.value)
