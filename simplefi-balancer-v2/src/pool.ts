@@ -46,7 +46,7 @@ export function handleTransfer(event: Transfer): void {
     return;
   }
 
-  var accountTo: AccountEntity, accountFrom: AccountEntity
+  let accountTo: AccountEntity, accountFrom: AccountEntity
 
   // update account balances
   if (fromHex != ADDRESS_ZERO) {
@@ -97,16 +97,17 @@ function handleBurn(event: Transfer, pool: PoolEntity, account: AccountEntity): 
 function transferLPToken(event: ethereum.Event, pool: PoolEntity, from: Address, to: Address, amount: BigInt): void {
   let market = MarketEntity.load(pool.address) as MarketEntity
 
-  var fromAccount = getOrCreateAccount(from)
+  let fromAccount = getOrCreateAccount(from)
   let accountLiquidityFrom = getOrCreateLiquidity(pool, from)
-  var fromOutputTokenBalance = accountLiquidityFrom.balance
-  var fromInputTokenBalances: TokenBalance[] = []
+  let fromOutputTokenBalance = accountLiquidityFrom.balance
+  let fromInputTokenBalances: TokenBalance[] = []
 
-  pool.tokens.forEach((token, index) => {
+  for (let i = 0; i < pool.tokens.length; i++) {
+    let tokens = pool.tokens as string[]
     let poolReserves = pool.reserves as BigInt[]
-    let fromTokenBalance = fromOutputTokenBalance.times(poolReserves[index]).div(pool.totalSupply as BigInt)
-    fromInputTokenBalances.push(new TokenBalance(token, fromAccount.id, fromTokenBalance))
-  })
+    let fromTokenBalance = fromOutputTokenBalance.times(poolReserves[i]).div(pool.totalSupply as BigInt)
+    fromInputTokenBalances.push(new TokenBalance(tokens[i], fromAccount.id, fromTokenBalance))
+  }
 
   redeemFromMarket(
     event,
@@ -121,16 +122,17 @@ function transferLPToken(event: ethereum.Event, pool: PoolEntity, from: Address,
     to.toHexString()
   )
 
-  var toAccount = getOrCreateAccount(to)
+  let toAccount = getOrCreateAccount(to)
   let accountLiquidityTo = getOrCreateLiquidity(pool, to)
-  var toOutputTokenBalance = accountLiquidityTo.balance
-  var toInputTokenBalances: TokenBalance[] = []
+  let toOutputTokenBalance = accountLiquidityTo.balance
+  let toInputTokenBalances: TokenBalance[] = []
 
-  pool.tokens.forEach((token, index) => {
+  for (let i = 0; i < pool.tokens.length; i++) {
+    let tokens = pool.tokens as string[]
     let poolReserves = pool.reserves as BigInt[]
-    let toTokenBalance = toOutputTokenBalance.times(poolReserves[index]).div(pool.totalSupply as BigInt)
-    toInputTokenBalances.push(new TokenBalance(token, toAccount.id, toTokenBalance))
-  })
+    let toTokenBalance = toOutputTokenBalance.times(poolReserves[i]).div(pool.totalSupply as BigInt)
+    toInputTokenBalances.push(new TokenBalance(tokens[i], toAccount.id, toTokenBalance))
+  }
 
   investInMarket(
     event,

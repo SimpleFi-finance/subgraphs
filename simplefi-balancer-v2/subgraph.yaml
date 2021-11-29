@@ -42,7 +42,6 @@ dataSources:
         - event: PoolBalanceChanged(indexed bytes32,indexed address,address[],int256[],uint256[])
           handler: handlePoolBalanceChanged
       file: ./src/vault.ts
-
   - kind: ethereum/contract
     name: WeightedPoolFactory
     network: mainnet
@@ -65,7 +64,6 @@ dataSources:
         - event: PoolCreated(indexed address)
           handler: handlePoolCreated
       file: ./src/weightedPoolFactory.ts
-
   - kind: ethereum/contract
     name: WeightedPool2TokensFactory
     network: mainnet
@@ -88,7 +86,6 @@ dataSources:
         - event: PoolCreated(indexed address)
           handler: handlePoolCreated
       file: ./src/weightedPool2TokensFactory.ts
-
   - kind: ethereum/contract
     name: InvestmentPoolFactory
     network: mainnet
@@ -111,7 +108,6 @@ dataSources:
         - event: PoolCreated(indexed address)
           handler: handlePoolCreated
       file: ./src/investmentPoolFactory.ts
-
   - kind: ethereum/contract
     name: LiquidityBootstrappingPoolFactory
     network: mainnet
@@ -134,7 +130,6 @@ dataSources:
         - event: PoolCreated(indexed address)
           handler: handlePoolCreated
       file: ./src/liquidityBootstrappingPoolFactory.ts
-
   - kind: ethereum/contract
     name: MetastablePoolFactory
     network: mainnet
@@ -157,7 +152,6 @@ dataSources:
         - event: PoolCreated(indexed address)
           handler: handlePoolCreated
       file: ./src/metastablePoolFactory.ts
-
   - kind: ethereum/contract
     name: StablePoolFactory
     network: mainnet
@@ -179,8 +173,7 @@ dataSources:
       eventHandlers:
         - event: PoolCreated(indexed address)
           handler: handlePoolCreated
-      file: ./src/stablePoolFactory.ts    
-
+      file: ./src/stablePoolFactory.ts
 templates:
   - kind: ethereum/contract
     name: WeightedPool
@@ -215,7 +208,6 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
-
   - kind: ethereum/contract
     name: WeightedPool2Tokens
     network: mainnet
@@ -249,7 +241,6 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
-
   - kind: ethereum/contract
     name: InvestmentPool
     network: mainnet
@@ -283,7 +274,6 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
-
   - kind: ethereum/contract
     name: LiquidityBootstrappingPool
     network: mainnet
@@ -317,7 +307,6 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
-
   - kind: ethereum/contract
     name: MetastablePool
     network: mainnet
@@ -351,7 +340,6 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
-
   - kind: ethereum/contract
     name: StablePool
     network: mainnet

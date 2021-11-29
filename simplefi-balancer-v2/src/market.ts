@@ -61,25 +61,25 @@ export function createOrUpdatePositionOnMint(event: ethereum.Event, pool: PoolEn
   let accountLiquidity = getOrCreateLiquidity(pool, accountAddress)
 
   let outputTokenAmount = mint.liquityAmount as BigInt
-  var inputTokenAmounts: TokenBalance[] = []
+  let inputTokenAmounts: TokenBalance[] = []
   
-  var outputTokenBalance = accountLiquidity.balance
-  var inputTokenBalances: TokenBalance[] = []
+  let outputTokenBalance = accountLiquidity.balance
+  let inputTokenBalances: TokenBalance[] = []
 
-  var marketInputTokenBalances: TokenBalance[] = []
+  let marketInputTokenBalances: TokenBalance[] = []
 
-  pool.tokens.forEach((token, index) => {
+  for (let i = 0; i < pool.tokens.length; i++) {
     // @todo: can I trust mint.amounts ordering matching pool.tokens?
-    // @todo: what if mint.amounts is null?
+    let tokens = pool.tokens as string[]
     let mintAmounts = mint.amounts as BigInt[]
-    inputTokenAmounts.push(new TokenBalance(token, mint.to, mintAmounts[index] as BigInt))
+    inputTokenAmounts.push(new TokenBalance(tokens[i], mint.to, mintAmounts[i] as BigInt))
 
     let poolReserves = pool.reserves as BigInt[]
-    let tokenBalance = outputTokenBalance.times(poolReserves[index]).div(pool.totalSupply as BigInt)
-    inputTokenBalances.push(new TokenBalance(token, mint.to, tokenBalance))
+    let tokenBalance = outputTokenBalance.times(poolReserves[i]).div(pool.totalSupply as BigInt)
+    inputTokenBalances.push(new TokenBalance(tokens[i], mint.to, tokenBalance))
 
-    marketInputTokenBalances.push(new TokenBalance(token, pool.id, poolReserves[index]))
-  })
+    marketInputTokenBalances.push(new TokenBalance(tokens[i], pool.id, poolReserves[i]))
+  }
 
   investInMarket(
     event,
@@ -131,21 +131,22 @@ export function createOrUpdatePositionOnBurn(event: ethereum.Event, pool: PoolEn
   let accountLiquidity = getOrCreateLiquidity(pool, accountAddress)
 
   let outputTokenAmount = burn.liquityAmount as BigInt
-  var inputTokenAmounts: TokenBalance[] = []
-  var outputTokenBalance = accountLiquidity.balance
-  var inputTokenBalances: TokenBalance[] = []
-  var marketInputTokenBalances: TokenBalance[] = []
+  let inputTokenAmounts: TokenBalance[] = []
+  let outputTokenBalance = accountLiquidity.balance
+  let inputTokenBalances: TokenBalance[] = []
+  let marketInputTokenBalances: TokenBalance[] = []
 
-  pool.tokens.forEach((token, index) => {
+  for (let i = 0; i < pool.tokens.length; i++) {
+    let tokens = pool.tokens as string[]
     let burnAmounts = burn.amounts as BigInt[]
-    inputTokenAmounts.push(new TokenBalance(token, burn.to, burnAmounts[index] as BigInt))
+    inputTokenAmounts.push(new TokenBalance(tokens[i], burn.to, burnAmounts[i] as BigInt))
 
     let poolReserves = pool.reserves as BigInt[]
-    let tokenBalance = outputTokenBalance.times(poolReserves[index]).div(pool.totalSupply as BigInt)
-    inputTokenBalances.push(new TokenBalance(token, burn.to, tokenBalance))
+    let tokenBalance = outputTokenBalance.times(poolReserves[i]).div(pool.totalSupply as BigInt)
+    inputTokenBalances.push(new TokenBalance(tokens[i], burn.to, tokenBalance))
 
-    marketInputTokenBalances.push(new TokenBalance(token, pool.id, poolReserves[index]))
-  })
+    marketInputTokenBalances.push(new TokenBalance(tokens[i], pool.id, poolReserves[i]))
+  }
 
   redeemFromMarket(
     event,

@@ -50,16 +50,17 @@ export function handleTokensRegistered(event: TokensRegistered): void {
   
   // @todo: what if the pool already existed? (more tokens added)
   // Create a tokens and market entity
-  var tokens: Token[] = []
-  var tokensStr: string[] = [] // @todo: Is there any workaround to avoid 2 arrays?
-  var reserves: BigInt[] = []
+  let tokens: Token[] = []
+  let tokensStr: string[] = [] // @todo: Is there any workaround to avoid 2 arrays?
+  let reserves: BigInt[] = []
 
-  event.params.tokens.forEach(token => {
-    let tokenEntity = getOrCreateERC20Token(event, token)
+  for (let i = 0; i < event.params.tokens.length; i++) {
+    let inputTokens = event.params.tokens
+    let tokenEntity = getOrCreateERC20Token(event, inputTokens[i])
     tokens.push(tokenEntity)
     tokensStr.push(tokenEntity.id)
     reserves.push(BigInt.fromI32(0))
-  });
+  }
   
   let poolAddress = Address.fromString(pool.address)
   let lpToken = getOrCreateERC20Token(event, poolAddress)
