@@ -268,9 +268,6 @@ export function getOrCreateIncentivesController(
   incentivesController.lendingPool = lendingPool;
   incentivesController.save();
 
-  // start indexing incentive controller
-  IncentivesControllerTemplate.create(Address.fromString(controllerAddress));
-
   // create staking market
   let weth = getOrCreateERC20Token(event, Address.fromString(WETH));
   let marketId = lendingPool + "-" + controllerAddress;
@@ -291,6 +288,9 @@ export function getOrCreateIncentivesController(
     outputToken,
     rewardTokens
   );
+
+  // start indexing incentive controller
+  IncentivesControllerTemplate.create(Address.fromString(controllerAddress));
 
   return incentivesController as IncentivesController;
 }
