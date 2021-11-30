@@ -3,10 +3,12 @@ import {
   ethereum, 
   Address,
   store,
+  log
 } from "@graphprotocol/graph-ts"
 
 import { 
   Pool as PoolEntity, 
+  PoolId as PoolIdEntity,
   Market as MarketEntity,
   Account as AccountEntity,
   Mint as MintEntity,
@@ -23,13 +25,13 @@ import {
 } from "./common"
 
 export function getOrCreateLiquidity(pool: PoolEntity, accountAddress: Address): AccountLiquidityEntity {
-  let id = pool.id.concat("-").concat(accountAddress.toHexString())
+  let id = pool.address.concat("-").concat(accountAddress.toHexString())
   let liqudity = AccountLiquidityEntity.load(id)
   if (liqudity != null) {
     return liqudity as AccountLiquidityEntity
   }
   liqudity = new AccountLiquidityEntity(id)
-  liqudity.pool = pool.id
+  liqudity.pool = pool.address
   liqudity.account = getOrCreateAccount(accountAddress).id
   liqudity.balance = BigInt.fromI32(0)
   liqudity.save()
@@ -57,7 +59,8 @@ export function createOrUpdatePositionOnMint(event: ethereum.Event, pool: PoolEn
 
   let accountAddress = Address.fromString(mint.to)
   let account = new AccountEntity(mint.to)
-  let market = MarketEntity.load(mint.pool) as MarketEntity
+
+  let market = MarketEntity.load(pool.address) as MarketEntity
   let accountLiquidity = getOrCreateLiquidity(pool, accountAddress)
 
   let outputTokenAmount = mint.liquityAmount as BigInt
@@ -77,8 +80,8 @@ export function createOrUpdatePositionOnMint(event: ethereum.Event, pool: PoolEn
     let poolReserves = pool.reserves as BigInt[]
     let tokenBalance = outputTokenBalance.times(poolReserves[i]).div(pool.totalSupply as BigInt)
     inputTokenBalances.push(new TokenBalance(tokens[i], mint.to, tokenBalance))
-
-    marketInputTokenBalances.push(new TokenBalance(tokens[i], pool.id, poolReserves[i]))
+    
+    marketInputTokenBalances.push(new TokenBalance(tokens[i], pool.address, poolReserves[i]))
   }
 
   investInMarket(
@@ -127,7 +130,7 @@ export function createOrUpdatePositionOnBurn(event: ethereum.Event, pool: PoolEn
 
   let accountAddress = Address.fromString(burn.to)
   let account = new AccountEntity(burn.to)
-  let market = MarketEntity.load(burn.pool) as MarketEntity
+  let market = MarketEntity.load(pool.address) as MarketEntity
   let accountLiquidity = getOrCreateLiquidity(pool, accountAddress)
 
   let outputTokenAmount = burn.liquityAmount as BigInt
@@ -145,7 +148,7 @@ export function createOrUpdatePositionOnBurn(event: ethereum.Event, pool: PoolEn
     let tokenBalance = outputTokenBalance.times(poolReserves[i]).div(pool.totalSupply as BigInt)
     inputTokenBalances.push(new TokenBalance(tokens[i], burn.to, tokenBalance))
 
-    marketInputTokenBalances.push(new TokenBalance(tokens[i], pool.id, poolReserves[i]))
+    marketInputTokenBalances.push(new TokenBalance(tokens[i], pool.address, poolReserves[i]))
   }
 
   redeemFromMarket(

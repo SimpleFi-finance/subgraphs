@@ -58,25 +58,25 @@ export function handleTransfer(event: Transfer): void {
     accountLiquidityTo.save()
   }
 
-  // @todo: research required on why we have TX like these
   if (toHex == ADDRESS_ZERO && fromHex == ADDRESS_ZERO) {
+    // On initialization, Balancer locks _getMinimumBpt() by minting it for the zero address. This BPT acts as a
+    // minimum as it will never be burned, which reduces potential issues with rounding, and also prevents the
+    // Pool from ever being fully drained.
+    pool.totalSupply.plus(event.params.value)
+    pool.save()
     return
   }
   
   // Protocol doesn't allow user transfers to zero address so only case is burning
   if (toHex == ADDRESS_ZERO) {
-    log.info("log handleBurn {} - {} - {} - {}", [event.transaction.hash.toHexString(), toHex, fromHex, event.params.value.toString()])
     accountFrom = getOrCreateAccount(event.params.from)
     handleBurn(event, pool as PoolEntity, accountFrom)
     return
   } else if (fromHex == ADDRESS_ZERO) {
-    log.info("log handleMint {} - {} - {} - {}", [event.transaction.hash.toHexString(), toHex, fromHex, event.params.value.toString()])
     accountTo = getOrCreateAccount(event.params.to)
     handleMint(event, pool as PoolEntity, accountTo)
     return
   }
-
-  log.info("log handleTransfer {} - {} - {} - {}", [event.transaction.hash.toHexString(), toHex, fromHex, event.params.value.toString()])
 
   // Normal LP transfers
   transferLPToken(event, pool as PoolEntity, event.params.from, event.params.to, event.params.value)

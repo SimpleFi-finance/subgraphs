@@ -1,4 +1,10 @@
-import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts"
+import { 
+  Address, 
+  BigInt, 
+  ethereum, 
+  log 
+} from "@graphprotocol/graph-ts"
+
 import {
   Account,
   AccountPosition,
@@ -9,9 +15,16 @@ import {
   Token,
   Transaction
 } from "../generated/schema"
-import { ERC20 } from "../generated/Vault/ERC20"
-import { PositionType, TokenStandard, TransactionType } from "./constants"
 
+import { 
+  ERC20 
+} from "../generated/Vault/ERC20"
+
+import { 
+  PositionType, 
+  TokenStandard, 
+  TransactionType 
+} from "./constants"
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
 
@@ -83,11 +96,12 @@ export function getOrCreateMarket(
   market.inputTokens = inputTokens.map<string>(t => t.id)
   market.outputToken = outputToken.id
   market.rewardTokens = rewardTokens.map<string>(t => t.id)
-  market.inputTokenTotalBalances = inputTokenBalances.map<string>(tb => tb.toString())
+  market.inputTokenTotalBalances = inputTokenBalances.map<string>(tb => tb.toString()) as string[]
   market.outputTokenTotalSupply = BigInt.fromI32(0)
   market.blockNumber = event.block.number
   market.timestamp = event.block.timestamp
   market.save()
+
   return market as Market
 }
 
@@ -130,7 +144,7 @@ export function createMarketSnapshot(
   if (marketSnapshot != null) {
     return marketSnapshot as MarketSnapshot
   }
-
+  
   marketSnapshot = new MarketSnapshot(id)
   marketSnapshot.market = market.id
   marketSnapshot.inputTokenBalances = market.inputTokenTotalBalances

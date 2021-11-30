@@ -44,6 +44,7 @@ export function handlePoolRegistered(event: PoolRegistered): void {
   let pool = new PoolEntity(event.params.poolId.toHexString())
   pool.address = event.params.poolAddress.toHexString();
 
+
   let evmEvent = event as ethereum.Event
   pool.blockNumber = evmEvent.block.number
   pool.timestamp = evmEvent.block.timestamp
@@ -51,7 +52,7 @@ export function handlePoolRegistered(event: PoolRegistered): void {
   pool.save()
 
   // Solely purpose to retrive poolId from poolAddress when needed
-  let poolId = new PoolIdEntity(event.params.poolAddress.toHexString())
+  let poolId = new PoolIdEntity(pool.address)
   poolId.poolId = pool.id
   poolId.save()
 }
@@ -101,8 +102,8 @@ export function handleTokensDeregistered(event: TokensDeregistered): void {
 }
 
 export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
-  let poolId = PoolIdEntity.load(event.params.poolId.toHexString())
-  let pool = PoolEntity.load(poolId.id)
+  
+  let pool = PoolEntity.load(event.params.poolId.toHexString())
 
   let transactionHash = event.transaction.hash.toHexString()
 
@@ -110,7 +111,7 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
     // @todo: can I trust ordering?
     pool.reserves = event.params.deltas
   } else {
-    let reserves = pool.reserves;
+    let reserves = pool.reserves as BigInt[]
     for (let i = 0; i < pool.reserves.length; i++) {
       let poolDeposit = event.params.deltas
       reserves[i].plus(poolDeposit[i])
@@ -120,7 +121,6 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
   pool.save()
 
   let isMintOrBurn = false
-
   let possibleMint = MintEntity.load(transactionHash)
   if (possibleMint != null) {
     isMintOrBurn = true
@@ -134,7 +134,7 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
     pool.totalSupply = pool.totalSupply.plus(mint.liquityAmount as BigInt)
     pool.save()
 
-    createOrUpdatePositionOnMint(event, pool, mint)
+    createOrUpdatePositionOnMint(event, pool as PoolEntity, mint)
   }
 
   let possibleBurn = BurnEntity.load(transactionHash)
@@ -150,15 +150,15 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
     pool.totalSupply = pool.totalSupply.minus(burn.liquityAmount as BigInt)
     pool.save()
 
-    createOrUpdatePositionOnBurn(event, pool, burn)
+    createOrUpdatePositionOnBurn(event, pool as PoolEntity, burn)
   }
 
   if (!isMintOrBurn) {
     let inputTokenBalances: TokenBalance[] = []
 
     for (let i = 0; i < pool.tokens.length; i++) {
-      let tokens = pool.tokens
-      let poolReserves = pool.reserves
+      let tokens = pool.tokens as string[]
+      let poolReserves = pool.reserves as BigInt[]
       inputTokenBalances.push(new TokenBalance(tokens[i], pool.id, poolReserves[i]))
     }
 
@@ -168,7 +168,7 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
       event,
       market,
       inputTokenBalances,
-      pool.totalSupply
+      pool.totalSupply as BigInt
     )
   }
 }
