@@ -44,7 +44,6 @@ export function handlePoolRegistered(event: PoolRegistered): void {
   let pool = new PoolEntity(event.params.poolId.toHexString())
   pool.address = event.params.poolAddress.toHexString();
 
-
   let evmEvent = event as ethereum.Event
   pool.blockNumber = evmEvent.block.number
   pool.timestamp = evmEvent.block.timestamp
@@ -106,14 +105,21 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
   let pool = PoolEntity.load(event.params.poolId.toHexString())
 
   let transactionHash = event.transaction.hash.toHexString()
+  let tokenAmounts: BigInt[] = []
+  for (let i = 0; i < event.params.deltas.length; i++) {
+    let amounts = event.params.deltas
+    
+    // deltas come as negative values on burning
+    tokenAmounts.push(amounts[i].abs())
+  }
 
   if (pool.reserves === null) {
     // @todo: can I trust ordering?
-    pool.reserves = event.params.deltas
+    pool.reserves = tokenAmounts
   } else {
     let reserves = pool.reserves as BigInt[]
     for (let i = 0; i < pool.reserves.length; i++) {
-      let poolDeposit = event.params.deltas
+      let poolDeposit = tokenAmounts
       reserves[i].plus(poolDeposit[i])
     }
   }
@@ -128,12 +134,12 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
     mint.poolBalanceEventApplied = true
 
     // @todo: can I trust event.params.deltas ordering?
-    mint.amounts = event.params.deltas
+    mint.amounts = tokenAmounts
     mint.save()
 
     pool.totalSupply = pool.totalSupply.plus(mint.liquityAmount as BigInt)
     pool.save()
-
+    log.info("Vault: Minting tokens ({}) from pool {} totalSupply {} {}", [mint.liquityAmount.toString(), pool.address, pool.totalSupply.toString(), event.transaction.hash.toHexString()])
     createOrUpdatePositionOnMint(event, pool as PoolEntity, mint)
   }
 
@@ -144,12 +150,12 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
     burn.poolBalanceEventApplied = true
 
     // @todo: can I trust event.params.deltas ordering?
-    burn.amounts = event.params.deltas
+    burn.amounts = tokenAmounts
     burn.save()
 
     pool.totalSupply = pool.totalSupply.minus(burn.liquityAmount as BigInt)
     pool.save()
-
+    log.info("Vault: Burning tokens ({}) from pool {} totalSupply {} {}", [burn.liquityAmount.toString(), pool.address, pool.totalSupply.toString(), event.transaction.hash.toHexString()])
     createOrUpdatePositionOnBurn(event, pool as PoolEntity, burn)
   }
 
@@ -163,7 +169,7 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
     }
 
     // Update market
-    let market = MarketEntity.load(event.address.toHexString()) as MarketEntity
+    let market = MarketEntity.load(pool.address) as MarketEntity
     updateMarket(
       event,
       market,

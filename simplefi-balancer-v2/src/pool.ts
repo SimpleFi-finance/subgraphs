@@ -62,17 +62,21 @@ export function handleTransfer(event: Transfer): void {
     // On initialization, Balancer locks _getMinimumBpt() by minting it for the zero address. This BPT acts as a
     // minimum as it will never be burned, which reduces potential issues with rounding, and also prevents the
     // Pool from ever being fully drained.
-    pool.totalSupply.plus(event.params.value)
+    log.info("Initializing pool {} minimal amount {} {}", [poolAddressHex, event.params.value.toString(), event.transaction.hash.toHexString()])
+
+    pool.totalSupply = pool.totalSupply.plus(event.params.value)
     pool.save()
     return
   }
   
   // Protocol doesn't allow user transfers to zero address so only case is burning
   if (toHex == ADDRESS_ZERO) {
+    log.info("Burning tokens ({}) from pool {} totalSupply {} {}", [event.params.value.toString(), poolAddressHex, pool.totalSupply.toString(), event.transaction.hash.toHexString()])
     accountFrom = getOrCreateAccount(event.params.from)
     handleBurn(event, pool as PoolEntity, accountFrom)
     return
   } else if (fromHex == ADDRESS_ZERO) {
+    log.info("Minting tokens ({}) from pool {} totalSupply {} {}", [event.params.value.toString(), poolAddressHex, pool.totalSupply.toString(), event.transaction.hash.toHexString()])
     accountTo = getOrCreateAccount(event.params.to)
     handleMint(event, pool as PoolEntity, accountTo)
     return
