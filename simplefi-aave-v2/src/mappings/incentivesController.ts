@@ -1,20 +1,13 @@
-import { Address, BigInt, ethereum, store, log, dataSource } from "@graphprotocol/graph-ts";
+import { Address, BigInt } from "@graphprotocol/graph-ts";
 
 import {
   RewardsClaimed,
   RewardsAccrued,
 } from "../../generated/templates/IncentivesController/AaveIncentivesController";
-import {
-  RewardsClaim,
-  RewardsAccrue,
-  Market,
-  IncentivesController,
-  UserAccountData,
-} from "../../generated/schema";
+import { RewardsClaim, RewardsAccrue, Market, IncentivesController } from "../../generated/schema";
 
 import { getOrCreateUserRewardBalance } from "../library/lendingPoolUtils";
 import {
-  ADDRESS_ZERO,
   getOrCreateAccount,
   investInMarket,
   redeemFromMarket,
@@ -62,8 +55,9 @@ export function handleRewardsClaimed(event: RewardsClaimed): void {
     new TokenBalance(rewardTokens[0], claim.to, claim.amount),
   ];
 
-  // TODO - for now there is no definition of output token for incentive controlelr
-  let outputTokenBalance = BigInt.fromI32(0);
+  // TODO - for now there is no definition of output token for incentive controller
+  // use 1 instead of 0 in order to keep reward position open at all times
+  let outputTokenBalance = BigInt.fromI32(1);
 
   // TODO - for now there is no definition of input token for incentive controlelr
   let inputTokenBalances: TokenBalance[] = [];
@@ -123,7 +117,8 @@ export function handleRewardsAccrued(event: RewardsAccrued): void {
   let rewardTokenAmounts: TokenBalance[] = [];
 
   // TODO - for now there is no definition of output token for incentive controller
-  let outputTokenBalance = BigInt.fromI32(0);
+  // use 1 instead of 0 in order to keep reward position open at all times
+  let outputTokenBalance = BigInt.fromI32(1);
 
   // TODO - for now there is no definition of input token for incentive controller
   let inputTokenBalances: TokenBalance[] = [];
