@@ -24,12 +24,13 @@ import {
 
 
 function getOrCreateMint(event: ethereum.Event, pair: PairEntity): MintEntity {
-  let mint = MintEntity.load(event.transaction.hash.toHexString())
+  let mintId = pair.id.concat("-").concat(event.transaction.hash.toHexString())
+  let mint = MintEntity.load(mintId)
   if (mint != null) {
     return mint as MintEntity
   }
 
-  mint = new MintEntity(event.transaction.hash.toHexString())
+  mint = new MintEntity(mintId)
   mint.pair = pair.id
   mint.transferEventApplied = false
   mint.syncEventApplied = false
@@ -39,12 +40,13 @@ function getOrCreateMint(event: ethereum.Event, pair: PairEntity): MintEntity {
 }
 
 function getOrCreateBurn(event: ethereum.Event, pair: PairEntity): BurnEntity {
-  let burn = BurnEntity.load(event.transaction.hash.toHexString())
+  let burnId = pair.id.concat("-").concat(event.transaction.hash.toHexString())
+  let burn = BurnEntity.load(burnId)
   if (burn != null) {
     return burn as BurnEntity
   }
 
-  burn = new BurnEntity(event.transaction.hash.toHexString())
+  burn = new BurnEntity(burnId)
   burn.transferToPairEventApplied = false
   burn.transferToZeroEventApplied = false
   burn.syncEventApplied = false
@@ -84,8 +86,8 @@ function createOrUpdatePositionOnMint(event: ethereum.Event, pair: PairEntity, m
 
   let outputTokenAmount = mint.liquityAmount as BigInt
   let inputTokenAmounts: TokenBalance[] = []
-  inputTokenAmounts.push(new TokenBalance(pair.token0, mint.to, mint.amount0 as BigInt))
-  inputTokenAmounts.push(new TokenBalance(pair.token1, mint.to, mint.amount1 as BigInt))
+  inputTokenAmounts.push(new TokenBalance(pair.token0, mint.from, mint.amount0 as BigInt))
+  inputTokenAmounts.push(new TokenBalance(pair.token1, mint.from, mint.amount1 as BigInt))
 
   let outputTokenBalance = accountLiquidity.balance
   let token0Balance = outputTokenBalance.times(pair.reserve0).div(pair.totalSupply)
@@ -132,8 +134,8 @@ function createOrUpdatePositionOnBurn(event: ethereum.Event, pair: PairEntity, b
   pair.lastIncompleteBurn = null
   pair.save()
 
-  let accountAddress = Address.fromString(burn.to)
-  let account = new AccountEntity(burn.to)
+  let accountAddress = Address.fromString(burn.from)
+  let account = new AccountEntity(burn.from)
   let market = MarketEntity.load(burn.pair) as MarketEntity
   let accountLiquidity = getOrCreateLiquidity(pair, accountAddress)
 
@@ -146,8 +148,8 @@ function createOrUpdatePositionOnBurn(event: ethereum.Event, pair: PairEntity, b
   let token0Balance = outputTokenBalance.times(pair.reserve0).div(pair.totalSupply)
   let token1Balance = outputTokenBalance.times(pair.reserve1).div(pair.totalSupply)
   let inputTokenBalances: TokenBalance[] = []
-  inputTokenBalances.push(new TokenBalance(pair.token0, burn.to, token0Balance))
-  inputTokenBalances.push(new TokenBalance(pair.token1, burn.to, token1Balance))
+  inputTokenBalances.push(new TokenBalance(pair.token0, burn.from, token0Balance))
+  inputTokenBalances.push(new TokenBalance(pair.token1, burn.from, token1Balance))
 
   redeemFromMarket(
     event,
@@ -238,10 +240,11 @@ function checkIncompleteBurnFromLastTransaction(event: ethereum.Event, pair: Pai
   }
 
   // New transaction processing has started without completing burn event
-  let burn = BurnEntity.load(pair.lastIncompleteBurn)
+  let burnId = pair.id.concat("-").concat(pair.lastIncompleteBurn)
+  let burn = BurnEntity.load(burnId)
   // Check if transfer to pair happened as an incomplete burn
-  if (burn != null && burn.to != null && burn.liquityAmount != null && burn.transferToPairEventApplied) {
-    let from = burn.to as string
+  if (burn != null && burn.from != null && burn.liquityAmount != null && burn.transferToPairEventApplied) {
+    let from = burn.from as string
     let amount = burn.liquityAmount as BigInt
     transferLPToken(event, pair, Address.fromString(from), event.address, amount)
   }
@@ -286,6 +289,7 @@ export function handleTransfer(event: Transfer): void {
 
     let mint = getOrCreateMint(event, pair)
     mint.transferEventApplied = true
+    mint.from = getOrCreateAccount(event.transaction.from).id
     mint.to = getOrCreateAccount(event.params.to).id
     mint.liquityAmount = event.params.value
     mint.save()
@@ -296,7 +300,7 @@ export function handleTransfer(event: Transfer): void {
   if (fromHex != ADDRESS_ZERO && toHex == pairAddressHex) {
     let burn = getOrCreateBurn(event, pair)
     burn.transferToPairEventApplied = true
-    burn.to = getOrCreateAccount(event.params.from).id
+    burn.from = getOrCreateAccount(event.params.from).id
     burn.liquityAmount = event.params.value
     burn.save()
     createOrUpdatePositionOnBurn(event, pair, burn)
@@ -352,7 +356,8 @@ export function handleSync(event: Sync): void {
 
   let isSyncOnly = true
 
-  let possibleMint = MintEntity.load(transactionHash)
+  let mintId = pair.id.concat("-").concat(transactionHash)
+  let possibleMint = MintEntity.load(mintId)
   if (possibleMint != null) {
     isSyncOnly = false
     let mint = possibleMint as MintEntity
@@ -365,7 +370,8 @@ export function handleSync(event: Sync): void {
     createOrUpdatePositionOnMint(event, pair, mint)
   }
 
-  let possibleBurn = BurnEntity.load(transactionHash)
+  let burnId = pair.id.concat("-").concat(transactionHash)
+  let possibleBurn = BurnEntity.load(burnId)
   if (possibleBurn != null) {
     isSyncOnly = false
     let burn = possibleBurn as BurnEntity

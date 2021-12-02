@@ -190,8 +190,9 @@ type AccountLiquidity @entity {
 }
 
 type Mint @entity {
-  id: ID! # {trasactionHash}
+  id: ID! # {pairAddress}{trasactionHash}
   pair: Pair
+  from: Account
   to: Account
   liquityAmount: BigInt
   amount0: BigInt
@@ -202,8 +203,9 @@ type Mint @entity {
 }
 
 type Burn @entity {
-  id: ID! # {trasactionHash}
+  id: ID! # {pairAddress}{trasactionHash}
   pair: Pair
+  from: Account
   to: Account
   liquityAmount: BigInt
   amount0: BigInt
