@@ -1,3 +1,5 @@
+# Common entities for all protocols
+
 enum Blockchain {
   ETHEREUM
   BSC
@@ -16,6 +18,8 @@ enum TokenStandard {
 
 enum ProtocolName {
   UNISWAP_V2
+  CURVE_POOL
+  STAKE_DAO
 }
 
 enum ProtocolType {
@@ -28,6 +32,7 @@ enum ProtocolType {
   SYNTHETIC_TOKEN
   TOKEN_MANAGEMENT  # Meta LP vaults
   PREDICTION_MARKET
+  LP_FARMING
 }
 
 enum PositionType {
@@ -61,7 +66,7 @@ type Token @entity {
 }
 
 type Market @entity {
-  id: ID! # {protocol pair/pool/vault address}
+  id: ID! # {protocol pool/pool/vault address}
   account: Account!
   protocolName: ProtocolName!
   protocolType: ProtocolType!
@@ -160,3 +165,86 @@ type PositionSnapshot @entity {
   rewardTokenBalances: [String!]!   # TokenBalance string format
   transferredTo: [String!]!         # TokenBalance string format
 }
+
+# END - Common entities for all protocols
+
+# Stake DAO protocol entities
+
+type Vault @entity {
+  id: ID! # {vault address}
+  token: Token!
+  controller: String!
+  balance: BigInt!
+  totalSupply: BigInt!
+  lastTransferToZero: String
+}
+
+type VaultInputToken @entity {
+  id: ID! # {token address}
+  vault: Vault!
+}
+
+type TokenStrategy @entity {
+  id: ID! # {token address}
+  strategy: String!
+}
+
+type AccountLiquidity @entity {
+  id: ID! # {pairAddress}{accoutnAddress}
+  vault: Vault!
+  account: Account!
+  balance: BigInt!
+}
+
+type Deposit @entity {
+  id: ID! # {transaction hash}
+  vault: Vault!
+  account: Account!
+  inputTokenAmount: BigInt
+  lpTokenAmount: BigInt
+  inputTokenTransferEventApplied: Boolean!
+  lpTokenTransferEventApplied: Boolean!
+}
+
+type Withdraw @entity {
+  id: ID! # {transaction hash}
+  vault: Vault!
+  account: Account!
+  inputTokenAmount: BigInt
+  lpTokenAmount: BigInt
+  inputTokenTransferEventApplied: Boolean!
+  lpTokenTransferEventApplied: Boolean!
+}
+
+# LP Farming entities
+
+type MasterChef @entity {
+  id: ID! # {master chef contract address}
+  startBlock: BigInt!
+  sdtPerBlock: BigInt!
+  totalAllocPoint: BigInt!
+  bonusEndBlock: BigInt!
+  poolLength: BigInt!
+  poolInfo: [MCPoolInfo!]! @derivedFrom(field: "masterChef")
+  userInfo: [MCUserInfo!]! @derivedFrom(field: "masterChef")
+}
+
+type MCPoolInfo @entity {
+  id: ID! # {master chef contract address}{pool id}
+  masterChef: MasterChef!
+  lpToken: Token!
+  lpTokenBalance: BigInt!
+  allocPoint: BigInt!
+  lastRewardBlock: BigInt!
+  accSdtPerShare: BigInt!
+}
+
+type MCUserInfo @entity {
+  id: ID! # {master chef contract address}{user address}
+  masterChef: MasterChef!
+  amount: BigInt!
+  rewardDebt: BigInt!
+  rewardEarned: BigInt!
+}
+
+# END - Stake DAO protocol entities

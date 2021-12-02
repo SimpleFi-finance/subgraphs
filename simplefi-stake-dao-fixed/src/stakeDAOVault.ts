@@ -3,6 +3,7 @@ import {
   AccountLiquidity as AccountLiquidityEntity,
   Deposit as DepositEntity,
   Market as MarketEntity,
+  TokenStrategy as TokenStrategyEntity,
   Vault as VaultEntity,
   VaultInputToken as VaultInputTokenEntity,
   Withdraw as WithdrawEntity
@@ -10,7 +11,6 @@ import {
 import { Transfer as InputTokenTransfer } from "../generated/templates/StakeDAOVault/ERC20";
 import {
   SetControllerCall,
-  StakeDAOVault, 
   StakeDAOVault as StakeDAOVaultContract, 
   Transfer as LPTokenTransfer
 } from "../generated/templates/StakeDAOVault/StakeDAOVault";
@@ -23,89 +23,10 @@ import {
   updateMarket
 } from "./common";
 
-export function handleSetController(call: SetControllerCall): void {
-  let vault = VaultEntity.load(call.to.toHexString()) as VaultEntity
-  vault.controller = call.inputs._controller.toHexString()
-  vault.save()
-}
 
-export function handleTransfer(event: LPTokenTransfer): void {
-  let vault = VaultEntity.load(event.address.toHexString()) as VaultEntity
-  let fromHex = event.params.from.toHexString()
-  let toHex = event.params.to.toHexString()
-
-  // Check for lastTransferToZero and transfer LP from user to zero address
-  if (vault.lastTransferToZero != null && vault.lastTransferToZero != event.transaction.hash.toHexString()) {
-    let withdraw = WithdrawEntity.load(vault.lastTransferToZero) as WithdrawEntity
-    transferOutpuToken(
-      event,
-      vault,
-      Address.fromString(withdraw.account),
-      Address.fromString(ADDRESS_ZERO),
-      withdraw.lpTokenAmount as BigInt
-    )
-    vault.lastTransferToZero = null
-    vault.save()
-  }
-
-  // mint
-  if (fromHex == ADDRESS_ZERO) {
-    let deposit = getOrCreateDeposit(event, vault, toHex)
-    deposit.lpTokenAmount = event.params.value
-    deposit.lpTokenTransferEventApplied = true
-    deposit.save()
-    handleDeposit(event, deposit)
-    return
-  }
-
-  // burn
-  if (toHex == ADDRESS_ZERO) {
-    let withdraw = getOrCreateWithdraw(event, vault, fromHex)
-    withdraw.lpTokenAmount = event.params.value
-    withdraw.lpTokenTransferEventApplied = true
-    withdraw.save()
-
-    vault.lastTransferToZero = event.transaction.hash.toHexString()
-    vault.save()
-
-    handleWithdraw(event, withdraw)
-    return
-  }
-
-  transferOutpuToken(
-    event,
-    vault,
-    event.params.from,
-    event.params.to,
-    event.params.value
-  )
-}
-
-export function handleInputTokenTransfer(event: InputTokenTransfer): void {
-  let vaultInputToken = VaultInputTokenEntity.load(event.address.toHexString()) as VaultInputTokenEntity
-  let vault = VaultEntity.load(vaultInputToken.vault) as VaultEntity
-  let fromHex = event.params.from.toHexString()
-  let toHex = event.params.to.toHexString()
-
-  // Deposit
-  if (toHex == vault.id) {
-    let deposit = getOrCreateDeposit(event, vault, fromHex)
-    deposit.inputTokenAmount = event.params.value
-    deposit.inputTokenTransferEventApplied = true
-    deposit.save()
-    handleDeposit(event, deposit)
-    return
-  }
-
-  // Withdraw
-  if (fromHex == vault.id && toHex != vault.controller) {
-    let withdraw = getOrCreateWithdraw(event, vault, toHex)
-    withdraw.inputTokenAmount = event.params.value
-    withdraw.inputTokenTransferEventApplied = true
-    withdraw.save()
-    handleWithdraw(event, withdraw)
-    return
-  }
+function isVaultStrategyNull(vault: VaultEntity): boolean {
+  let tokenStrategy = TokenStrategyEntity.load(vault.token)
+  return tokenStrategy == null
 }
 
 function getOrCreateDeposit(event: ethereum.Event, vault: VaultEntity, account: string): DepositEntity {
@@ -147,7 +68,7 @@ function handleDeposit(event: ethereum.Event, deposit: DepositEntity): void {
 
   let vault = VaultEntity.load(deposit.vault) as VaultEntity
   vault.totalSupply = vault.totalSupply.plus(deposit.lpTokenAmount as BigInt)
-  vault.balance = StakeDAOVault.bind(Address.fromString(deposit.vault)).balance()
+  vault.balance = StakeDAOVaultContract.bind(Address.fromString(deposit.vault)).balance()
   vault.save()
 
   let market = MarketEntity.load(deposit.vault) as MarketEntity
@@ -189,7 +110,7 @@ function handleWithdraw(event: ethereum.Event, withdraw: WithdrawEntity): void {
 
   let vault = VaultEntity.load(withdraw.vault) as VaultEntity
   vault.totalSupply = vault.totalSupply.minus(withdraw.lpTokenAmount as BigInt)
-  vault.balance = StakeDAOVault.bind(Address.fromString(withdraw.vault)).balance()
+  vault.balance = StakeDAOVaultContract.bind(Address.fromString(withdraw.vault)).balance()
   vault.lastTransferToZero = null
   vault.save()
 
@@ -222,33 +143,6 @@ function handleWithdraw(event: ethereum.Event, withdraw: WithdrawEntity): void {
     inputTokenBalances,
     [],
     null
-  )
-}
-
-export function handleBlock(block: ethereum.Block): void {
-  let fakeEvent = new ethereum.Event()
-  fakeEvent.block = block
-  let transaction = new ethereum.Transaction()
-  transaction.hash = block.hash
-  fakeEvent.transaction = transaction
-  fakeEvent.logIndex = block.number
-
-  let context = dataSource.context()
-  let vaultId = context.getString('vaultId')
-
-  let vault = VaultEntity.load(vaultId) as VaultEntity
-  let contract = StakeDAOVaultContract.bind(Address.fromString(vault.id))
-  vault.controller = contract.controller().toHexString()
-  vault.balance = contract.balance()
-  vault.totalSupply = contract.totalSupply()
-  vault.save()
-
-  let market = MarketEntity.load(vault.id) as MarketEntity
-  updateMarket(
-    fakeEvent,
-    market,
-    [new TokenBalance(vault.token, vault.id, vault.balance)],
-    vault.totalSupply
   )
 }
 
@@ -312,5 +206,129 @@ function transferOutpuToken(event: ethereum.Event, vault: VaultEntity, from: Add
     toInputTokenBalances,
     [],
     from.toHexString()
+  )
+}
+
+export function handleSetController(call: SetControllerCall): void {
+  let vault = VaultEntity.load(call.to.toHexString()) as VaultEntity
+  vault.controller = call.inputs._controller.toHexString()
+  vault.save()
+}
+
+export function handleTransfer(event: LPTokenTransfer): void {
+  let vault = VaultEntity.load(event.address.toHexString()) as VaultEntity
+  if (isVaultStrategyNull(vault)) {
+    return
+  }
+
+  let fromHex = event.params.from.toHexString()
+  let toHex = event.params.to.toHexString()
+
+  // Check for lastTransferToZero and transfer LP from user to zero address
+  if (vault.lastTransferToZero != null && vault.lastTransferToZero != event.transaction.hash.toHexString()) {
+    let withdraw = WithdrawEntity.load(vault.lastTransferToZero) as WithdrawEntity
+    transferOutpuToken(
+      event,
+      vault,
+      Address.fromString(withdraw.account),
+      Address.fromString(ADDRESS_ZERO),
+      withdraw.lpTokenAmount as BigInt
+    )
+    vault.lastTransferToZero = null
+    vault.save()
+  }
+
+  // mint
+  if (fromHex == ADDRESS_ZERO) {
+    let deposit = getOrCreateDeposit(event, vault, toHex)
+    deposit.lpTokenAmount = event.params.value
+    deposit.lpTokenTransferEventApplied = true
+    deposit.save()
+    handleDeposit(event, deposit)
+    return
+  }
+
+  // burn
+  if (toHex == ADDRESS_ZERO) {
+    let withdraw = getOrCreateWithdraw(event, vault, fromHex)
+    withdraw.lpTokenAmount = event.params.value
+    withdraw.lpTokenTransferEventApplied = true
+    withdraw.save()
+
+    vault.lastTransferToZero = event.transaction.hash.toHexString()
+    vault.save()
+
+    handleWithdraw(event, withdraw)
+    return
+  }
+
+  transferOutpuToken(
+    event,
+    vault,
+    event.params.from,
+    event.params.to,
+    event.params.value
+  )
+}
+
+export function handleInputTokenTransfer(event: InputTokenTransfer): void {
+  let vaultInputToken = VaultInputTokenEntity.load(event.address.toHexString()) as VaultInputTokenEntity
+  let vault = VaultEntity.load(vaultInputToken.vault) as VaultEntity
+  if (isVaultStrategyNull(vault)) {
+    return
+  }
+
+  let fromHex = event.params.from.toHexString()
+  let toHex = event.params.to.toHexString()
+
+  // Deposit
+  if (toHex == vault.id) {
+    let deposit = getOrCreateDeposit(event, vault, fromHex)
+    deposit.inputTokenAmount = event.params.value
+    deposit.inputTokenTransferEventApplied = true
+    deposit.save()
+    handleDeposit(event, deposit)
+    return
+  }
+
+  // Withdraw
+  if (fromHex == vault.id && toHex != vault.controller) {
+    let withdraw = getOrCreateWithdraw(event, vault, toHex)
+    withdraw.inputTokenAmount = event.params.value
+    withdraw.inputTokenTransferEventApplied = true
+    withdraw.save()
+    handleWithdraw(event, withdraw)
+    return
+  }
+}
+
+export function handleBlock(block: ethereum.Block): void {
+  let fakeEvent = new ethereum.Event()
+  fakeEvent.block = block
+  let transaction = new ethereum.Transaction()
+  transaction.hash = block.hash
+  fakeEvent.transaction = transaction
+  fakeEvent.logIndex = block.number
+
+  let context = dataSource.context()
+  let vaultId = context.getString('vaultId')
+
+  let vault = VaultEntity.load(vaultId) as VaultEntity
+  if (isVaultStrategyNull(vault)) {
+    return
+  }
+
+  let contract = StakeDAOVaultContract.bind(Address.fromString(vault.id))
+  vault.controller = contract.controller().toHexString()
+  vault.balance = contract.balance()
+  vault.totalSupply = contract.totalSupply()
+  vault.save()
+
+  let market = MarketEntity.load(vault.id) as MarketEntity
+  updateMarket(
+    fakeEvent,
+    market,
+    [new TokenBalance(vault.token, vault.id, vault.balance)],
+    vault.totalSupply
   )
 }

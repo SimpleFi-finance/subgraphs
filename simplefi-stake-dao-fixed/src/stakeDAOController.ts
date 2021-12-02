@@ -1,9 +1,11 @@
 import { BigInt, DataSourceContext, ethereum } from "@graphprotocol/graph-ts"
 import {
+  TokenStrategy as TokenStrategyEntity,
   Vault as VaultEntity,
   VaultInputToken as VaultInputTokenEntity
 } from "../generated/schema"
 import {
+  SetStrategyCall,
   SetVaultCall
 } from "../generated/StakeDAOController/StakeDAOController"
 import {
@@ -48,4 +50,10 @@ export function handleSetVault(call: SetVaultCall): void {
   context.setString('vaultId', vault.id)
   StakeDAOVault.createWithContext(call.inputs._vault, context)
   StakeDAOVaultInputToken.createWithContext(call.inputs._token, context)
+}
+
+export function handleSetStrategy(call: SetStrategyCall): void {
+  let tokenStrategy = new TokenStrategyEntity(call.inputs._token.toHexString())
+  tokenStrategy.strategy = call.inputs._strategy.toHexString()
+  tokenStrategy.save()
 }
