@@ -280,7 +280,7 @@ type UserAccountData @entity {
   lastUpdateTimestamp: BigInt!
 }
 
-type UserRewardBalances @entity {
+type UserRewardBalance @entity {
   " address "
   id: ID!
 
@@ -320,7 +320,7 @@ type UserDebtBalance @entity {
   " scaled amount of debt tokens "
   scaledDebtTokenBalance: BigInt!
 
-  " amount of undelying asset tokens borrowed "
+  " amount of underlying asset tokens borrowed "
   amountBorrowedBalance: BigInt!
 
   " either stable or variable rate mode "

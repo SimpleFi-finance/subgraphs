@@ -14,7 +14,7 @@ import {
   Account,
   UserAccountData,
   IncentivesController,
-  UserRewardBalances,
+  UserRewardBalance,
   AToken,
   VariableDebtToken,
   StableDebtToken,
@@ -313,20 +313,19 @@ export function getOrCreateIncentivesController(
   return incentivesController as IncentivesController;
 }
 
-export function getOrCreateUserRewardBalances(userAddress: string): UserRewardBalances {
-  let id = userAddress;
-  let user = UserRewardBalances.load(id);
+export function getOrCreateUserRewardBalance(userAddress: string): UserRewardBalance {
+  let user = UserRewardBalance.load(userAddress);
   if (user != null) {
-    return user as UserRewardBalances;
+    return user as UserRewardBalance;
   }
 
-  user = new UserRewardBalances(id);
+  user = new UserRewardBalance(userAddress);
   user.lifetimeRewards = BigInt.fromI32(0);
   user.claimedRewards = BigInt.fromI32(0);
   user.unclaimedRewards = BigInt.fromI32(0);
   user.save();
 
-  return user as UserRewardBalances;
+  return user as UserRewardBalance;
 }
 
 export function getOrCreateAToken(aTokenAdress: string): AToken {
