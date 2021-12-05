@@ -328,42 +328,89 @@ type UserDebtBalance @entity {
 }
 
 type AToken @entity {
+  " erc20 address "
   id: ID!
+
+  " asset this aToken is derived from "
   underlyingAsset: String!
+
+  " aave treasury "
   treasury: String!
+
+  " address of contract which distributes rewards "
   incentivesController: String!
+
+  " address of lending pool to which aToken belongs "
   lendingPool: String!
+
+  " erc20 name "
   aTokenName: String!
+
+  " erc20 symbol "
   aTokenSymbol: String!
+
+  " erc20 decimals "
   aTokenDecimals: Int!
 }
 
 type VariableDebtToken @entity {
+  " erc20 address "
   id: ID!
+
+  " asset for which variable rate debt is tracked "
   underlyingAsset: String!
+
+  " address of lending pool to which underlying asset belongs "
   lendingPool: String!
+
+  " address of contract which distributes rewards "
   incentivesController: String!
+
+  " erc20 name "
   debtTokenName: String!
+
+  " erc20 symbol "
   debtTokenSymbol: String!
+
+  " erc20 decimals "
   debtTokenDecimals: Int!
 }
 
 type StableDebtToken @entity {
+  " erc20 address "
   id: ID!
+
+  " asset for which variable rate debt is tracked "
   underlyingAsset: String!
+
+  " address of lending pool to which underlying asset belongs "
   lendingPool: String!
+
+  " address of contract which distributes rewards "
   incentivesController: String!
+
+  " erc20 name "
   debtTokenName: String!
+
+  " erc20 name "
   debtTokenSymbol: String!
+
+  " erc20 decimals "
   debtTokenDecimals: Int!
 }
 
 type IncentivesController @entity {
-  " address of the incentives controller "
+  " address of the incentives controller contract "
   id: ID!
+
+  " erc20 token in which users are rewarded "
   rewardToken: Token!
+
+  " end of rewards distribution "
   emissionEndTimestamp: BigInt!
-  lendingPool: String!
+
+  " lending pool whose users are rewarded "
+  lendingPool: LendingPool!
 }
 
 type RewardsClaim @entity {
