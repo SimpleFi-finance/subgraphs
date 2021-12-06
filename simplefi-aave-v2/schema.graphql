@@ -173,91 +173,72 @@ type PositionSnapshot @entity {
 # Aave protocol entities
 
 type LendingPoolAddressesProvider @entity {
-  id: ID! # {address}
+  " contract address "
+  id: ID!
+
+  " contract address "
   address: String!
+
+  " address of price oracle contract"
   priceOracle: String!
 }
 
 type LendingPool @entity {
-  id: ID! # {address}
+  " address of lending pool contract "
+  id: ID!
+
+  " address of lending pool contract "
   address: String!
+
+  " contract address of address provider "
   addressProvider: String!
-}
-
-type Deposit @entity {
-  id: ID! # {address}
-  user: String!
-  onBehalfOf: String!
-  reserve: String!
-  amount: BigInt!
-  referral: BigInt!
-  transactionHash: String!
-}
-
-type Withdrawal @entity {
-  id: ID! # {address}
-  user: String!
-  to: String!
-  reserve: String!
-  amount: BigInt!
-  transactionHash: String!
-}
-
-type Borrow @entity {
-  id: ID! # {address}
-  user: String!
-  onBehalfOf: String!
-  reserve: String!
-  amount: BigInt!
-  borrowRateMode: Int!
-}
-
-type Repay @entity {
-  id: ID! # {address}
-  user: String!
-  repayer: String!
-  reserve: String!
-  amount: BigInt!
-
-  " either stable or variable rate mode "
-  rateMode: Int!
-}
-
-type SwapRateMode @entity {
-  id: ID! # {address}
-  user: String!
-  reserve: String!
-  rateMode: Int!
-  transactionHash: String!
-}
-
-type FlashLoan @entity {
-  id: ID! # {address}
-  target: String!
-  initiator: String!
-  asset: String!
-  amount: BigInt!
-  premium: BigInt!
-  transactionHash: String!
 }
 
 type Reserve @entity {
   " lendingPool-asset "
   id: ID!
+
+  " underlying asset "
   asset: String!
+
+  " underlying asset decimals "
   assetDecimals: Int!
+
+  " lending pool to which reserve belongs "
   lendingPool: LendingPool!
+
+  " address of aToken for this reserve "
   aToken: String!
+
+  " address of sToken for this reserve "
   stableDebtToken: String!
+
+  " address of vToken for this reserve "
   variableDebtToken: String!
-  lastUpdateTimestamp: BigInt!
+
+  " used to determine aToken balance "
   liquidityIndex: BigInt!
+
+  " used to determine liquidity index "
   liquidityRate: BigInt!
+
+  " used to determine vToken balance "
   variableBorrowIndex: BigInt!
+
+  " used to determine variableBorrowIndex "
   variableBorrowRate: BigInt!
+
+  " used to determine sToken balance "
   stableBorrowRate: BigInt!
+
+  " loan-to-value ratio for this reserve "
   ltv: BigInt!
+
+  " underlying asset price in eth "
   assetUnitPriceInEth: BigInt!
+
+  " timestamp of last update "
+  lastUpdateTimestamp: BigInt!
 }
 
 type UserAccountData @entity {
@@ -270,10 +251,19 @@ type UserAccountData @entity {
   " user's average loan-to-value "
   ltv: BigInt!
 
+  " user's collateral priced in eth "
   totalCollateralEth: BigInt!
+
+  " user's debt priced in eth "
   totalDebtETH: BigInt!
+
+  " available debt priced in eth "
   availableBorrowsETH: BigInt!
+
+  " liquidation threshold of the user "
   currentLiquidationThreshold: BigInt!
+
+  " user's health factor based on amount of collateral and debt "
   healthFactor: BigInt!
 
   " timestamp data was updated last time "
@@ -281,12 +271,16 @@ type UserAccountData @entity {
 }
 
 type UserRewardBalance @entity {
-  " address "
+  " user address "
   id: ID!
 
-  #incentives
+  " amount of unclaimed reward tokens "
   unclaimedRewards: BigInt!
+
+  " amount of claimed reward tokens "
   claimedRewards: BigInt!
+
+  " total amount of rewards entitled to user "
   lifetimeRewards: BigInt!
 }
 
@@ -413,14 +407,152 @@ type IncentivesController @entity {
   lendingPool: LendingPool!
 }
 
-type Liquidation @entity {
+type Deposit @entity {
+  " TX-logIndex "
   id: ID!
+
+  " msg.sender "
+  user: String!
+
+  " deposit receiver "
+  onBehalfOf: String!
+
+  " asset being deposited "
+  reserve: String!
+
+  " amount of underlying asset deposited "
+  amount: BigInt!
+
+  " used for 3rd party tracking "
+  referral: BigInt!
+
+  " TX where deposit occured "
+  transactionHash: String!
+}
+
+type Withdrawal @entity {
+  " TX-logIndex "
+  id: ID!
+
+  " user whose deposit is withdrawn "
+  user: String!
+
+  " underlying asset receiver "
+  to: String!
+
+  " underlying asset being withdrawn "
+  reserve: String!
+
+  " amount of aToken burned / asset withdrawn "
+  amount: BigInt!
+
+  " TX where withdrawal occured "
+  transactionHash: String!
+}
+
+type Borrow @entity {
+  " TX-logIndex "
+  id: ID!
+
+  " msg.sender "
+  user: String!
+
+  " receiver of debt tokens "
+  onBehalfOf: String!
+
+  " underlying asset being borrowed "
+  reserve: String!
+
+  " amount of asset borrowed "
+  amount: BigInt!
+
+  " 1->stable, 2->variable"
+  borrowRateMode: Int!
+}
+
+type Repay @entity {
+  " TX-logIndex "
+  id: ID!
+
+  " msg.sender "
+  user: String!
+
+  " user whose debt is being repaid "
+  repayer: String!
+
+  " asset being repaid "
+  reserve: String!
+
+  " amount of debt repaid "
+  amount: BigInt!
+
+  " 1->stable, 2->variable"
+  rateMode: Int!
+}
+
+type SwapRateMode @entity {
+  " TX-logIndex "
+  id: ID!
+
+  " msg.sender "
+  user: String!
+
+  " debt asset "
+  reserve: String!
+
+  " 1->stable, 2->variable"
+  rateMode: Int!
+
+  " TX where rate mode swap occured "
+  transactionHash: String!
+}
+
+type FlashLoan @entity {
+  " TX-logIndex "
+  id: ID!
+
+  " contract that receives funds "
+  target: String!
+
+  " msg.sender "
+  initiator: String!
+
+  " asset borrowed "
+  asset: String!
+
+  " amount of borrowed asset "
+  amount: BigInt!
+
+  " fee on the flashloan "
+  premium: BigInt!
+
+  " TX where flashloan occured "
+  transactionHash: String!
+}
+
+type Liquidation @entity {
+  " TX-logIndex "
+  id: ID!
+
+  " collateral asset liquidator gets "
   collateralAsset: String!
+
+  " debt asset being underwater "
   debtAsset: String!
+
+  " amount of bad debt covered "
   debtToCover: BigInt!
+
+  " amount of collateral liquidated "
   liquidatedCollateralAmount: BigInt!
+
+  " msg.sender "
   liquidator: String!
+
+  " true if receiving aToken, false if receiveing underlying asset "
   receiveAToken: Boolean!
+
+  " user getting liquidated "
   user: String!
 }
 
