@@ -134,8 +134,8 @@ templates:
           handler: handleATokenUpgraded
         - event: StableDebtTokenUpgraded(indexed address,indexed address,indexed address)
           handler: handleStableDebtTokenUpgraded
-        # - event: VariableDebtTokenUpgraded(indexed address,indexed address,indexed address)
-        #   handler: handleVariableDebtTokenUpgraded
+        - event: VariableDebtTokenUpgraded(indexed address,indexed address,indexed address)
+          handler: handleVariableDebtTokenUpgraded
       file: ./src/mappings/lendingPoolConfigurator.ts
   # --------------------------------------
   #      AToken / Stable / Variable

@@ -5,6 +5,8 @@ import {
   CollateralConfigurationChanged,
   ReserveFactorChanged,
   ReserveInitialized,
+  StableDebtTokenUpgraded,
+  VariableDebtTokenUpgraded,
 } from "../../generated/templates/LendingPoolConfigurator/LendingPoolConfigurator";
 
 import { Token } from "../../generated/schema";
@@ -143,13 +145,29 @@ export function handleATokenUpgraded(event: ATokenUpgraded): void {
   aToken.save();
 }
 
-export function handleStableDebtTokenUpgraded(event: ATokenUpgraded): void {
+export function handleStableDebtTokenUpgraded(event: StableDebtTokenUpgraded): void {
   //fetch lending pool address from context
   let context = dataSource.context();
   let lendingPool = context.getString("lendingPool");
 
   let reserve = getOrInitReserve(event.params.asset.toHexString(), lendingPool, event);
   reserve.stableDebtToken = event.params.proxy.toHexString();
+  reserve.save();
+
+  // store basic sToken info
+  let sToken = getOrCreateStableDebtToken(event.params.proxy.toHexString());
+  sToken.underlyingAsset = reserve.asset;
+  sToken.lendingPool = reserve.lendingPool;
+  sToken.save();
+}
+
+export function handleVariableDebtTokenUpgraded(event: VariableDebtTokenUpgraded): void {
+  //fetch lending pool address from context
+  let context = dataSource.context();
+  let lendingPool = context.getString("lendingPool");
+
+  let reserve = getOrInitReserve(event.params.asset.toHexString(), lendingPool, event);
+  reserve.variableDebtToken = event.params.proxy.toHexString();
   reserve.save();
 
   // store basic vToken info
