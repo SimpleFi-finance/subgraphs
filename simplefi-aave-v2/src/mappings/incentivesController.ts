@@ -4,7 +4,7 @@ import {
   RewardsClaimed,
   RewardsAccrued,
 } from "../../generated/templates/IncentivesController/AaveIncentivesController";
-import { RewardsClaim, RewardsAccrue, Market, IncentivesController } from "../../generated/schema";
+import { Market, IncentivesController } from "../../generated/schema";
 
 import { getOrCreateUserRewardBalance } from "../library/lendingPoolUtils";
 import {
@@ -16,21 +16,13 @@ import {
 
 export function handleRewardsClaimed(event: RewardsClaimed): void {
   let userAddress = event.params.user.toHexString();
-
-  // create entity
-  let claim = new RewardsClaim(
-    event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
-  );
-  claim.user = event.params.user.toHexString();
-  claim.to = event.params.to.toHexString();
-  claim.claimer = event.params.claimer.toHexString();
-  claim.amount = event.params.amount;
-  claim.save();
+  let amount = event.params.amount;
+  let to = event.params.to.toHexString();
 
   // keep track of total rewards
   let user = getOrCreateUserRewardBalance(userAddress);
-  user.claimedRewards = user.claimedRewards.plus(claim.amount);
-  user.unclaimedRewards = user.unclaimedRewards.minus(claim.amount);
+  user.claimedRewards = user.claimedRewards.plus(amount);
+  user.unclaimedRewards = user.unclaimedRewards.minus(amount);
   user.save();
 
   ////// update user's position
@@ -41,7 +33,7 @@ export function handleRewardsClaimed(event: RewardsClaimed): void {
   let market = Market.load(marketId) as Market;
 
   // user whose position is updated
-  let account = getOrCreateAccount(Address.fromString(claim.user));
+  let account = getOrCreateAccount(Address.fromString(userAddress));
 
   // no change as only rewards are claimed
   let outputTokenAmount = BigInt.fromI32(0);
@@ -51,9 +43,7 @@ export function handleRewardsClaimed(event: RewardsClaimed): void {
 
   // number of reward tokens claimed by user in this transaction
   let rewardTokens = market.rewardTokens as string[];
-  let rewardTokenAmounts: TokenBalance[] = [
-    new TokenBalance(rewardTokens[0], claim.to, claim.amount),
-  ];
+  let rewardTokenAmounts: TokenBalance[] = [new TokenBalance(rewardTokens[0], to, amount)];
 
   // TODO - for now there is no definition of output token for incentive controller
   // use 1 instead of 0 in order to keep reward position open at all times
@@ -64,7 +54,7 @@ export function handleRewardsClaimed(event: RewardsClaimed): void {
 
   // reward token amounts claimable by user
   let rewardTokenBalances: TokenBalance[] = [
-    new TokenBalance(rewardTokens[0], claim.user, user.unclaimedRewards),
+    new TokenBalance(rewardTokens[0], user.id, user.unclaimedRewards),
   ];
 
   // use common function to update position and store transaction
@@ -84,17 +74,12 @@ export function handleRewardsClaimed(event: RewardsClaimed): void {
 
 export function handleRewardsAccrued(event: RewardsAccrued): void {
   let userAddress = event.params.user.toHexString();
-
-  // create reward accrual entity so it can be processed by upcoming lendingPool events
-  let accrue = new RewardsAccrue(event.transaction.hash.toHexString() + "-" + userAddress);
-  accrue.user = userAddress;
-  accrue.amount = event.params.amount;
-  accrue.save();
+  let amount = event.params.amount;
 
   // keep track of total rewards
   let user = getOrCreateUserRewardBalance(userAddress);
-  user.lifetimeRewards = user.lifetimeRewards.plus(accrue.amount);
-  user.unclaimedRewards = user.unclaimedRewards.plus(accrue.amount);
+  user.lifetimeRewards = user.lifetimeRewards.plus(amount);
+  user.unclaimedRewards = user.unclaimedRewards.plus(amount);
   user.save();
 
   ////// update user's position
@@ -105,7 +90,7 @@ export function handleRewardsAccrued(event: RewardsAccrued): void {
   let market = Market.load(marketId) as Market;
 
   // user whose position is updated
-  let account = getOrCreateAccount(Address.fromString(accrue.user));
+  let account = getOrCreateAccount(Address.fromString(userAddress));
 
   // no change
   let outputTokenAmount = BigInt.fromI32(0);
@@ -126,7 +111,7 @@ export function handleRewardsAccrued(event: RewardsAccrued): void {
   // reward token amounts claimable by user
   let rewardTokens = market.rewardTokens as string[];
   let rewardTokenBalances: TokenBalance[] = [
-    new TokenBalance(rewardTokens[0], accrue.user, user.unclaimedRewards),
+    new TokenBalance(rewardTokens[0], user.id, user.unclaimedRewards),
   ];
 
   // use common function to update position and store transaction

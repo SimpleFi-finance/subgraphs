@@ -413,22 +413,6 @@ type IncentivesController @entity {
   lendingPool: LendingPool!
 }
 
-type RewardsClaim @entity {
-  " TX-logIndex "
-  id: ID!
-  user: String!
-  to: String!
-  claimer: String!
-  amount: BigInt!
-}
-
-type RewardsAccrue @entity {
-  " TX-userAddress "
-  id: ID!
-  user: String!
-  amount: BigInt!
-}
-
 type Liquidation @entity {
   id: ID!
   collateralAsset: String!
