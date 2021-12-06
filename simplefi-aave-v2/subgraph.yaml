@@ -128,32 +128,10 @@ templates:
       eventHandlers:
         - event: ReserveInitialized(indexed address,indexed address,address,address,address)
           handler: handleReserveInitialized
-        # - event: BorrowingEnabledOnReserve(indexed address,bool)
-        #   handler: handleBorrowingEnabledOnReserve
-        # - event: BorrowingDisabledOnReserve(indexed address)
-        #   handler: handleBorrowingDisabledOnReserve
         - event: CollateralConfigurationChanged(indexed address,uint256,uint256,uint256)
           handler: handleCollateralConfigurationChanged
-        # - event: StableRateEnabledOnReserve(indexed address)
-        #   handler: handleStableRateEnabledOnReserve
-        # - event: StableRateDisabledOnReserve(indexed address)
-        #   handler: handleStableRateDisabledOnReserve
-        # - event: ReserveActivated(indexed address)
-        #   handler: handleReserveActivated
-        # - event: ReserveDeactivated(indexed address)
-        #   handler: handleReserveDeactivated
-        # - event: ReserveFrozen(indexed address)
-        #   handler: handleReserveFreezed
-        # - event: ReserveUnfrozen(indexed address)
-        #   handler: handleReserveUnfreezed
-        # - event: ReserveFactorChanged(indexed address,uint256)
-        #   handler: handleReserveFactorChanged
-        # - event: ReserveDecimalsChanged(indexed address,uint256)
-        #   handler: handleReserveDecimalsChanged
-        # - event: ReserveInterestRateStrategyChanged(indexed address,address)
-        #   handler: handleReserveInterestRateStrategyChanged
-        # - event: ATokenUpgraded(indexed address,indexed address,indexed address)
-        #   handler: handleATokenUpgraded
+        - event: ATokenUpgraded(indexed address,indexed address,indexed address)
+          handler: handleATokenUpgraded
         # - event: StableDebtTokenUpgraded(indexed address,indexed address,indexed address)
         #   handler: handleStableDebtTokenUpgraded
         # - event: VariableDebtTokenUpgraded(indexed address,indexed address,indexed address)

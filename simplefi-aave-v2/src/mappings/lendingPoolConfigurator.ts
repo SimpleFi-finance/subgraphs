@@ -1,7 +1,9 @@
 import { Address, dataSource } from "@graphprotocol/graph-ts";
 
 import {
+  ATokenUpgraded,
   CollateralConfigurationChanged,
+  ReserveFactorChanged,
   ReserveInitialized,
 } from "../../generated/templates/LendingPoolConfigurator/LendingPoolConfigurator";
 
@@ -123,4 +125,20 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
     outputToken,
     rewardTokens
   );
+}
+
+export function handleATokenUpgraded(event: ATokenUpgraded): void {
+  //fetch lending pool address from context
+  let context = dataSource.context();
+  let lendingPool = context.getString("lendingPool");
+
+  let reserve = getOrInitReserve(event.params.asset.toHexString(), lendingPool, event);
+  reserve.aToken = event.params.proxy.toHexString();
+  reserve.save();
+
+  // store basic aToken info
+  let aToken = getOrCreateAToken(event.params.proxy.toHexString());
+  aToken.underlyingAsset = reserve.asset;
+  aToken.lendingPool = reserve.lendingPool;
+  aToken.save();
 }
