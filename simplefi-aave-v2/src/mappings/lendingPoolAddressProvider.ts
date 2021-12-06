@@ -15,10 +15,15 @@ import {
   LendingPool as LendingPoolTemplate,
   LendingPoolConfigurator as LendingPoolConfiguratorTemplate,
 } from "../../generated/templates";
+
 import { LendingPoolAddressesProvider, LendingPool } from "../../generated/schema";
 
-export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
+import { ADDRESS_ZERO } from "../library/common";
 
+/**
+ * Handle new implementation of address provider
+ * @param event
+ */
 export function handleAddressesProviderRegistered(event: AddressesProviderRegistered): void {
   let address = event.params.newAddress;
 
@@ -32,39 +37,41 @@ export function handleAddressesProviderRegistered(event: AddressesProviderRegist
   LendingPoolAddressesProviderTemplate.create(address);
 }
 
+/**
+ * Handle creation of new proxy contract, either lending pool or configurator
+ * @param event
+ */
 export function handleProxyCreated(event: ProxyCreated): void {
   let poolId = event.params.id;
-  let poolAddress = event.params.newAddress;
+  let address = event.params.newAddress;
 
   if (poolId.toString() == "LENDING_POOL") {
-    let lendingPool = new LendingPool(poolAddress.toHexString());
-    lendingPool.address = poolAddress.toHexString();
-    lendingPool.addressProvider = event.address.toHexString();
-    lendingPool.save();
-
-    LendingPoolTemplate.create(poolAddress);
+    startIndexingLendingPool(address, event.address);
   } else if (poolId.toString() == "LENDING_POOL_CONFIGURATOR") {
-    startIndexingLendingPoolConfigurator(poolAddress, event.address);
+    startIndexingLendingPoolConfigurator(address, event.address);
   }
 }
 
+/**
+ * Start the indexer for lending pool contract
+ * @param event
+ */
 export function handleLendingPoolUpdated(event: LendingPoolUpdated): void {
-  let poolAddress = event.params.newAddress;
-
-  // create lending pool entity
-  let lendingPool = new LendingPool(poolAddress.toHexString());
-  lendingPool.address = poolAddress.toHexString();
-  lendingPool.addressProvider = event.address.toHexString();
-  lendingPool.save();
-
-  // start indexing lending pool
-  LendingPoolTemplate.create(poolAddress);
+  startIndexingLendingPool(event.params.newAddress, event.address);
 }
 
+/**
+ * Start the indexer for configurator contract
+ * @param event
+ */
 export function handleLendingPoolConfiguratorUpdated(event: LendingPoolConfiguratorUpdated): void {
   startIndexingLendingPoolConfigurator(event.params.newAddress, event.address);
 }
 
+/**
+ * Update price oracle contract address
+ * @param event
+ */
 export function handlePriceOracleUpdated(event: PriceOracleUpdated): void {
   let addressProvider = LendingPoolAddressesProvider.load(event.address.toHexString());
   let priceOracle = event.params.newAddress.toHexString();
@@ -73,6 +80,27 @@ export function handlePriceOracleUpdated(event: PriceOracleUpdated): void {
   addressProvider.save();
 }
 
+/**
+ * Create entity and start indexer for lending pool contract
+ * @param poolAddress
+ * @param addresProvider
+ */
+function startIndexingLendingPool(poolAddress: Address, addresProvider: Address) {
+  // create lending pool entity
+  let lendingPool = new LendingPool(poolAddress.toHexString());
+  lendingPool.address = poolAddress.toHexString();
+  lendingPool.addressProvider = addresProvider.toHexString();
+  lendingPool.save();
+
+  // start indexing lending pool
+  LendingPoolTemplate.create(poolAddress);
+}
+
+/**
+ * Fetch lending pool address and pass it to lending pool configurator indexer
+ * @param configurator
+ * @param addresProvider
+ */
 function startIndexingLendingPoolConfigurator(
   configurator: Address,
   addresProvider: Address

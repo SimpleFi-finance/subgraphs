@@ -3,7 +3,6 @@ import { Address, dataSource } from "@graphprotocol/graph-ts";
 import {
   ATokenUpgraded,
   CollateralConfigurationChanged,
-  ReserveFactorChanged,
   ReserveInitialized,
   StableDebtTokenUpgraded,
   VariableDebtTokenUpgraded,
@@ -20,19 +19,8 @@ import {
   getOrCreateVariableDebtToken,
   getOrInitReserve,
 } from "../library/lendingPoolUtils";
-import { AToken, VariableDebtToken, StableDebtToken } from "../../generated/templates";
 
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-
-export function handleCollateralConfigurationChanged(event: CollateralConfigurationChanged): void {
-  //fetch lending pool address from context
-  let context = dataSource.context();
-  let lendingPool = context.getString("lendingPool");
-
-  let reserve = getOrInitReserve(event.params.asset.toHexString(), lendingPool, event);
-  reserve.ltv = event.params.ltv;
-  reserve.save();
-}
 
 export function handleReserveInitialized(event: ReserveInitialized): void {
   //fetch lending pool address from context
@@ -127,6 +115,16 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
     outputToken,
     rewardTokens
   );
+}
+
+export function handleCollateralConfigurationChanged(event: CollateralConfigurationChanged): void {
+  //fetch lending pool address from context
+  let context = dataSource.context();
+  let lendingPool = context.getString("lendingPool");
+
+  let reserve = getOrInitReserve(event.params.asset.toHexString(), lendingPool, event);
+  reserve.ltv = event.params.ltv;
+  reserve.save();
 }
 
 export function handleATokenUpgraded(event: ATokenUpgraded): void {
