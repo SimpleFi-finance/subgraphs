@@ -39,12 +39,13 @@ export function getOrCreateLiquidity(pool: PoolEntity, accountAddress: Address):
 }
 
 export function getOrCreateMint(event: ethereum.Event, pool: PoolEntity): MintEntity {
-  let mint = MintEntity.load(event.transaction.hash.toHexString())
+  let mintId = pool.address.concat('-').concat(event.transaction.hash.toHexString())
+  let mint = MintEntity.load(mintId)
   if (mint != null) {
     return mint as MintEntity
   }
 
-  mint = new MintEntity(event.transaction.hash.toHexString())
+  mint = new MintEntity(mintId)
   mint.pool = pool.id
   mint.transferEventApplied = false
   mint.poolBalanceEventApplied = false
@@ -109,12 +110,13 @@ export function createOrUpdatePositionOnMint(event: ethereum.Event, pool: PoolEn
 }
 
 export function getOrCreateBurn(event: ethereum.Event, pool: PoolEntity): BurnEntity {
-  let burn = BurnEntity.load(event.transaction.hash.toHexString())
+  let burnId = pool.address.concat('-').concat(event.transaction.hash.toHexString())
+  let burn = BurnEntity.load(burnId)
   if (burn != null) {
     return burn as BurnEntity
   }
 
-  burn = new BurnEntity(event.transaction.hash.toHexString())
+  burn = new BurnEntity(burnId)
   burn.transferEventApplied = false
   burn.poolBalanceEventApplied = false
   burn.pool = pool.id

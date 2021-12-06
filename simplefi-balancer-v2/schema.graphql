@@ -209,7 +209,7 @@ type AccountLiquidity @entity {
 }
 
 type Mint @entity {
-  id: ID! # {trasactionHash}
+  id: ID! # {poolAddress}{trasactionHash}
   pool: Pool
   to: Account
   liquityAmount: BigInt
@@ -220,7 +220,7 @@ type Mint @entity {
 
 # @todo: Would be better to merge Mint and Burn and add a type?
 type Burn @entity {
-  id: ID! # {trasactionHash}
+  id: ID! # {poolAddress}{trasactionHash}
   pool: Pool
   to: Account
   liquityAmount: BigInt

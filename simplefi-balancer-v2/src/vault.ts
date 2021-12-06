@@ -126,8 +126,9 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
   
   pool.save()
 
+  let mintBurnId = pool.address.concat('-').concat(transactionHash)
   let isMintOrBurn = false
-  let possibleMint = MintEntity.load(transactionHash)
+  let possibleMint = MintEntity.load(mintBurnId)
   if (possibleMint != null) {
     isMintOrBurn = true
     let mint = possibleMint as MintEntity
@@ -142,8 +143,8 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
     log.info("Vault: Minting tokens ({}) from pool {} totalSupply {} {}", [mint.liquityAmount.toString(), pool.address, pool.totalSupply.toString(), event.transaction.hash.toHexString()])
     createOrUpdatePositionOnMint(event, pool as PoolEntity, mint)
   }
-
-  let possibleBurn = BurnEntity.load(transactionHash)
+  
+  let possibleBurn = BurnEntity.load(mintBurnId)
   if (possibleBurn != null) {
     isMintOrBurn = true
     let burn = possibleBurn as BurnEntity
