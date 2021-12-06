@@ -22,6 +22,11 @@ import {
 
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
+/**
+ * Create Reserve entity, along with a/v/s tokens. Start indexing them.
+ * Create deposit market, and 2 debt markets (variable and stable rate).
+ * @param event
+ */
 export function handleReserveInitialized(event: ReserveInitialized): void {
   //fetch lending pool address from context
   let context = dataSource.context();
@@ -117,6 +122,10 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
   );
 }
 
+/**
+ * Update reserve LTV value
+ * @param event
+ */
 export function handleCollateralConfigurationChanged(event: CollateralConfigurationChanged): void {
   //fetch lending pool address from context
   let context = dataSource.context();
@@ -127,6 +136,10 @@ export function handleCollateralConfigurationChanged(event: CollateralConfigurat
   reserve.save();
 }
 
+/**
+ * Create new aToken and start indexing it.
+ * @param event
+ */
 export function handleATokenUpgraded(event: ATokenUpgraded): void {
   //fetch lending pool address from context
   let context = dataSource.context();
@@ -143,6 +156,10 @@ export function handleATokenUpgraded(event: ATokenUpgraded): void {
   aToken.save();
 }
 
+/**
+ * Create new sToken and start indexing it.
+ * @param event
+ */
 export function handleStableDebtTokenUpgraded(event: StableDebtTokenUpgraded): void {
   //fetch lending pool address from context
   let context = dataSource.context();
@@ -159,6 +176,10 @@ export function handleStableDebtTokenUpgraded(event: StableDebtTokenUpgraded): v
   sToken.save();
 }
 
+/**
+ * Create new VToken and start indexing it.
+ * @param event
+ */
 export function handleVariableDebtTokenUpgraded(event: VariableDebtTokenUpgraded): void {
   //fetch lending pool address from context
   let context = dataSource.context();

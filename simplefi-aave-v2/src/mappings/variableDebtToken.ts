@@ -1,5 +1,3 @@
-import { Address, BigInt, ethereum, store, log } from "@graphprotocol/graph-ts";
-
 import {
   Mint,
   Burn,
@@ -28,6 +26,10 @@ import { rayDiv, rayMul } from "../library/math";
 const BORROW_MODE_STABLE = 1;
 const BORROW_MODE_VARIABLE = 2;
 
+/**
+ * Update market and user position when variable rate debt is issued.
+ * @param event
+ */
 export function handleVariableTokenMint(event: Mint): void {
   let mintedAmount = event.params.value;
   let variableBorrowIndex = event.params.index;
@@ -120,6 +122,10 @@ export function handleVariableTokenMint(event: Mint): void {
   );
 }
 
+/**
+ * Update market and user position when variable rate debt is repaid.
+ * @param event
+ */
 export function handleVariableTokenBurn(event: Burn): void {
   let burnedAmount = event.params.amount;
   let variableBorrowIndex = event.params.index;
@@ -209,6 +215,11 @@ export function handleVariableTokenBurn(event: Burn): void {
   );
 }
 
+/**
+ * Store vToken info when it is initialized.
+ * @param event
+ * @returns
+ */
 export function handleVariableDebtTokenInitialized(event: Initialized): void {
   let vTokenAdress = event.address.toHexString();
   let vToken = getOrCreateVariableDebtToken(vTokenAdress);

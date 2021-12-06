@@ -1,4 +1,5 @@
-import { BigInt, log } from "@graphprotocol/graph-ts";
+import { BigInt } from "@graphprotocol/graph-ts";
+
 import {
   Deposit,
   Withdraw,
@@ -9,6 +10,7 @@ import {
   FlashLoan,
   LiquidationCall,
 } from "../../generated/templates/LendingPool/LendingPool";
+
 import {
   Deposit as DepositEntity,
   Borrow as BorrowEntity,
@@ -21,13 +23,16 @@ import {
 } from "../../generated/schema";
 
 import { getOrCreateERC20Token, TokenBalance, updateMarket } from "../library/common";
-
 import { getOrInitReserve } from "../library/lendingPoolUtils";
 import { rayMul } from "../library/math";
 
 const BORROW_MODE_STABLE = 1;
 const BORROW_MODE_VARIABLE = 2;
 
+/**
+ * Create deposit entity. Market and position are updated in aToken mint handler.
+ * @param event
+ */
 export function handleDeposit(event: Deposit): void {
   // store deposit event as entity
   let deposit = new DepositEntity(
@@ -42,6 +47,10 @@ export function handleDeposit(event: Deposit): void {
   deposit.save();
 }
 
+/**
+ * Create Withdrawal entity. Market and position are updated in aToken burn handler.
+ * @param event
+ */
 export function handleWithdraw(event: Withdraw): void {
   // store withdraw event as entity
   let withdrawal = new Withdrawal(
@@ -55,6 +64,10 @@ export function handleWithdraw(event: Withdraw): void {
   withdrawal.save();
 }
 
+/**
+ * Create Borrow entity. Market and position are updated in debt token mint handler.
+ * @param event
+ */
 export function handleBorrow(event: Borrow): void {
   // store borrow event as entity
   let borrow = new BorrowEntity(
@@ -68,6 +81,10 @@ export function handleBorrow(event: Borrow): void {
   borrow.save();
 }
 
+/**
+ * Create Repay entity. Market and position are updated in debt token burn handler.
+ * @param event
+ */
 export function handleRepay(event: Repay): void {
   // store repay event as entity
   let repay = new RepayEntity(
@@ -79,6 +96,10 @@ export function handleRepay(event: Repay): void {
   repay.user = event.params.user.toHexString();
 }
 
+/**
+ * Update Reserve entity. Update deposit market supply as liquidity index has been updated.
+ * @param event
+ */
 export function handleReserveDataUpdated(event: ReserveDataUpdated): void {
   let reserve = getOrInitReserve(
     event.params.reserve.toHexString(),
@@ -111,6 +132,10 @@ export function handleReserveDataUpdated(event: ReserveDataUpdated): void {
   updateMarket(event, market, newInputTokenBalances, scaledTotalSupply);
 }
 
+/**
+ * Create Flashloan entity. Market and position are updated based on tokens mint/burn handlers.
+ * @param event
+ */
 export function handleFlashLoan(event: FlashLoan): void {
   let flashLoan = new FlashLoanEntity(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
@@ -124,6 +149,10 @@ export function handleFlashLoan(event: FlashLoan): void {
   flashLoan.save();
 }
 
+/**
+ * Create Swap entity. User position is updated based on debt token burn/mint handlers.
+ * @param event
+ */
 export function handleSwap(event: Swap): void {
   // create swap entity
   let swap = new SwapRateMode(
@@ -137,11 +166,7 @@ export function handleSwap(event: Swap): void {
 }
 
 /**
- * Liquidated user:
- * - part of debt repayed
- * - part of collateral (aTokens) burned
- * Liquidator:
- * - receives underlying tokens of burned collateral
+ * Create Liquidation entity. Market and position are updated based on tokens mint/burn handlers.
  * @param event
  */
 export function handleLiquidationCall(event: LiquidationCall): void {

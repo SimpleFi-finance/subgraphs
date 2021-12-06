@@ -4,9 +4,11 @@ import {
   RewardsClaimed,
   RewardsAccrued,
 } from "../../generated/templates/IncentivesController/AaveIncentivesController";
+
 import { Market, IncentivesController } from "../../generated/schema";
 
 import { getOrCreateUserRewardBalance } from "../library/lendingPoolUtils";
+
 import {
   getOrCreateAccount,
   investInMarket,
@@ -14,6 +16,10 @@ import {
   TokenBalance,
 } from "../library/common";
 
+/**
+ * Update user's position after reward tokens claim.
+ * @param event
+ */
 export function handleRewardsClaimed(event: RewardsClaimed): void {
   let userAddress = event.params.user.toHexString();
   let amount = event.params.amount;
@@ -72,6 +78,10 @@ export function handleRewardsClaimed(event: RewardsClaimed): void {
   );
 }
 
+/**
+ * Update user's position after reward tokens accrual.
+ * @param event
+ */
 export function handleRewardsAccrued(event: RewardsAccrued): void {
   let userAddress = event.params.user.toHexString();
   let amount = event.params.amount;

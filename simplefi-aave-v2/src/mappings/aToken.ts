@@ -1,6 +1,6 @@
 import { Burn, Mint, Initialized, BalanceTransfer } from "../../generated/templates/AToken/AToken";
 
-import { Market, AToken } from "../../generated/schema";
+import { Market } from "../../generated/schema";
 
 import {
   updateMarket,
@@ -18,6 +18,10 @@ import {
 } from "../library/lendingPoolUtils";
 import { rayDiv, rayMul } from "../library/math";
 
+/**
+ * Update market and user position after deposit is made.
+ * @param event
+ */
 export function handleATokenMint(event: Mint): void {
   let aToken = getOrCreateAToken(event.address.toHexString());
   let market = Market.load(aToken.lendingPool + "-" + aToken.underlyingAsset) as Market;
@@ -79,6 +83,10 @@ export function handleATokenMint(event: Mint): void {
   );
 }
 
+/**
+ * Update market and user position after withdrawal is made.
+ * @param event
+ */
 export function handleATokenBurn(event: Burn): void {
   let aToken = getOrCreateAToken(event.address.toHexString());
   let market = Market.load(aToken.lendingPool + "-" + aToken.underlyingAsset) as Market;
@@ -139,6 +147,10 @@ export function handleATokenBurn(event: Burn): void {
   );
 }
 
+/**
+ * Update position of sender and receiver when aTokens are transferred.
+ * @param event
+ */
 export function handleATokenTransfer(event: BalanceTransfer): void {
   let from = getOrCreateAccount(event.params.from);
   let to = getOrCreateAccount(event.params.to);
@@ -237,6 +249,11 @@ export function handleATokenTransfer(event: BalanceTransfer): void {
   );
 }
 
+/**
+ * Store aToken info when it is initialized.
+ * @param event
+ * @returns
+ */
 export function handleATokenInitialized(event: Initialized): void {
   let aTokenAdress = event.address.toHexString();
   let aToken = getOrCreateAToken(aTokenAdress);

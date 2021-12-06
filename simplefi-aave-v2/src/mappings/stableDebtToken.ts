@@ -1,8 +1,4 @@
-import {
-  Mint,
-  Burn,
-  Initialized as StableDebtTokenInitialized,
-} from "../../generated/templates/StableDebtToken/StableDebtToken";
+import { Mint, Burn, Initialized } from "../../generated/templates/StableDebtToken/StableDebtToken";
 
 import {
   getAvgCumulatedInterest,
@@ -26,6 +22,10 @@ import {
   updateMarket,
 } from "../library/common";
 
+/**
+ * Update market and user position when stable rate debt is issued.
+ * @param event
+ */
 export function handleStableTokenMint(event: Mint): void {
   let mintedAmount = event.params.amount;
   let scaledMintedAmount = mintedAmount.plus(event.params.balanceIncrease);
@@ -117,6 +117,10 @@ export function handleStableTokenMint(event: Mint): void {
   );
 }
 
+/**
+ * Update market and user position when stable rate debt is repaid.
+ * @param event
+ */
 export function handleStableTokenBurn(event: Burn): void {
   let burnedAmount = event.params.amount;
   let scaledBurnedAmount = burnedAmount.minus(event.params.balanceIncrease);
@@ -205,7 +209,23 @@ export function handleStableTokenBurn(event: Burn): void {
   );
 }
 
-export function handleStableDebtTokenInitialized(event: StableDebtTokenInitialized): void {
+/**
+ * Store sToken info when it is initialized.
+ * @param event
+ * @returns
+ */
+export function handleStableDebtTokenInitialized(event: Initialized): void {
+  let sTokenAdress = event.address.toHexString();
+  let sToken = getOrCreateStableDebtToken(sTokenAdress);
+
+  sToken.underlyingAsset = event.params.underlyingAsset.toHexString();
+  sToken.lendingPool = event.params.pool.toHexString();
+  sToken.incentivesController = event.params.incentivesController.toHexString();
+  sToken.debtTokenName = event.params.debtTokenName;
+  sToken.debtTokenSymbol = event.params.debtTokenSymbol;
+  sToken.debtTokenDecimals = event.params.debtTokenDecimals;
+  sToken.save();
+
   let controllerAddress = event.params.incentivesController.toHexString();
   if (controllerAddress == ADDRESS_ZERO) {
     return;
