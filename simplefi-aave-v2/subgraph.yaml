@@ -132,8 +132,8 @@ templates:
           handler: handleCollateralConfigurationChanged
         - event: ATokenUpgraded(indexed address,indexed address,indexed address)
           handler: handleATokenUpgraded
-        # - event: StableDebtTokenUpgraded(indexed address,indexed address,indexed address)
-        #   handler: handleStableDebtTokenUpgraded
+        - event: StableDebtTokenUpgraded(indexed address,indexed address,indexed address)
+          handler: handleStableDebtTokenUpgraded
         # - event: VariableDebtTokenUpgraded(indexed address,indexed address,indexed address)
         #   handler: handleVariableDebtTokenUpgraded
       file: ./src/mappings/lendingPoolConfigurator.ts

@@ -142,3 +142,19 @@ export function handleATokenUpgraded(event: ATokenUpgraded): void {
   aToken.lendingPool = reserve.lendingPool;
   aToken.save();
 }
+
+export function handleStableDebtTokenUpgraded(event: ATokenUpgraded): void {
+  //fetch lending pool address from context
+  let context = dataSource.context();
+  let lendingPool = context.getString("lendingPool");
+
+  let reserve = getOrInitReserve(event.params.asset.toHexString(), lendingPool, event);
+  reserve.stableDebtToken = event.params.proxy.toHexString();
+  reserve.save();
+
+  // store basic vToken info
+  let vToken = getOrCreateVariableDebtToken(event.params.proxy.toHexString());
+  vToken.underlyingAsset = reserve.asset;
+  vToken.lendingPool = reserve.lendingPool;
+  vToken.save();
+}
