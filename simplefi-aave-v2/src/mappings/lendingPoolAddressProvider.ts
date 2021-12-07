@@ -85,7 +85,7 @@ export function handlePriceOracleUpdated(event: PriceOracleUpdated): void {
  * @param poolAddress
  * @param addresProvider
  */
-function startIndexingLendingPool(poolAddress: Address, addresProvider: Address) {
+function startIndexingLendingPool(poolAddress: Address, addresProvider: Address): void {
   // create lending pool entity
   let lendingPool = new LendingPool(poolAddress.toHexString());
   lendingPool.address = poolAddress.toHexString();

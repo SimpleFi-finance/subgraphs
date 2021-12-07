@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum, store, log } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 
 import { getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
 
@@ -10,7 +10,6 @@ import {
   Reserve,
   UserInvestmentBalance,
   UserDebtBalance,
-  Market,
   Account,
   UserAccountData,
   IncentivesController,
@@ -21,6 +20,7 @@ import {
 } from "../../generated/schema";
 
 import { IPriceOracleGetter } from "../../generated/templates/LendingPool/IPriceOracleGetter";
+
 import { LendingPool as LendingPoolContract } from "../../generated/templates/LendingPool/LendingPool";
 
 import {
@@ -29,6 +29,7 @@ import {
   VariableDebtToken as VariableDebtTokenTemplate,
   StableDebtToken as StableDebtTokenTemplate,
 } from "../../generated/templates";
+
 import { AaveIncentivesController as IncentivesControllerContract } from "../../generated/templates/IncentivesController/AaveIncentivesController";
 
 import { ADDRESS_ZERO } from "./common";
@@ -94,7 +95,7 @@ export function getOrCreateUserDebtBalance(
 }
 
 /**
- * Returns the ongoing normalized income for the reserve.
+ * Get balance multiplier for aTokens.
  * @param reserve
  * @param event
  * @returns
@@ -113,6 +114,12 @@ export function getReserveNormalizedIncome(reserve: Reserve, event: ethereum.Eve
   return result;
 }
 
+/**
+ * Get balance multiplier for variable debt tokens.
+ * @param reserve
+ * @param event
+ * @returns
+ */
 export function getReserveNormalizedVariableDebt(reserve: Reserve, event: ethereum.Event): BigInt {
   let timestamp = reserve.lastUpdateTimestamp;
 
@@ -131,6 +138,12 @@ export function getReserveNormalizedVariableDebt(reserve: Reserve, event: ethere
   return result;
 }
 
+/**
+ * Get balance multiplier for stable debt tokens based on market average borrow rate.
+ * @param reserve
+ * @param event
+ * @returns
+ */
 export function getAvgCumulatedInterest(reserve: Reserve, event: ethereum.Event): BigInt {
   let timestamp = reserve.lastUpdateTimestamp;
 
@@ -148,6 +161,11 @@ export function getAvgCumulatedInterest(reserve: Reserve, event: ethereum.Event)
   return cumulatedInterest;
 }
 
+/**
+ * Get price oracle contract by querying address provider contract.
+ * @param lendingPoolId
+ * @returns
+ */
 export function getPriceOracle(lendingPoolId: string): IPriceOracleGetter {
   let lendingPool = LendingPool.load(lendingPoolId) as LendingPool;
   let addressProvider = LendingPoolAddressesProvider.load(lendingPool.addressProvider);
@@ -155,6 +173,34 @@ export function getPriceOracle(lendingPoolId: string): IPriceOracleGetter {
   return IPriceOracleGetter.bind(Address.fromString(addressProvider.priceOracle));
 }
 
+/**
+ * Get asset price in ETH using a call to the price oracle. Use cached value if available.
+ * @param reserve
+ * @param block
+ * @returns
+ */
+export function getAssetUnitPriceInEth(reserve: Reserve, block: ethereum.Block): BigInt {
+  if (block.timestamp == reserve.lastUpdateTimestamp) {
+    return reserve.assetUnitPriceInEth;
+  }
+
+  // make a contract call to price oracle
+  let price = getPriceOracle(reserve.lendingPool).getAssetPrice(Address.fromString(reserve.asset));
+  reserve.assetUnitPriceInEth = price;
+  reserve.lastUpdateTimestamp = block.timestamp;
+  reserve.save();
+
+  return price;
+}
+
+/**
+ * Calculate amount of collateral locked based on user's average LTV in this block.
+ * @param user
+ * @param reserve
+ * @param borrowedAmount
+ * @param block
+ * @returns
+ */
 export function getCollateralAmountLocked(
   user: Account,
   reserve: Reserve,
@@ -176,20 +222,13 @@ export function getCollateralAmountLocked(
   return collateralLocked;
 }
 
-export function getAssetUnitPriceInEth(reserve: Reserve, block: ethereum.Block): BigInt {
-  if (block.timestamp == reserve.lastUpdateTimestamp) {
-    return reserve.assetUnitPriceInEth;
-  }
-
-  // make a contract call to price oracle
-  let price = getPriceOracle(reserve.lendingPool).getAssetPrice(Address.fromString(reserve.asset));
-  reserve.assetUnitPriceInEth = price;
-  reserve.lastUpdateTimestamp = block.timestamp;
-  reserve.save();
-
-  return price;
-}
-
+/**
+ * Init reserve entity.
+ * @param asset
+ * @param lendingPool
+ * @param event
+ * @returns
+ */
 export function getOrInitReserve(
   asset: string,
   lendingPool: string,
@@ -222,6 +261,13 @@ export function getOrInitReserve(
   return reserve as Reserve;
 }
 
+/**
+ * Get user account data using contract call to lending pool. Use cached values if available.
+ * @param user
+ * @param lendingPoolId
+ * @param block
+ * @returns
+ */
 export function getOrInitUserAccountData(
   user: Account,
   lendingPoolId: string,
@@ -264,6 +310,13 @@ export function getOrInitUserAccountData(
   return userAccountData as UserAccountData;
 }
 
+/**
+ * Create incentive controller entity. Create staking market for rewards. Start indexing the contract.
+ * @param event
+ * @param controllerAddress
+ * @param lendingPool
+ * @returns
+ */
 export function getOrCreateIncentivesController(
   event: ethereum.Event,
   controllerAddress: string,
@@ -313,6 +366,11 @@ export function getOrCreateIncentivesController(
   return incentivesController as IncentivesController;
 }
 
+/**
+ * Init entity for tracking user's reward balances.
+ * @param userAddress
+ * @returns
+ */
 export function getOrCreateUserRewardBalance(userAddress: string): UserRewardBalance {
   let user = UserRewardBalance.load(userAddress);
   if (user != null) {
@@ -328,6 +386,11 @@ export function getOrCreateUserRewardBalance(userAddress: string): UserRewardBal
   return user as UserRewardBalance;
 }
 
+/**
+ * Create aToken entity and start indexing the contract.
+ * @param aTokenAdress
+ * @returns
+ */
 export function getOrCreateAToken(aTokenAdress: string): AToken {
   let aToken = AToken.load(aTokenAdress);
   if (aToken != null) {
@@ -350,6 +413,11 @@ export function getOrCreateAToken(aTokenAdress: string): AToken {
   return aToken as AToken;
 }
 
+/**
+ * Create vToken entity and start indexing the contract.
+ * @param vTokenAdress
+ * @returns
+ */
 export function getOrCreateVariableDebtToken(vTokenAdress: string): VariableDebtToken {
   let vToken = VariableDebtToken.load(vTokenAdress);
   if (vToken != null) {
@@ -371,6 +439,11 @@ export function getOrCreateVariableDebtToken(vTokenAdress: string): VariableDebt
   return vToken as VariableDebtToken;
 }
 
+/**
+ * Create sToken entity and start indexing the contract.
+ * @param sTokenAdress
+ * @returns
+ */
 export function getOrCreateStableDebtToken(sTokenAdress: string): StableDebtToken {
   let sToken = StableDebtToken.load(sTokenAdress);
   if (sToken != null) {

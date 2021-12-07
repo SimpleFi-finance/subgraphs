@@ -1,10 +1,14 @@
-import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
+import { BigInt } from "@graphprotocol/graph-ts";
 
 let RAY = BigInt.fromI32(10).pow(27);
 let WAD_RAY_RATIO = BigInt.fromI32(10).pow(9);
 let WAD = BigInt.fromI32(10).pow(18);
 let halfRAY = RAY.div(BigInt.fromI32(2));
 let SECONDS_PER_YEAR = BigInt.fromI32(31556952);
+
+/**
+ * Math functions based on Aave smart contract implementation.
+ */
 
 export function rayToWad(a: BigInt): BigInt {
   let halfRatio = WAD_RAY_RATIO.div(BigInt.fromI32(2));
