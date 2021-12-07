@@ -122,6 +122,8 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
       let poolDeposit = tokenAmounts
       reserves[i].plus(poolDeposit[i])
     }
+
+    pool.reserves = reserves
   }
   
   pool.save()
