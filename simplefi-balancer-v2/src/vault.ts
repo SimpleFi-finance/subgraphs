@@ -120,7 +120,7 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
     let reserves = pool.reserves as BigInt[]
     for (let i = 0; i < pool.reserves.length; i++) {
       let poolDeposit = tokenAmounts
-      reserves[i].plus(poolDeposit[i])
+      reserves[i] = reserves[i].plus(poolDeposit[i])
     }
 
     pool.reserves = reserves
