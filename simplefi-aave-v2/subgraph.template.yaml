@@ -1,0 +1,267 @@
+specVersion: 0.0.2
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: LendingPoolAddressesProviderRegistry
+    network: {{network}}
+    source:
+      address: "{{LendingPoolAddressesProviderRegistryAddress}}"
+      abi: LendingPoolAddressesProviderRegistry
+      startBlock: {{LendingPoolAddressesProviderRegistryStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - LendingPoolAddressesProvider
+      abis:
+        - name: LendingPoolAddressesProviderRegistry
+          file: ./abis/LendingPoolAddressesProviderRegistry.json
+        - name: LendingPoolAddressesProvider
+          file: ./abis/LendingPoolAddressesProvider.json
+      eventHandlers:
+        - event: AddressesProviderRegistered(indexed address)
+          handler: handleAddressesProviderRegistered
+        - event: AddressesProviderUnregistered(indexed address)
+          handler: handleAddressesProviderUnregistered
+      file: src/mappings/lendingPoolAddressProvider.ts
+templates:
+  - kind: ethereum/contract
+    name: LendingPoolAddressesProvider
+    network: {{network}}
+    source:
+      abi: LendingPoolAddressesProvider
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - LendingPoolAddressesProvider
+      abis:
+        - name: LendingPoolAddressesProvider
+          file: ./abis/LendingPoolAddressesProvider.json
+      eventHandlers:
+        - event: ProxyCreated(bytes32,indexed address)
+          handler: handleProxyCreated
+        - event: PriceOracleUpdated(indexed address)
+          handler: handlePriceOracleUpdated
+        - event: LendingPoolUpdated(indexed address)
+          handler: handleLendingPoolUpdated
+        - event: LendingPoolConfiguratorUpdated(indexed address)
+          handler: handleLendingPoolConfiguratorUpdated
+        # - event: AddressSet(bytes32,indexed address,bool) #new
+        #   handler: handleAddressSet
+      file: ./src/mappings/lendingPoolAddressProvider.ts
+
+  - kind: ethereum/contract
+    name: LendingPool
+    network: {{network}}
+    source:
+      abi: LendingPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+      abis:
+        - name: LendingPool
+          file: ./abis/LendingPool.json
+        - name: IERC20
+          file: ./abis/IERC20.json
+        - name: IPriceOracleGetter
+          file: ./abis/IPriceOracleGetter.json
+      eventHandlers:
+        - event: Deposit(indexed address,address,indexed address,uint256,indexed uint16)
+          handler: handleDeposit
+        - event: Withdraw(indexed address,indexed address,indexed address,uint256)
+          handler: handleWithdraw
+        - event: Borrow(indexed address,address,indexed address,uint256,uint256,uint256,indexed uint16)
+          handler: handleBorrow
+        - event: Repay(indexed address,indexed address,indexed address,uint256)
+          handler: handleRepay
+        - event: Swap(indexed address,indexed address,uint256)
+          handler: handleSwap
+        - event: FlashLoan(indexed address,indexed address,indexed address,uint256,uint256,uint16)
+          handler: handleFlashLoan
+        - event: LiquidationCall(indexed address,indexed address,indexed address,uint256,uint256,address,bool)
+          handler: handleLiquidationCall
+        - event: ReserveDataUpdated(indexed address,uint256,uint256,uint256,uint256,uint256)
+          handler: handleReserveDataUpdated
+      file: ./src/mappings/lendingPool.ts
+
+  - kind: ethereum/contract
+    name: LendingPoolConfigurator
+    network: {{network}}
+    source:
+      abi: LendingPoolConfigurator
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+      abis:
+        - name: LendingPoolConfigurator
+          file: ./abis/LendingPoolConfigurator.json
+        - name: LendingPool
+          file: ./abis/LendingPool.json
+        - name: IERC20
+          file: ./abis/IERC20.json
+        - name: IPriceOracleGetter
+          file: ./abis/IPriceOracleGetter.json
+      eventHandlers:
+        - event: ReserveInitialized(indexed address,indexed address,address,address,address)
+          handler: handleReserveInitialized
+        - event: CollateralConfigurationChanged(indexed address,uint256,uint256,uint256)
+          handler: handleCollateralConfigurationChanged
+        - event: ATokenUpgraded(indexed address,indexed address,indexed address)
+          handler: handleATokenUpgraded
+        - event: StableDebtTokenUpgraded(indexed address,indexed address,indexed address)
+          handler: handleStableDebtTokenUpgraded
+        - event: VariableDebtTokenUpgraded(indexed address,indexed address,indexed address)
+          handler: handleVariableDebtTokenUpgraded
+      file: ./src/mappings/lendingPoolConfigurator.ts
+  # --------------------------------------
+  #      AToken / Stable / Variable
+  # --------------------------------------
+  - kind: ethereum/contract
+    name: AToken
+    network: {{network}}
+    source:
+      abi: AToken
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - AToken
+      abis:
+        - name: AToken
+          file: ./abis/AToken.json
+        - name: AaveIncentivesController
+          file: ./abis/AaveIncentivesController.json
+        - name: LendingPool
+          file: ./abis/LendingPool.json
+        - name: IERC20
+          file: ./abis/IERC20.json
+        - name: IPriceOracleGetter
+          file: ./abis/IPriceOracleGetter.json
+      eventHandlers:
+        - event: Burn(indexed address,indexed address,uint256,uint256)
+          handler: handleATokenBurn
+        - event: BalanceTransfer(indexed address,indexed address,uint256,uint256)
+          handler: handleATokenTransfer
+        - event: Mint(indexed address,uint256,uint256)
+          handler: handleATokenMint
+        - event: Initialized(indexed address,indexed address,address,address,uint8,string,string,bytes)
+          handler: handleATokenInitialized
+      file: src/mappings/aToken.ts
+  - kind: ethereum/contract
+    name: StableDebtToken
+    network: {{network}}
+    source:
+      abi: StableDebtToken
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - StableDebtToken
+      abis:
+        - name: StableDebtToken
+          file: ./abis/StableDebtToken.json
+        - name: AaveIncentivesController
+          file: ./abis/AaveIncentivesController.json
+        - name: LendingPool
+          file: ./abis/LendingPool.json
+        - name: IERC20
+          file: ./abis/IERC20.json
+        - name: IPriceOracleGetter
+          file: ./abis/IPriceOracleGetter.json
+      eventHandlers:
+        - event: Burn(indexed address,uint256,uint256,uint256,uint256,uint256)
+          handler: handleStableTokenBurn
+        - event: Mint(indexed address,indexed address,uint256,uint256,uint256,uint256,uint256,uint256)
+          handler: handleStableTokenMint
+        - event: Initialized(indexed address,indexed address,address,uint8,string,string,bytes)
+          handler: handleStableDebtTokenInitialized
+      file: src/mappings/stableDebtToken.ts
+  - kind: ethereum/contract
+    name: VariableDebtToken
+    network: {{network}}
+    source:
+      abi: VariableDebtToken
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - VariableDebtToken
+      abis:
+        - name: VariableDebtToken
+          file: ./abis/VariableDebtToken.json
+        - name: AaveIncentivesController
+          file: ./abis/AaveIncentivesController.json
+        - name: LendingPool
+          file: ./abis/LendingPool.json
+        - name: IERC20
+          file: ./abis/IERC20.json
+        - name: IPriceOracleGetter
+          file: ./abis/IPriceOracleGetter.json
+      eventHandlers:
+        - event: Burn(indexed address,uint256,uint256)
+          handler: handleVariableTokenBurn
+        - event: Mint(indexed address,indexed address,uint256,uint256)
+          handler: handleVariableTokenMint
+        - event: Initialized(indexed address,indexed address,address,uint8,string,string,bytes)
+          handler: handleVariableDebtTokenInitialized
+      file: src/mappings/variableDebtToken.ts
+  # --------------------------------------
+  #            INCENTIVES
+  # --------------------------------------
+  - kind: ethereum/contract
+    name: IncentivesController
+    network: {{network}}
+    source:
+      abi: AaveIncentivesController
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - IncentivesController
+      abis:
+        - name: AaveIncentivesController
+          file: ./abis/AaveIncentivesController.json
+        - name: VariableDebtToken
+          file: ./abis/VariableDebtToken.json
+        - name: StableDebtToken
+          file: ./abis/StableDebtToken.json
+        - name: LendingPool
+          file: ./abis/LendingPool.json
+        - name: IERC20
+          file: ./abis/IERC20.json
+        - name: IPriceOracleGetter
+          file: ./abis/IPriceOracleGetter.json
+      eventHandlers:
+        - event: RewardsAccrued(indexed address,uint256)
+          handler: handleRewardsAccrued
+        - event: RewardsClaimed(indexed address,indexed address,indexed address,uint256)
+          handler: handleRewardsClaimed
+      file: src/mappings/incentivesController.ts

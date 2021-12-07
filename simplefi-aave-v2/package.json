@@ -2,9 +2,12 @@
   "name": "simplefi-aave",
   "license": "UNLICENSED",
   "scripts": {
+    "prepare-mainnet": "mustache ./config/mainnet.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
+    "prepare-polygon": "mustache ./config/matic.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-aave",
+    "deploy-mainnet": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-aave",
+    "deploy-polygon": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-aave-polygon",
     "create-local": "graph create --node http://localhost:8020/ gvladika/simplefi-aave-v2",
     "remove-local": "graph remove --node http://localhost:8020/ gvladika/simplefi-aave-v2",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 gvladika/simplefi-aave-v2"
@@ -20,6 +23,7 @@
   "homepage": "https://docs.simplefi.finance/subgraph-development-documentation",
   "dependencies": {
     "@graphprotocol/graph-cli": "0.20.0",
-    "@graphprotocol/graph-ts": "0.20.0"
+    "@graphprotocol/graph-ts": "0.20.0",
+    "mustache": "^4.2.0"
   }
 }
