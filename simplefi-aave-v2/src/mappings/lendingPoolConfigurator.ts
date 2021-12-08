@@ -86,6 +86,8 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
     outputToken,
     rewardTokens
   );
+  aTokenERC20.mintedByMarket = marketId;
+  aTokenERC20.save();
 
   // create stable debt market representing the debt taken in reserve asset
   marketId = lendingPool + "-" + stableDebtToken.id;
@@ -103,6 +105,8 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
     outputToken,
     rewardTokens
   );
+  stableDebtToken.mintedByMarket = marketId;
+  stableDebtToken.save();
 
   // create variable debt market representing the debt taken in reserve asset
   marketId = lendingPool + "-" + variableDebtToken.id;
@@ -120,6 +124,8 @@ export function handleReserveInitialized(event: ReserveInitialized): void {
     outputToken,
     rewardTokens
   );
+  variableDebtToken.mintedByMarket = marketId;
+  variableDebtToken.save();
 }
 
 /**
