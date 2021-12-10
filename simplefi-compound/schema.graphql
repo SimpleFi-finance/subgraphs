@@ -171,3 +171,11 @@ type PositionSnapshot @entity {
 # END - Common entities for all protocols
 
 # Compound protocol entities
+
+type CToken @entity {
+  " contract address "
+  id: ID!
+
+  " TX at which CToken was registered "
+  transactionHash: String!
+}

@@ -19,7 +19,7 @@
   },
   "homepage": "https://docs.simplefi.finance/subgraph-development-documentation",
   "dependencies": {
-    "@graphprotocol/graph-cli": "0.20.0",
-    "@graphprotocol/graph-ts": "0.20.0"
+    "@graphprotocol/graph-cli": "0.24.0",
+    "@graphprotocol/graph-ts": "0.24.0"
   }
 }
