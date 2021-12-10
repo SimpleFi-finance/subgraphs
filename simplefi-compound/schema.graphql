@@ -20,6 +20,7 @@ enum ProtocolName {
   UNISWAP_V2
   CURVE_POOL
   AAVE_POOL
+  COMPOUND
 }
 
 enum ProtocolType {
@@ -175,6 +176,21 @@ type PositionSnapshot @entity {
 type CToken @entity {
   " contract address "
   id: ID!
+
+  " underlying ERC20 asset or 0x00 if it's ETH "
+  underlying: String!
+
+  " address of lending pool to which aToken belongs "
+  comptroller: String!
+
+  " erc20 name "
+  cTokenName: String!
+
+  " erc20 symbol "
+  cTokenSymbol: String!
+
+  " erc20 decimals "
+  cTokenDecimals: Int!
 
   " TX at which CToken was registered "
   transactionHash: String!
