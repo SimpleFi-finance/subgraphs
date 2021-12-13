@@ -15,7 +15,7 @@ export function handleMarketListed(event: MarketListed): void {
   let cToken = getOrCreateCToken(cTokenAddress.toHexString(), event.address.toHexString(), event);
   let underlying = getOrCreateERC20Token(event, Address.fromString(cToken.underlying));
 
-  //   // create deposit market
+  // create deposit market
   let marketId = cToken.id;
   let marketAddress = cTokenAddress;
   let protocolName = ProtocolName.COMPOUND;
