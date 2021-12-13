@@ -16,6 +16,7 @@ export namespace TokenStandard {
 
 export namespace ProtocolName {
   export const UNISWAP_V2 = "UNISWAP_V2"
+  export const TRISOLARIS = "TRISOLARIS"
 }
 
 export namespace ProtocolType {

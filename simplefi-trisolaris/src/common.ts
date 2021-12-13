@@ -12,7 +12,6 @@ import {
 import { ERC20 } from "../generated/UniswapV2Factory/ERC20"
 import { PositionType, TokenStandard, TransactionType } from "./constants"
 
-
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
 
 export function getOrCreateAccount(address: Address): Account {
