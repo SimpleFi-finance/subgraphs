@@ -16,6 +16,7 @@ export namespace TokenStandard {
 
 export namespace ProtocolName {
   export const UNISWAP_V2 = "UNISWAP_V2"
+  export const QUICKSWAP = "QUICKSWAP"
 }
 
 export namespace ProtocolType {
