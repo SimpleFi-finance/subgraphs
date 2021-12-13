@@ -1,0 +1,16 @@
+{
+  "name": "simplefi-trisolaris",
+  "license": "UNLICENSED",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ nelsongaldeman/simplefi-trisolaris",
+    "create-local": "graph create --node http://localhost:8020/ tarunbhm/simplefi-trisolaris",
+    "remove-local": "graph remove --node http://localhost:8020/ tarunbhm/simplefi-trisolaris",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 tarunbhm/simplefi-trisolaris"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.21.1",
+    "@graphprotocol/graph-ts": "0.20.0"
+  }
+}
