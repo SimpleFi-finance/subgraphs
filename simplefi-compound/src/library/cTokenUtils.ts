@@ -1,6 +1,6 @@
-import { Address, ethereum } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 
-import { CToken } from "../../generated/schema";
+import { CToken, UserDepositBalance } from "../../generated/schema";
 
 import { CToken as CTokenContract } from "../../generated/templates/CToken/CToken";
 
@@ -25,4 +25,22 @@ export function getOrCreateCToken(address: string, comptroller: string, event: e
   cToken.save();
 
   return cToken as CToken;
+}
+
+export function getOrCreateUserDepositBalance(user: string, cToken: string) {
+  let id = user + "-" + cToken;
+  let userDepositBalance = UserDepositBalance.load(id);
+
+  if (userDepositBalance != null) {
+    return userDepositBalance;
+  }
+
+  userDepositBalance = new UserDepositBalance(id);
+  userDepositBalance.user = user;
+  userDepositBalance.cToken = cToken;
+  userDepositBalance.cTokenBalance = BigInt.fromI32(0);
+  userDepositBalance.redeemableTokensBalance = BigInt.fromI32(0);
+  userDepositBalance.save();
+
+  return userDepositBalance;
 }

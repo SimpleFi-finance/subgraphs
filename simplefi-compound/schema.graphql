@@ -195,3 +195,20 @@ type CToken @entity {
   " TX at which CToken was registered "
   transactionHash: String!
 }
+
+type UserDepositBalance @entity {
+  " userAddress-marketId"
+  id: ID!
+
+  " user taking positions in pool "
+  user: Account!
+
+  " cToken market in which user invested "
+  cToken: CToken!
+
+  " total cToken balance "
+  cTokenBalance: BigInt!
+
+  " amount of underlying asset tokens user can redeem "
+  redeemableTokensBalance: BigInt!
+}

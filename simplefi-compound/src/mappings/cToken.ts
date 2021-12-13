@@ -1,17 +1,17 @@
-import { Market } from "../../generated/schema";
+import { CToken, Market, UserDepositBalance } from "../../generated/schema";
 import { Mint } from "../../generated/templates/CToken/CToken";
-import { TokenBalance, updateMarket } from "../library/common";
+import { getOrCreateAccount, investInMarket, TokenBalance, updateMarket } from "../library/common";
+import { getOrCreateUserDepositBalance } from "../library/cTokenUtils";
 
 export function handleMint(event: Mint): void {
-  let cToken = event.address.toHexString();
+  let cToken = CToken.load(event.address.toHexString());
 
   let underlyingTokensProvided = event.params.mintAmount;
   let cTokensMinted = event.params.mintTokens;
-  let minter = event.params.minter;
-
-  let market = Market.load(cToken) as Market;
+  let minter = getOrCreateAccount(event.params.minter);
 
   // update market total supply
+  let market = Market.load(cToken.id) as Market;
   let inputTokens = market.inputTokens as string[];
   let prevInputTokenBalances = market.inputTokenTotalBalances as string[];
   let prevInputBalance = TokenBalance.fromString(prevInputTokenBalances[0]).balance;
@@ -24,4 +24,41 @@ export function handleMint(event: Mint): void {
   let newTotalSupply = prevTotalSupply.plus(cTokensMinted);
 
   updateMarket(event, market, newInputTokenBalances, newTotalSupply);
+
+  // update custom entity
+  let userBalance = getOrCreateUserDepositBalance(minter.id, cToken.id);
+  userBalance.cTokenBalance = userBalance.cTokenBalance.plus(cTokensMinted);
+  // userBalance.redeemableTokensBalance = userBalance.cTokenBalance.mul(TODO - MULTIPLIER)
+  userBalance.save();
+
+  //// update user's  position
+
+  // user's cToken is increased by this amount
+  let outputTokenAmount = cTokensMinted;
+
+  // user sent `underlyingTokensProvided` of underlying tokens
+  let inputTokensAmount: TokenBalance[] = [
+    new TokenBalance(cToken.underlying, minter.id, underlyingTokensProvided),
+  ];
+
+  // user's total balance of cTokens
+  let outputTokenBalance = userBalance.cTokenBalance;
+
+  // number of tokens that can be redeemed by user
+  let inputTokenBalances: TokenBalance[] = [
+    new TokenBalance(cToken.underlying, minter.id, userBalance.redeemableTokensBalance),
+  ];
+
+  investInMarket(
+    event,
+    minter,
+    market,
+    outputTokenAmount,
+    inputTokensAmount,
+    [],
+    outputTokenBalance,
+    inputTokenBalances,
+    [],
+    minter.id
+  );
 }
