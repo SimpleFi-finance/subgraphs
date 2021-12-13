@@ -32,7 +32,6 @@ import {
 import { 
   ProtocolName, 
   ProtocolType,
-  PoolSpecialization
 } from "./constants"
 
 import {
@@ -44,10 +43,12 @@ export function handlePoolRegistered(event: PoolRegistered): void {
   let pool = new PoolEntity(event.params.poolId.toHexString())
   pool.address = event.params.poolAddress.toHexString();
 
-  let evmEvent = event as ethereum.Event
-  pool.blockNumber = evmEvent.block.number
-  pool.timestamp = evmEvent.block.timestamp
-  // pool.poolSpecialization = event.params.specialization // PoolSpecialization.GENERAL
+  pool.blockNumber = event.block.number
+  pool.timestamp = event.block.timestamp
+  //pool.poolSpecialization = event.params.specialization // PoolSpecialization.GENERAL
+  pool.tokens = []
+  pool.reserves = []
+  pool.totalSupply = BigInt.fromI32(0)
   pool.save()
 
   // Solely purpose to retrive poolId from poolAddress when needed
@@ -59,17 +60,15 @@ export function handlePoolRegistered(event: PoolRegistered): void {
 export function handleTokensRegistered(event: TokensRegistered): void {
   let pool = PoolEntity.load(event.params.poolId.toHexString())
 
-  // @todo: what if the pool already existed? (more tokens added)
+  // By the design of protocol registerTokens is called only once in the constructor of the pool
   // Create a tokens and market entity
   let tokens: TokenEntity[] = []
-  let tokensStr: string[] = [] // @todo: Is there any workaround to avoid 2 arrays?
   let reserves: BigInt[] = []
+  let inputTokens = event.params.tokens
 
   for (let i = 0; i < event.params.tokens.length; i++) {
-    let inputTokens = event.params.tokens
     let tokenEntity = getOrCreateERC20Token(event, inputTokens[i])
     tokens.push(tokenEntity)
-    tokensStr.push(tokenEntity.id)
     reserves.push(BigInt.fromI32(0))
   }
   
@@ -88,11 +87,9 @@ export function handleTokensRegistered(event: TokensRegistered): void {
 
   lpToken.mintedByMarket = market.id
   lpToken.save()
-
-  pool.factory = getOrCreateAccount(poolAddress).id
-  pool.tokens = tokensStr
+  
+  pool.tokens = tokens.map<string>(t => t.id)
   pool.reserves = reserves
-  pool.totalSupply = BigInt.fromI32(0)
   pool.save()
 }
 
@@ -105,27 +102,17 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
   let pool = PoolEntity.load(event.params.poolId.toHexString())
 
   let transactionHash = event.transaction.hash.toHexString()
-  let tokenAmounts: BigInt[] = []
-  for (let i = 0; i < event.params.deltas.length; i++) {
-    let amounts = event.params.deltas
-    
-    // deltas come as negative values on burning
-    tokenAmounts.push(amounts[i].abs())
+  let deltas = event.params.deltas
+  let inputTokenAmounts = deltas.map<BigInt>(d => d.abs())
+
+  // ordering of amounts is always same as ordering of tokens in pool entity, it is validated by the protocol  
+  let oldReserves = pool.reserves
+  let newReserves: BigInt[] = []
+  for (let i = 0; i < pool.reserves.length; i++) {
+    newReserves[i] = oldReserves[i].plus(deltas[i])
   }
 
-  if (pool.reserves === null) {
-    // @todo: can I trust ordering?
-    pool.reserves = tokenAmounts
-  } else {
-    let reserves = pool.reserves as BigInt[]
-    for (let i = 0; i < pool.reserves.length; i++) {
-      let poolDeposit = tokenAmounts
-      reserves[i] = reserves[i].plus(poolDeposit[i])
-    }
-
-    pool.reserves = reserves
-  }
-  
+  pool.reserves = newReserves
   pool.save()
 
   let mintBurnId = pool.address.concat('-').concat(transactionHash)
@@ -136,8 +123,7 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
     let mint = possibleMint as MintEntity
     mint.poolBalanceEventApplied = true
 
-    // @todo: can I trust event.params.deltas ordering?
-    mint.amounts = tokenAmounts
+    mint.amounts = inputTokenAmounts
     mint.save()
 
     pool.totalSupply = pool.totalSupply.plus(mint.liquityAmount as BigInt)
@@ -152,8 +138,7 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
     let burn = possibleBurn as BurnEntity
     burn.poolBalanceEventApplied = true
 
-    // @todo: can I trust event.params.deltas ordering?
-    burn.amounts = tokenAmounts
+    burn.amounts = inputTokenAmounts
     burn.save()
 
     pool.totalSupply = pool.totalSupply.minus(burn.liquityAmount as BigInt)
@@ -164,11 +149,11 @@ export function handlePoolBalanceChanged(event: PoolBalanceChanged): void {
 
   if (!isMintOrBurn) {
     let inputTokenBalances: TokenBalance[] = []
+    let tokens = pool.tokens
+    let reserves = pool.reserves
 
     for (let i = 0; i < pool.tokens.length; i++) {
-      let tokens = pool.tokens as string[]
-      let poolReserves = pool.reserves as BigInt[]
-      inputTokenBalances.push(new TokenBalance(tokens[i], pool.id, poolReserves[i]))
+      inputTokenBalances.push(new TokenBalance(tokens[i], pool.id, reserves[i]))
     }
 
     // Update market
