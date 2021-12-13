@@ -1,0 +1,68 @@
+specVersion: 0.0.2
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: UniswapV2Factory
+    network: matic
+    source:
+      address: "0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32"
+      abi: UniswapV2Factory
+      startBlock: 4931780
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Pair
+      abis:
+        - name: ERC20
+          file: ./abis/IERC20.json
+        - name: UniswapV2Factory
+          file: ./abis/IUniswapV2Factory.json
+      eventHandlers:
+        - event: PairCreated(indexed address,indexed address,address,uint256)
+          handler: handlePairCreated
+      file: ./src/uniswapV2Factory.ts
+templates:
+  - kind: ethereum/contract
+    name: UniswapV2Pair
+    network: matic
+    source:
+      abi: UniswapV2Pair
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/uniswapV2Pair.ts
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Pair
+        - PairSnapshot
+      abis:
+        - name: ERC20
+          file: ./abis/IERC20.json
+        - name: UniswapV2Factory
+          file: ./abis/IUniswapV2Factory.json
+        - name: UniswapV2Pair
+          file: ./abis/IUniswapV2Pair.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: Sync(uint112,uint112)
+          handler: handleSync
+        - event: Mint(indexed address,uint256,uint256)
+          handler: handleMint
+        - event: Burn(indexed address,uint256,uint256,indexed address)
+          handler: handleBurn
