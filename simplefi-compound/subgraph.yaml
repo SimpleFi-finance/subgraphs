@@ -22,9 +22,15 @@ dataSources:
         - Transfer
         - Position
         - PositionSnapshot
+        - CToken
+        - IERC20
       abis:
         - name: Comptroller
           file: ./abis/Comptroller.json
+        - name: CToken
+          file: ./abis/CToken.json
+        - name: IERC20
+          file: ./abis/IERC20.json
       eventHandlers:
         - event: MarketListed(address)
           handler: handleMarketListed
@@ -49,14 +55,18 @@ templates:
         - Transfer
         - Position
         - PositionSnapshot
+        - CToken
+        - IERC20
       abis:
         - name: CToken
           file: ./abis/CToken.json
+        - name: IERC20
+          file: ./abis/IERC20.json
       eventHandlers:
         - event: Mint(address,uint256,uint256)
           handler: handleMint
-        # - event: Redeem(address,uint256,uint256)
-        #   handler: handleRedeem
+        - event: Redeem(address,uint256,uint256)
+          handler: handleRedeem
         # - event: Borrow(address,uint256,uint256,uint256)
         #   handler: handleBorrow
         # - event: RepayBorrow(address,address,uint256,uint256,uint256)
