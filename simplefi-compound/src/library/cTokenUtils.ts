@@ -6,7 +6,11 @@ import { CToken as CTokenContract } from "../../generated/templates/CToken/CToke
 
 import { getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
 
-export function getOrCreateCToken(address: string, comptroller: string, event: ethereum.Event) {
+export function getOrCreateCToken(
+  address: string,
+  comptroller: string,
+  event: ethereum.Event
+): CToken {
   let cToken = CToken.load(address);
   if (cToken != null) {
     return cToken as CToken;
@@ -27,12 +31,12 @@ export function getOrCreateCToken(address: string, comptroller: string, event: e
   return cToken as CToken;
 }
 
-export function getOrCreateUserDepositBalance(user: string, cToken: string) {
+export function getOrCreateUserDepositBalance(user: string, cToken: string): UserDepositBalance {
   let id = user + "-" + cToken;
   let userDepositBalance = UserDepositBalance.load(id);
 
   if (userDepositBalance != null) {
-    return userDepositBalance;
+    return userDepositBalance as UserDepositBalance;
   }
 
   userDepositBalance = new UserDepositBalance(id);
@@ -42,5 +46,5 @@ export function getOrCreateUserDepositBalance(user: string, cToken: string) {
   userDepositBalance.redeemableTokensBalance = BigInt.fromI32(0);
   userDepositBalance.save();
 
-  return userDepositBalance;
+  return userDepositBalance as UserDepositBalance;
 }

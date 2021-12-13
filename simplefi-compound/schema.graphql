@@ -190,7 +190,7 @@ type CToken @entity {
   cTokenSymbol: String!
 
   " erc20 decimals "
-  cTokenDecimals: Int!
+  cTokenDecimals: BigInt!
 
   " TX at which CToken was registered "
   transactionHash: String!

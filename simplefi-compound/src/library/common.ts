@@ -9,7 +9,7 @@ import {
   Token,
   Transaction,
 } from "../../generated/schema";
-import { IERC20 } from "../../generated/templates/LendingPool/IERC20";
+import { IERC20 } from "../../generated/templates/CToken/IERC20";
 import { PositionType, TokenStandard, TransactionType } from "./constants";
 
 export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
@@ -415,7 +415,7 @@ export function investInMarket(
   transaction.inputTokenAmounts = inputTokenAmounts.map<string>((tb) => tb.toString());
   transaction.outputTokenAmount = outputTokenAmount;
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>((tb) => tb.toString());
-  transaction.gasUsed = event.transaction.gasUsed;
+  transaction.gasUsed = event.transaction.gasLimit;
   transaction.gasPrice = event.transaction.gasPrice;
   transaction.blockNumber = event.block.number;
   transaction.timestamp = event.block.timestamp;
@@ -496,7 +496,7 @@ export function redeemFromMarket(
   transaction.inputTokenAmounts = inputTokenAmounts.map<string>((tb) => tb.toString());
   transaction.outputTokenAmount = outputTokenAmount;
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>((tb) => tb.toString());
-  transaction.gasUsed = event.transaction.gasUsed;
+  transaction.gasUsed = event.transaction.gasLimit;
   transaction.gasPrice = event.transaction.gasPrice;
   transaction.blockNumber = event.block.number;
   transaction.timestamp = event.block.timestamp;
@@ -513,10 +513,10 @@ export function redeemFromMarket(
 
   // Check if it is transferred to some other account
   if (transferredTo != null) {
-    let exists = position.transferredTo.includes(transferredTo);
+    let exists = position.transferredTo.includes(transferredTo as string);
     if (!exists) {
       let newTransferredTo = position.transferredTo;
-      newTransferredTo.push(transferredTo);
+      newTransferredTo.push(transferredTo as string);
       position.transferredTo = newTransferredTo;
     }
   }
