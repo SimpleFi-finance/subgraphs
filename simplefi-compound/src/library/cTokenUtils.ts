@@ -4,7 +4,9 @@ import { CToken, UserDepositBalance } from "../../generated/schema";
 
 import { CToken as CTokenContract } from "../../generated/templates/CToken/CToken";
 
-import { getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
+import { ADDRESS_ZERO, getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
+
+let cETH = "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5";
 
 export function getOrCreateCToken(
   address: string,
@@ -17,11 +19,18 @@ export function getOrCreateCToken(
   }
 
   let cTokenContract = CTokenContract.bind(Address.fromString(address));
-  let underlyingAsset = getOrCreateERC20Token(event, cTokenContract.underlying());
+
+  // in case of cETH underlying asset is not ERC20
+  let underlyingAsset: string;
+  if (address == cETH) {
+    underlyingAsset = ADDRESS_ZERO;
+  } else {
+    underlyingAsset = getOrCreateERC20Token(event, cTokenContract.underlying()).id;
+  }
 
   cToken = new CToken(address);
   cToken.comptroller = comptroller;
-  cToken.underlying = underlyingAsset.id;
+  cToken.underlying = underlyingAsset;
   cToken.cTokenName = cTokenContract.name();
   cToken.cTokenSymbol = cTokenContract.symbol();
   cToken.cTokenDecimals = cTokenContract.decimals();
