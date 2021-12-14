@@ -7,7 +7,7 @@ import {
   TokenBalance,
   updateMarket,
 } from "../library/common";
-import { getOrCreateUserDepositBalance } from "../library/cTokenUtils";
+import { getExchangeRate, getOrCreateUserDepositBalance } from "../library/cTokenUtils";
 
 export function handleMint(event: Mint): void {
   let cToken = CToken.load(event.address.toHexString()) as CToken;
@@ -34,7 +34,7 @@ export function handleMint(event: Mint): void {
   // update custom entity
   let userBalance = getOrCreateUserDepositBalance(minter.id, cToken.id);
   userBalance.cTokenBalance = userBalance.cTokenBalance.plus(cTokensMinted);
-  // userBalance.redeemableTokensBalance = userBalance.cTokenBalance.mul(TODO - MULTIPLIER)
+  userBalance.redeemableTokensBalance = userBalance.cTokenBalance.times(getExchangeRate(cToken.id));
   userBalance.save();
 
   //// update user's  position
@@ -94,7 +94,7 @@ export function handleRedeem(event: Redeem): void {
   // update custom entity
   let userBalance = getOrCreateUserDepositBalance(redeemer.id, cToken.id);
   userBalance.cTokenBalance = userBalance.cTokenBalance.minus(cTokensBurned);
-  // userBalance.redeemableTokensBalance = userBalance.cTokenBalance.mul(TODO - MULTIPLIER)
+  userBalance.redeemableTokensBalance = userBalance.cTokenBalance.times(getExchangeRate(cToken.id));
   userBalance.save();
 
   //// update user's  position

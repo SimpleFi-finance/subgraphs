@@ -57,3 +57,20 @@ export function getOrCreateUserDepositBalance(user: string, cToken: string): Use
 
   return userDepositBalance as UserDepositBalance;
 }
+
+export function getExchangeRate(cToken: string): BigInt {
+  let cTokenContract = CTokenContract.bind(Address.fromString(cToken));
+  return cTokenContract.exchangeRateCurrent();
+
+  /* We emit an AccrueInterest event */
+  // emit AccrueInterest(cashPrior, interestAccumulated, borrowIndexNew, totalBorrowsNew);
+
+  // let res = exchangeRateStoredInternal();
+
+  // exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
+
+  // Gets balance of this contract in terms of the underlying
+  // uint totalCash = getCashPrior();
+  // addThenSubUInt(totalCash, totalBorrows, totalReserves);
+  // getExp(cashPlusBorrowsMinusReserves, _totalSupply);
+}
