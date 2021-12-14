@@ -1,0 +1,19 @@
+{
+  "name": "simplefi-1inch",
+  "license": "UNLICENSED",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "prepare-mainnet": "mustache ./config/mainnet.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
+    "prepare-polygon": "mustache ./config/polygon.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
+    "deploy-mainnet": "npm run prepare-mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ nelsongaldeman/simplefi-1inch-mainnet",
+    "deploy-polygon": "npm run prepare-polygon && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/simplefi-1inch-polygon",
+    "create-local": "graph create --node http://localhost:8020/ simplefi-finance/simplefi-1inch",
+    "remove-local": "graph remove --node http://localhost:8020/ simplefi-finance/simplefi-1inch",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 simplefi-finance/simplefi-1inch"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "^0.25.1",
+    "@graphprotocol/graph-ts": "0.24.1"
+  }
+}

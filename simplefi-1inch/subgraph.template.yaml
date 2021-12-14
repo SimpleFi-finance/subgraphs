@@ -1,0 +1,68 @@
+specVersion: 0.0.2
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: MooniswapFactory
+    network: {{network}}
+    source:
+      address: "{{factoryAddress}}"
+      abi: MooniswapFactory
+      startBlock: {{factoryAddressStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Pair
+      abis:
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: MooniswapFactory
+          file: ./abis/MooniswapFactory.json
+      eventHandlers:
+        - event: Deployed(indexed address,indexed address,indexed address)
+          handler: handleDeployed
+      file: ./src/MooniswapFactory.ts
+templates:
+  - kind: ethereum/contract
+    name: Mooniswap
+    network: {{network}}
+    source:
+      abi: Mooniswap
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/Mooniswap.ts
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Pair
+        - PairSnapshot
+      abis:
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: MooniswapFactory
+          file: ./abis/MooniswapFactory.json
+        - name: Mooniswap
+          file: ./abis/Mooniswap.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        # - event: Sync(uint256,uint256,uint256,uint256,uint256,uint256)
+        #   handler: handleSync
+        - event: Deposited(indexed address,indexed address,uint256,uint256,uint256)
+          handler: handleMint
+        - event: Withdrawn(indexed address,indexed address,uint256,uint256,uint256)
+          handler: handleBurn
