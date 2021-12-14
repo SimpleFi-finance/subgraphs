@@ -4,10 +4,19 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ tarunbhm/simplefi-uniswap-v2",
-    "create-local": "graph create --node http://localhost:8020/ tarunbhm/simplefi-uniswap-v2",
-    "remove-local": "graph remove --node http://localhost:8020/ tarunbhm/simplefi-uniswap-v2",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 tarunbhm/simplefi-uniswap-v2"
+    "prepare-uniswap-v2-mainnet": "mustache ./config/uniswap-v2-mainnet.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
+    "prepare-sushiswap-mainnet": "mustache ./config/sushiswap-mainnet.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
+    "prepare-sushiswap-polygon": "mustache ./config/sushiswap-polygon.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
+    "prepare-quickswap-polygon": "mustache ./config/quickswap-polygon.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
+    "prepare-trisolaris-aurora": "mustache ./config/trisolaris-aurora.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
+    "deploy-uniswap-v2-mainnet": "npm run prepare-uniswap-v2-mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/simplefi-uniswap-v2",
+    "deploy-sushiswap-mainnet": "npm run prepare-sushiswap-mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/simplefi-sushiswap",
+    "deploy-sushiswap-polygon": "npm run prepare-sushiswap-polygon && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/simplefi-sushiswap-polygon",
+    "deploy-quickswap-polygon": "npm run prepare-quickswap-polygon && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/simplefi-quickswap",
+    "deploy-trisolaris-aurora": "npm run prepare-trisolaris-aurora && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/simplefi-trisolaris",
+    "create-local": "graph create --node http://localhost:8020/ simplefi-finance/simplefi-uniswap-v2",
+    "remove-local": "graph remove --node http://localhost:8020/ simplefi-finance/simplefi-uniswap-v2",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 simplefi-finance/simplefi-uniswap-v2"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.20.0",
