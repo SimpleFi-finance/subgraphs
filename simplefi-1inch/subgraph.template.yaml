@@ -60,8 +60,6 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
-        # - event: Sync(uint256,uint256,uint256,uint256,uint256,uint256)
-        #   handler: handleSync
         - event: Deposited(indexed address,indexed address,uint256,uint256,uint256)
           handler: handleMint
         - event: Withdrawn(indexed address,indexed address,uint256,uint256,uint256)
