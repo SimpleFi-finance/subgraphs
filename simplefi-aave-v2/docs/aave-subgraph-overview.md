@@ -2,7 +2,7 @@
 
 Aave has multiple lending pools. Every pool has number of tokens. Depositing a token gives you back aToken. User's balance of aTokens is constantly growing and in that way providing interest to user. Borowing against the collateral gives you stable/variable debt token, which is also constantly growing in balance. There is separate "incentive controller" contract which distributes rewards.
 
-### Subgraph
+## Subgraph
 
 How is Aave mapped to SimpleFi's common model? We create 4 markets types:
 
@@ -19,7 +19,7 @@ How is Aave mapped to SimpleFi's common model? We create 4 markets types:
 - "variable rate debt market" representing the variable rate debt taken by user for every token
 
   - id: lendingPoolAddress-variableDebtTokenAddress
-  - type LENDING
+  - type DEBT
   - input tokens: WETH (input token in this market represents collateral locked due to debt taken. User can have multiple tokens locked as collateral and what is important is collective collateral price in ETH. For that reason input token is represented as WETH)
   - output token: stable debt token (i.e. stable debt USDC)
   - reward token: none
@@ -27,7 +27,7 @@ How is Aave mapped to SimpleFi's common model? We create 4 markets types:
 - "stable rate debt market" representing the debt taken by user for every token
 
   - id: lendingPoolAddress-stableDebtTokenAddress
-  - type LENDING
+  - type DEBT
   - input tokens: WETH (input token in this market represents collateral locked due to debt taken. User can have multiple tokens locked as collateral and what is important is collective collateral price in ETH. For that reason input token is represented as WETH)
   - output token: stable debt token (i.e. stable debt USDC)
   - reward token: none
@@ -39,10 +39,37 @@ How is Aave mapped to SimpleFi's common model? We create 4 markets types:
   - output token: WETH (same as above, balance of input and output tokens will always be same)
   - reward token: token defined in incentive controller contract (i.e. StkAave)
 
-Open questions:
+## Limitations of our current data model
 
-- How will be 1st (investment) market be distinguished from 2nd and 3rd (debt) market in backend? Shall type of 1st market be something different than LENDING?
-- Is it a problem if WETH is used as input token of debt markets instead of array of all the collateral tokens?
-- For debt markets (2nd and 3rd)
-  - How can we track changes in inputTokenBalance (amount of collateral locked) in blocks where position is not updated by TX?
-  - Same question for outputTokenBalance (amount of debt tokens) -> where can we put market level changes? We can't use market's inputTokenBalance (as in case with aTokens) because inputTokens here represent collateral locked
+1. Our subgraphs can only update user's data in TXs where user interacts with contract. How can we derive user's position at all the other times?
+
+- in protocols like AMM pools we can do it because user has fixed number of LP shares, so if we know total number of shares in market at every TX, we can easily calculate balance of redeemable input tokens for user
+- that approach often doesn't work for data like reward balances because it's not possible to derive user's amount of claimable rewards from the state of market reserves
+  - current solution -> make custom contract calls from backend to get reward balances for user - it requires ABI, function signature, parameters. Not generic or scalable solution atm
+
+2. Idea for debt (borrow) markets in our model is following:
+
+- input token = collateral locked
+- output token = debt token for asset being borrowed
+
+Taking Aave as example, collateral is not actually being locked. We can just calculate (at the time of user's interaction with contract) minimal amount of collateral needed, priced in ETH, to take a debt of certain amount without being liquidatable.
+
+Amount of collateral needed is specific to very user and depends on:
+
+- assets being part of collateral
+- amount of every asset
+- price of every asset in ETH
+
+2a) How to track input token balance - amount of collateral locked?
+
+It is changed at every block for every user, because prices are constantly changing. There's no way to update every position in subgraph at every block.
+
+But can we use market reserves to derive it, like in exchange (amm) or lend (deposit) market? Not really, there's no direct way to measure amount of collateral locked accross all positions...
+
+- one possible solution is to use contract calls as in the rewards case?
+
+2b) How to track actual amount of tokens user owes to protocol, based on output token balance?
+
+Since we can't use market reserves of input token to derive it (because input token is collateral), we need to extend the model.
+
+- current solution -> market/marketSnapshot entities are extended with optional `balanceMultiplier` param. So if we know that user has 100 debt tokens, actual amount owed by user is 100 x `balanceMultiplier`. This logic needs to be reflected in backend integration. From subgraph side we need to make sure that market's `balanceMultiplier` is up-to-date every time it changes in contract storage.
