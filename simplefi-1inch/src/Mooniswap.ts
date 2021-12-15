@@ -242,47 +242,9 @@ export function handleTransfer(event: Transfer): void {
     accountLiquidityTo.save()
   }
 
-  // Check if transfer it's a mint or burn or transfer transaction
-  // minting new LP tokens
-  if (fromHex == ADDRESS_ZERO) {
-    // Initial minimum liquidity locking of 1000
-    if (toHex == ADDRESS_ZERO) {
-      pair.totalSupply = pair.totalSupply.plus(event.params.value)
-      pair.save()
-    }
-
-    // let mint = getOrCreateMint(event, pair)
-    // mint.transferEventApplied = true
-    // mint.from = getOrCreateAccount(event.transaction.from).id
-    // mint.to = getOrCreateAccount(event.params.to).id
-    // mint.liquityAmount = event.params.value
-    // mint.save()
-    // createOrUpdatePositionOnMint(event, pair, mint)
-  }
-
-  // @todo: check if this is still needed or it's already fully tracked by Withdrawn event
-
-  // send to pair contract before burn method call
-  if (fromHex != ADDRESS_ZERO && toHex == pairAddressHex) {
-    // let burn = getOrCreateBurn(event, pair)
-    // burn.transferToPairEventApplied = true
-    // burn.from = getOrCreateAccount(event.params.from).id
-    // burn.liquityAmount = event.params.value
-    // burn.save()
-    // createOrUpdatePositionOnBurn(event, pair, burn)
-  }
-
-  // internal _burn method call
-  if (fromHex == pairAddressHex && toHex == ADDRESS_ZERO) {
-    // let burn = getOrCreateBurn(event, pair)
-    // burn.transferToZeroEventApplied = true
-    // burn.liquityAmount = event.params.value
-    // burn.save()
-    // createOrUpdatePositionOnBurn(event, pair, burn)
-  }
-
   // everything else
   if (fromHex != ADDRESS_ZERO && fromHex != pairAddressHex && toHex != pairAddressHex) {
+    // @todo: remove logs
     log.info("Transfer event from {} to {} - value: {} - market: {} - totalSupply: {}", [fromHex, toHex, event.params.value.toString(), pair.id, pair.totalSupply.toString()])
     transferLPToken(event, pair, event.params.from, event.params.to, event.params.value)
   }
@@ -303,12 +265,9 @@ export function handleMint(event: Deposited): void {
   mint.amount1 = event.params.token1Amount
   mint.from = getOrCreateAccount(event.transaction.from).id
   mint.to = getOrCreateAccount(event.params.receiver).id
-
-  // @todo: make sure `share` is actually the LP amount
   mint.liquityAmount = event.params.share
   mint.save()
 
-  // @todo: check weather this is the actual reserves going to the LP (e.g. no fees etc)
   pair.reserve0 = pair.reserve0.plus(event.params.token0Amount)
   pair.reserve1 = pair.reserve1.plus(event.params.token1Amount)
   pair.totalSupply = pair.totalSupply.plus(event.params.share as BigInt)
