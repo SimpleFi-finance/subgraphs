@@ -1,12 +1,13 @@
 import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 
-import { CToken, UserDepositBalance } from "../../generated/schema";
+import { CToken, UserBorrowBalance, UserDepositBalance } from "../../generated/schema";
 
 import { CToken as CTokenContract } from "../../generated/templates/CToken/CToken";
 
 import { ADDRESS_ZERO, getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
 
 let cETH = "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5";
+let mantissaOne = BigInt.fromI32(10).pow(27);
 
 export function getOrCreateCToken(
   address: string,
@@ -34,6 +35,7 @@ export function getOrCreateCToken(
   cToken.cTokenName = cTokenContract.name();
   cToken.cTokenSymbol = cTokenContract.symbol();
   cToken.cTokenDecimals = cTokenContract.decimals();
+  cToken.borrowIndex = mantissaOne;
   cToken.transactionHash = event.transaction.hash.toHexString();
   cToken.save();
 
@@ -77,4 +79,19 @@ export function getExchangeRate(cToken: string): BigInt {
 
 export function getCollateralAmountLocked(cToken: string, amount: BigInt): BigInt {
   return BigInt.fromI32(0);
+}
+
+export function getOrCreateUserBorrowBalance(user: string, cToken: string): UserBorrowBalance {
+  let id = user + "-" + cToken;
+  let userBorrowBalance = UserBorrowBalance.load(id);
+
+  if (userBorrowBalance != null) {
+    return userBorrowBalance as UserBorrowBalance;
+  }
+
+  userBorrowBalance.user = user;
+  userBorrowBalance.cToken = cToken;
+  userBorrowBalance.principal = BigInt.fromI32(0);
+  userBorrowBalance.interestIndex = BigInt.fromI32(0);
+  return userBorrowBalance as UserBorrowBalance;
 }

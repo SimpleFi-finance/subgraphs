@@ -150,6 +150,4 @@ export function handleBorrow(event: Borrow): void {
   let newInputTokenBalances: TokenBalance[] = [
     new TokenBalance(inputTokens[0], market.id, newInputBalance),
   ];
-
-  updateMarket(event, market, newInputTokenBalances, totalBorrows);
 }

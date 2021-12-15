@@ -192,12 +192,15 @@ type CToken @entity {
   " erc20 decimals "
   cTokenDecimals: BigInt!
 
+  " accumulator of the total earned interest rate since the opening of the market "
+  borrowIndex: BigInt!
+
   " TX at which CToken was registered "
   transactionHash: String!
 }
 
 type UserDepositBalance @entity {
-  " userAddress-marketId"
+  " userAddress-cTokenId"
   id: ID!
 
   " user taking positions in pool "
@@ -211,4 +214,21 @@ type UserDepositBalance @entity {
 
   " amount of underlying asset tokens user can redeem "
   redeemableTokensBalance: BigInt!
+}
+
+type UserBorrowBalance @entity {
+  " userAddress-cTokenId"
+  id: ID!
+
+  " user taking on debt "
+  user: Account!
+
+  " cToken market from which user borrowed "
+  cToken: CToken!
+
+  " total balance (with accrued interest) "
+  principal: BigInt!
+
+  " global borrowIndex as of the most recent balance-changing action "
+  interestIndex: BigInt!
 }
