@@ -39,7 +39,7 @@ export function handleMarketListed(event: MarketListed): void {
   marketId = cToken.id + "-BORROW";
   protocolType = ProtocolType.DEBT;
   inputTokens = [underlying];
-  outputToken = getOrCreateERC20Token(event, cTokenAddress);
+  outputToken = getOrCreateERC20Token(event, Address.fromString(underlying.id));
   rewardTokens = [];
 
   getOrCreateMarketWithId(

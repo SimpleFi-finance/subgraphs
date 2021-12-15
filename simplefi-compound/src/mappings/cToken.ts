@@ -1,5 +1,5 @@
 import { CToken, Market, UserDepositBalance } from "../../generated/schema";
-import { Mint, Redeem } from "../../generated/templates/CToken/CToken";
+import { Borrow, Mint, Redeem } from "../../generated/templates/CToken/CToken";
 import {
   getOrCreateAccount,
   investInMarket,
@@ -7,7 +7,11 @@ import {
   TokenBalance,
   updateMarket,
 } from "../library/common";
-import { getExchangeRate, getOrCreateUserDepositBalance } from "../library/cTokenUtils";
+import {
+  getCollateralAmountLocked,
+  getExchangeRate,
+  getOrCreateUserDepositBalance,
+} from "../library/cTokenUtils";
 
 export function handleMint(event: Mint): void {
   let cToken = CToken.load(event.address.toHexString()) as CToken;
@@ -127,4 +131,25 @@ export function handleRedeem(event: Redeem): void {
     [],
     redeemer.id
   );
+}
+
+export function handleBorrow(event: Borrow): void {
+  let cToken = CToken.load(event.address.toHexString()) as CToken;
+
+  let accountBorrows = event.params.accountBorrows;
+  let totalBorrows = event.params.totalBorrows;
+  let borrowAmount = event.params.borrowAmount;
+  let borrower = getOrCreateAccount(event.params.borrower);
+
+  // update market total supply
+  let market = Market.load(cToken.id + "-BORROW") as Market;
+  let inputTokens = market.inputTokens as string[];
+  let prevInputTokenBalances = market.inputTokenTotalBalances as string[];
+  let prevInputBalance = TokenBalance.fromString(prevInputTokenBalances[0]).balance;
+  let newInputBalance = prevInputBalance.plus(getCollateralAmountLocked(cToken.id, borrowAmount));
+  let newInputTokenBalances: TokenBalance[] = [
+    new TokenBalance(inputTokens[0], market.id, newInputBalance),
+  ];
+
+  updateMarket(event, market, newInputTokenBalances, totalBorrows);
 }

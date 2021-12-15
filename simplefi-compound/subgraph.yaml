@@ -67,8 +67,8 @@ templates:
           handler: handleMint
         - event: Redeem(address,uint256,uint256)
           handler: handleRedeem
-        # - event: Borrow(address,uint256,uint256,uint256)
-        #   handler: handleBorrow
+        - event: Borrow(address,uint256,uint256,uint256)
+          handler: handleBorrow
         # - event: RepayBorrow(address,address,uint256,uint256,uint256)
         #   handler: handleRepayBorrow
         # - event: LiquidateBorrow(address,address,uint256,address,uint256)

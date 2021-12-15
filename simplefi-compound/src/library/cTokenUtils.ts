@@ -74,3 +74,7 @@ export function getExchangeRate(cToken: string): BigInt {
   // addThenSubUInt(totalCash, totalBorrows, totalReserves);
   // getExp(cashPlusBorrowsMinusReserves, _totalSupply);
 }
+
+export function getCollateralAmountLocked(cToken: string, amount: BigInt): BigInt {
+  return BigInt.fromI32(0);
+}
