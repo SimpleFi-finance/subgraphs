@@ -177,7 +177,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: WeightedPool
-    network: mainnet
+    network: {{network}}
     source:
       abi: WeightedPool
     mapping:
@@ -210,7 +210,7 @@ templates:
           handler: handleTransfer
   - kind: ethereum/contract
     name: WeightedPool2Tokens
-    network: mainnet
+    network: {{network}}
     source:
       abi: WeightedPool2Tokens
     mapping:
@@ -243,7 +243,7 @@ templates:
           handler: handleTransfer
   - kind: ethereum/contract
     name: InvestmentPool
-    network: mainnet
+    network: {{network}}
     source:
       abi: InvestmentPool
     mapping:
@@ -276,7 +276,7 @@ templates:
           handler: handleTransfer
   - kind: ethereum/contract
     name: LiquidityBootstrappingPool
-    network: mainnet
+    network: {{network}}
     source:
       abi: LiquidityBootstrappingPool
     mapping:
@@ -309,7 +309,7 @@ templates:
           handler: handleTransfer
   - kind: ethereum/contract
     name: MetastablePool
-    network: mainnet
+    network: {{network}}
     source:
       abi: MetastablePool
     mapping:
@@ -342,7 +342,7 @@ templates:
           handler: handleTransfer
   - kind: ethereum/contract
     name: StablePool
-    network: mainnet
+    network: {{network}}
     source:
       abi: StablePool
     mapping:
