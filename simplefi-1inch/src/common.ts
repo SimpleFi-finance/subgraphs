@@ -311,8 +311,10 @@ export function investInMarket(
   transaction.outputTokenAmount = outputTokenAmount
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
   
-  // @todo: I think this got removed or renamed in the latest version of the library
-  //transaction.gasUsed = event.transaction.gasUsed
+  // Renaming of ethereum's transaction field gasUsed to gasLimit. 
+  // This field has always been filled with the value of the gasLimit, now the name is correct. 
+  // To follow up on the support for gasUsed, look: graphprotocol/graph-node#2619.
+  transaction.gasUsed = event.transaction.gasLimit
   
   transaction.gasPrice = event.transaction.gasPrice
   transaction.blockNumber = event.block.number
@@ -372,8 +374,10 @@ export function redeemFromMarket(
   transaction.outputTokenAmount = outputTokenAmount
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
   
-  // @todo: I think this got removed or renamed in the latest version of the library
-  //transaction.gasUsed = event.transaction.gasUsed
+  // Renaming of ethereum's transaction field gasUsed to gasLimit. 
+  // This field has always been filled with the value of the gasLimit, now the name is correct. 
+  // To follow up on the support for gasUsed, look: graphprotocol/graph-node#2619.
+  transaction.gasUsed = event.transaction.gasLimit
 
   transaction.gasPrice = event.transaction.gasPrice
   transaction.blockNumber = event.block.number
@@ -438,8 +442,10 @@ export function borrowFromMarket(
   transaction.outputTokenAmount = outputTokenAmount
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
   
-  // @todo: I think this got removed or renamed in the latest version of the library
-  //transaction.gasUsed = event.transaction.gasUsed
+  // Renaming of ethereum's transaction field gasUsed to gasLimit. 
+  // This field has always been filled with the value of the gasLimit, now the name is correct. 
+  // To follow up on the support for gasUsed, look: graphprotocol/graph-node#2619.
+  transaction.gasUsed = event.transaction.gasLimit
 
   transaction.gasPrice = event.transaction.gasPrice
   transaction.blockNumber = event.block.number
@@ -492,7 +498,12 @@ export function repayToMarket(
   transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
   transaction.outputTokenAmount = outputTokenAmount
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasUsed
+  
+  // Renaming of ethereum's transaction field gasUsed to gasLimit. 
+  // This field has always been filled with the value of the gasLimit, now the name is correct. 
+  // To follow up on the support for gasUsed, look: graphprotocol/graph-node#2619.
+  transaction.gasUsed = event.transaction.gasLimit
+
   transaction.gasPrice = event.transaction.gasPrice
   transaction.blockNumber = event.block.number
   transaction.timestamp = event.block.timestamp

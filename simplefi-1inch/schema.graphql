@@ -180,7 +180,6 @@ type Pair @entity {
   totalSupply: BigInt!
   blockNumber: BigInt!
   timestamp: BigInt!
-  lastIncompleteBurn: Burn
 }
 
 type AccountLiquidity @entity {

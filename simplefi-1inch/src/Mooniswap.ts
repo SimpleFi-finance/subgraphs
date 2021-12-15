@@ -58,8 +58,6 @@ function getOrCreateBurn(event: ethereum.Event, pair: PairEntity): BurnEntity {
   burn.pair = pair.id
   burn.save()
 
-  pair.lastIncompleteBurn = burn.id
-  pair.save()
   return burn as BurnEntity
 }
 
@@ -126,10 +124,6 @@ function createOrUpdatePositionOnMint(event: ethereum.Event, pair: PairEntity, m
 }
 
 function createOrUpdatePositionOnBurn(event: ethereum.Event, pair: PairEntity, burn: BurnEntity): void {
-  // @todo: remove lastIncompleteBurn
-  pair.lastIncompleteBurn = null
-  pair.save()
-
   let accountAddress = Address.fromString(burn.from as string)
   let account = new AccountEntity(burn.from as string)
   let market = MarketEntity.load(burn.pair as string) as MarketEntity
@@ -224,32 +218,6 @@ function transferLPToken(event: ethereum.Event, pair: PairEntity, from: Address,
   )
 }
 
-function checkIncompleteBurnFromLastTransaction(event: ethereum.Event, pair: PairEntity): void {
-  // Check if pair has an incomplete burn
-  if (pair.lastIncompleteBurn == null) {
-    return
-  }
-
-  // Same transaction events being processed
-  if (pair.lastIncompleteBurn == event.transaction.hash.toHexString()) {
-    return
-  }
-
-  // New transaction processing has started without completing burn event
-  let burnId = pair.id.concat("-").concat(pair.lastIncompleteBurn as string)
-  let burn = BurnEntity.load(burnId)
-  // Check if transfer to pair happened as an incomplete burn
-  if (burn !== null && burn.from !== null && burn.liquityAmount !== null && burn.transferToPairEventApplied) {
-    let from = burn.from as string
-    let amount = burn.liquityAmount as BigInt
-    transferLPToken(event, pair, Address.fromString(from), event.address, amount)
-  }
-
-  // reset lastIncompleteBurn
-  pair.lastIncompleteBurn = null
-  pair.save()
-}
-
 export function handleTransfer(event: Transfer): void {
   if (event.params.value == BigInt.fromI32(0)) {
     return
@@ -319,7 +287,6 @@ export function handleTransfer(event: Transfer): void {
     transferLPToken(event, pair, event.params.from, event.params.to, event.params.value)
   }
 
-  checkIncompleteBurnFromLastTransaction(event, pair)
 }
 
 export function handleMint(event: Deposited): void {
@@ -348,7 +315,6 @@ export function handleMint(event: Deposited): void {
   pair.save()
 
   createOrUpdatePositionOnMint(event, pair, mint)
-  checkIncompleteBurnFromLastTransaction(event, pair)
 }
 
 export function handleBurn(event: Withdrawn): void {
@@ -369,5 +335,4 @@ export function handleBurn(event: Withdrawn): void {
   pair.save()
 
   createOrUpdatePositionOnBurn(event, pair, burn)
-  checkIncompleteBurnFromLastTransaction(event, pair)
 }
