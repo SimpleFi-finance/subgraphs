@@ -73,3 +73,6 @@ But can we use market reserves to derive it, like in exchange (amm) or lend (dep
 Since we can't use market reserves of input token to derive it (because input token is collateral), we need to extend the model.
 
 - current solution -> market/marketSnapshot entities are extended with optional `balanceMultiplier` param. So if we know that user has 100 debt tokens, actual amount owed by user is 100 x `balanceMultiplier`. This logic needs to be reflected in backend integration. From subgraph side we need to make sure that market's `balanceMultiplier` is up-to-date every time it changes in contract storage.
+
+3. Add weights of input tokens to Market entity
+4. How to calculate volume
