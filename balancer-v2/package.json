@@ -1,5 +1,5 @@
 {
-  "name": "balancer-v2",
+  "name": "simplefi-balancer-v2",
   "license": "UNLICENSED",
   "scripts": {
     "codegen": "graph codegen",
