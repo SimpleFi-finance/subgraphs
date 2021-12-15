@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum, store, log } from "@graphprotocol/graph-ts"
+import { Address, BigInt, ethereum, store } from "@graphprotocol/graph-ts"
 
 import {
   Account as AccountEntity,
@@ -76,7 +76,6 @@ function getOrCreateLiquidity(pair: PairEntity, accountAddress: Address): Accoun
 }
 
 function createOrUpdatePositionOnMint(event: ethereum.Event, pair: PairEntity, mint: MintEntity): void {
-  log.info("Mint complete: market {}", [pair.id])
   let accountAddress = Address.fromString(mint.to as string)
   let account = new AccountEntity(mint.to as string)
   let market = MarketEntity.load(mint.pair as string) as MarketEntity
@@ -244,15 +243,12 @@ export function handleTransfer(event: Transfer): void {
 
   // everything else
   if (fromHex != ADDRESS_ZERO && fromHex != pairAddressHex && toHex != pairAddressHex) {
-    // @todo: remove logs
-    log.info("Transfer event from {} to {} - value: {} - market: {} - totalSupply: {}", [fromHex, toHex, event.params.value.toString(), pair.id, pair.totalSupply.toString()])
     transferLPToken(event, pair, event.params.from, event.params.to, event.params.value)
   }
 
 }
 
 export function handleMint(event: Deposited): void {
-  log.info("Mint event - market: {}", [event.address.toHexString()])
   let pair = PairEntity.load(event.address.toHexString()) as PairEntity
   let mint = getOrCreateMint(event, pair)
 
@@ -277,7 +273,6 @@ export function handleMint(event: Deposited): void {
 }
 
 export function handleBurn(event: Withdrawn): void {
-  log.info("Burn event - market: {}", [event.address.toHexString()])
   let pair = PairEntity.load(event.address.toHexString()) as PairEntity
   let burn = getOrCreateBurn(event, pair)
 
