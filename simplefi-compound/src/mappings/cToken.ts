@@ -1,6 +1,7 @@
 import { CToken, Market, UserDepositBalance } from "../../generated/schema";
 import { Borrow, Mint, Redeem } from "../../generated/templates/CToken/CToken";
 import {
+  borrowFromMarket,
   getOrCreateAccount,
   investInMarket,
   redeemFromMarket,
@@ -10,6 +11,7 @@ import {
 import {
   getCollateralAmountLocked,
   getExchangeRate,
+  getOrCreateUserBorrowBalance,
   getOrCreateUserDepositBalance,
 } from "../library/cTokenUtils";
 
@@ -141,13 +143,55 @@ export function handleBorrow(event: Borrow): void {
   let borrowAmount = event.params.borrowAmount;
   let borrower = getOrCreateAccount(event.params.borrower);
 
+  // update debt balance tracker
+  let userBalance = getOrCreateUserBorrowBalance(borrower.id, cToken.id);
+  userBalance.principal = accountBorrows;
+  userBalance.interestIndex = cToken.borrowIndex;
+  userBalance.save();
+
+  let collateralAmountLocked = getCollateralAmountLocked(cToken.id, borrowAmount);
+
   // update market total supply
   let market = Market.load(cToken.id + "-BORROW") as Market;
   let inputTokens = market.inputTokens as string[];
   let prevInputTokenBalances = market.inputTokenTotalBalances as string[];
   let prevInputBalance = TokenBalance.fromString(prevInputTokenBalances[0]).balance;
-  let newInputBalance = prevInputBalance.plus(getCollateralAmountLocked(cToken.id, borrowAmount));
+  let newInputBalance = prevInputBalance.plus(collateralAmountLocked);
   let newInputTokenBalances: TokenBalance[] = [
     new TokenBalance(inputTokens[0], market.id, newInputBalance),
   ];
+
+  updateMarket(event, market, newInputTokenBalances, totalBorrows);
+
+  ////// update user's position
+
+  // amount of debt taken
+  let outputTokenAmount = borrowAmount;
+
+  // amount of collateral locked because of debt taken in this TX
+  let inputTokensAmount: TokenBalance[] = [
+    new TokenBalance(inputTokens[0], borrower.id, collateralAmountLocked),
+  ];
+
+  // total balance of debt
+  let outputTokenBalance = totalBorrows;
+
+  // total amount of user's collateral locked by debt taken in this underlying token
+  let inputTokenBalances: TokenBalance[] = [];
+  let totalUsersCollateralAmountLocked = getCollateralAmountLocked(cToken.id, totalBorrows);
+  inputTokenBalances.push(
+    new TokenBalance(inputTokens[0], borrower.id, totalUsersCollateralAmountLocked)
+  );
+
+  borrowFromMarket(
+    event,
+    borrower,
+    market,
+    outputTokenAmount,
+    inputTokensAmount,
+    [],
+    outputTokenBalance,
+    inputTokenBalances,
+    []
+  );
 }
