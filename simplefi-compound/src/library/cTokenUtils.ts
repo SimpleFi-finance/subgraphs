@@ -36,6 +36,8 @@ export function getOrCreateCToken(
   cToken.cTokenSymbol = cTokenContract.symbol();
   cToken.cTokenDecimals = cTokenContract.decimals();
   cToken.borrowIndex = mantissaOne;
+  cToken.cash = BigInt.fromI32(0);
+  cToken.totalBorrows = BigInt.fromI32(0);
   cToken.transactionHash = event.transaction.hash.toHexString();
   cToken.save();
 
