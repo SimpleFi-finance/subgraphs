@@ -89,6 +89,7 @@ export function getOrCreateUserBorrowBalance(user: string, cToken: string): User
     return userBorrowBalance as UserBorrowBalance;
   }
 
+  userBorrowBalance = new UserBorrowBalance(id);
   userBorrowBalance.user = user;
   userBorrowBalance.cToken = cToken;
   userBorrowBalance.principal = BigInt.fromI32(0);

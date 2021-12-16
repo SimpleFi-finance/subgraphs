@@ -579,7 +579,7 @@ export function borrowFromMarket(
   transaction.inputTokenAmounts = inputTokenAmounts.map<string>((tb) => tb.toString());
   transaction.outputTokenAmount = outputTokenAmount;
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>((tb) => tb.toString());
-  transaction.gasUsed = event.transaction.gasUsed;
+  transaction.gasUsed = event.transaction.gasLimit;
   transaction.gasPrice = event.transaction.gasPrice;
   transaction.blockNumber = event.block.number;
   transaction.timestamp = event.block.timestamp;
