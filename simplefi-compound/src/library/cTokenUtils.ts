@@ -4,6 +4,8 @@ import { CToken, UserBorrowBalance, UserDepositBalance } from "../../generated/s
 
 import { CToken as CTokenContract } from "../../generated/templates/CToken/CToken";
 
+import { CToken as CTokenTemplate } from "../../generated/templates";
+
 import { ADDRESS_ZERO, getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
 
 let cETH = "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5";
@@ -40,6 +42,9 @@ export function getOrCreateCToken(
   cToken.totalBorrows = BigInt.fromI32(0);
   cToken.transactionHash = event.transaction.hash.toHexString();
   cToken.save();
+
+  // start indexing cToken
+  CTokenTemplate.create(Address.fromString(address));
 
   return cToken as CToken;
 }
