@@ -1,4 +1,4 @@
-import { ethereum } from "@graphprotocol/graph-ts";
+import { BigInt, ethereum } from "@graphprotocol/graph-ts";
 import { Account, CToken, Market, UserDepositBalance } from "../../generated/schema";
 import {
   AccrueInterest,
@@ -257,11 +257,12 @@ export function handleTransfer(event: Transfer): void {
 function mint(
   minter: Account,
   cToken: CToken,
-  cTokensMinted,
-  underlyingTokensProvided,
+  cTokensMinted: BigInt,
+  underlyingTokensProvided: BigInt,
   event: ethereum.Event,
   market: Market
-) {
+): void {
+  // update balance tracker
   let userBalance = getOrCreateUserDepositBalance(minter.id, cToken.id);
   userBalance.cTokenBalance = userBalance.cTokenBalance.plus(cTokensMinted);
   userBalance.redeemableTokensBalance = userBalance.cTokenBalance.times(getExchangeRate(cToken.id));
@@ -302,17 +303,19 @@ function mint(
 function redeem(
   redeemer: Account,
   cToken: CToken,
-  cTokensAmount,
-  underlyingTokensRedeemed,
+  cTokensAmount: BigInt,
+  underlyingTokensRedeemed: BigInt,
   event: ethereum.Event,
   market: Market
-) {
+): void {
+  // update balance tracker
   let userBalance = getOrCreateUserDepositBalance(redeemer.id, cToken.id);
   userBalance.cTokenBalance = userBalance.cTokenBalance.minus(cTokensAmount);
   userBalance.redeemableTokensBalance = userBalance.cTokenBalance.times(getExchangeRate(cToken.id));
   userBalance.save();
 
   //// update user's  position
+
   // user's cToken is decreased by this amount
   let outputTokenAmount = cTokensAmount;
 
