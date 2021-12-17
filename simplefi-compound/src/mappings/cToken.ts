@@ -1,10 +1,12 @@
-import { CToken, Market, UserDepositBalance } from "../../generated/schema";
+import { ethereum } from "@graphprotocol/graph-ts";
+import { Account, CToken, Market, UserDepositBalance } from "../../generated/schema";
 import {
   AccrueInterest,
   Borrow,
   Mint,
   Redeem,
   RepayBorrow,
+  Transfer,
 } from "../../generated/templates/CToken/CToken";
 import {
   borrowFromMarket,
@@ -44,42 +46,8 @@ export function handleMint(event: Mint): void {
 
   updateMarket(event, market, newInputTokenBalances, newTotalSupply);
 
-  // update custom entity
-  let userBalance = getOrCreateUserDepositBalance(minter.id, cToken.id);
-  userBalance.cTokenBalance = userBalance.cTokenBalance.plus(cTokensMinted);
-  userBalance.redeemableTokensBalance = userBalance.cTokenBalance.times(getExchangeRate(cToken.id));
-  userBalance.save();
-
-  //// update user's  position
-
-  // user's cToken is increased by this amount
-  let outputTokenAmount = cTokensMinted;
-
-  // user sent `underlyingTokensProvided` of underlying tokens
-  let inputTokensAmount: TokenBalance[] = [
-    new TokenBalance(cToken.underlying, minter.id, underlyingTokensProvided),
-  ];
-
-  // user's total balance of cTokens
-  let outputTokenBalance = userBalance.cTokenBalance;
-
-  // number of tokens that can be redeemed by user
-  let inputTokenBalances: TokenBalance[] = [
-    new TokenBalance(cToken.underlying, minter.id, userBalance.redeemableTokensBalance),
-  ];
-
-  investInMarket(
-    event,
-    minter,
-    market,
-    outputTokenAmount,
-    inputTokensAmount,
-    [],
-    outputTokenBalance,
-    inputTokenBalances,
-    [],
-    minter.id
-  );
+  // update user position
+  mint(minter, cToken, cTokensMinted, underlyingTokensProvided, event, market);
 }
 
 export function handleRedeem(event: Redeem): void {
@@ -104,42 +72,8 @@ export function handleRedeem(event: Redeem): void {
 
   updateMarket(event, market, newInputTokenBalances, newTotalSupply);
 
-  // update custom entity
-  let userBalance = getOrCreateUserDepositBalance(redeemer.id, cToken.id);
-  userBalance.cTokenBalance = userBalance.cTokenBalance.minus(cTokensBurned);
-  userBalance.redeemableTokensBalance = userBalance.cTokenBalance.times(getExchangeRate(cToken.id));
-  userBalance.save();
-
-  //// update user's  position
-
-  // user's cToken is decreased by this amount
-  let outputTokenAmount = cTokensBurned;
-
-  // user redeemed `underlyingTokensRedeemed` of underlying tokens
-  let inputTokensAmount: TokenBalance[] = [
-    new TokenBalance(cToken.underlying, redeemer.id, underlyingTokensRedeemed),
-  ];
-
-  // user's total balance of cTokens
-  let outputTokenBalance = userBalance.cTokenBalance;
-
-  // number of tokens that can be redeemed by user
-  let inputTokenBalances: TokenBalance[] = [
-    new TokenBalance(cToken.underlying, redeemer.id, userBalance.redeemableTokensBalance),
-  ];
-
-  redeemFromMarket(
-    event,
-    redeemer,
-    market,
-    outputTokenAmount,
-    inputTokensAmount,
-    [],
-    outputTokenBalance,
-    inputTokenBalances,
-    [],
-    redeemer.id
-  );
+  // update user position
+  redeem(redeemer, cToken, cTokensBurned, underlyingTokensRedeemed, event, market);
 }
 
 export function handleBorrow(event: Borrow): void {
@@ -297,4 +231,114 @@ export function handleAccrueInterest(event: AccrueInterest): void {
   ];
 
   updateMarket(event, market, newInputTokenBalances, cToken.totalBorrows);
+}
+
+export function handleTransfer(event: Transfer): void {
+  let cTokenAddress = event.address;
+
+  // don't handle mint/redeem cases
+  if (event.params.from == cTokenAddress || event.params.to == cTokenAddress) {
+    return;
+  }
+
+  let cToken = CToken.load(event.address.toHexString()) as CToken;
+  let amount = event.params.amount;
+  let from = getOrCreateAccount(event.params.from);
+  let to = getOrCreateAccount(event.params.to);
+
+  let market = Market.load(cToken.id) as Market;
+  let underlyingAmount = amount.times(getExchangeRate(cToken.id));
+
+  // update positions for sender and receiver
+  redeem(from, cToken, amount, underlyingAmount, event, market);
+  mint(to, cToken, amount, underlyingAmount, event, market);
+}
+
+function mint(
+  minter: Account,
+  cToken: CToken,
+  cTokensMinted,
+  underlyingTokensProvided,
+  event: ethereum.Event,
+  market: Market
+) {
+  let userBalance = getOrCreateUserDepositBalance(minter.id, cToken.id);
+  userBalance.cTokenBalance = userBalance.cTokenBalance.plus(cTokensMinted);
+  userBalance.redeemableTokensBalance = userBalance.cTokenBalance.times(getExchangeRate(cToken.id));
+  userBalance.save();
+
+  //// update user's  position
+
+  // user's cToken is increased by this amount
+  let outputTokenAmount = cTokensMinted;
+
+  // user sent `underlyingTokensProvided` of underlying tokens
+  let inputTokensAmount: TokenBalance[] = [
+    new TokenBalance(cToken.underlying, minter.id, underlyingTokensProvided),
+  ];
+
+  // user's total balance of cTokens
+  let outputTokenBalance = userBalance.cTokenBalance;
+
+  // number of tokens that can be redeemed by user
+  let inputTokenBalances: TokenBalance[] = [
+    new TokenBalance(cToken.underlying, minter.id, userBalance.redeemableTokensBalance),
+  ];
+
+  investInMarket(
+    event,
+    minter,
+    market,
+    outputTokenAmount,
+    inputTokensAmount,
+    [],
+    outputTokenBalance,
+    inputTokenBalances,
+    [],
+    minter.id
+  );
+}
+
+function redeem(
+  redeemer: Account,
+  cToken: CToken,
+  cTokensAmount,
+  underlyingTokensRedeemed,
+  event: ethereum.Event,
+  market: Market
+) {
+  let userBalance = getOrCreateUserDepositBalance(redeemer.id, cToken.id);
+  userBalance.cTokenBalance = userBalance.cTokenBalance.minus(cTokensAmount);
+  userBalance.redeemableTokensBalance = userBalance.cTokenBalance.times(getExchangeRate(cToken.id));
+  userBalance.save();
+
+  //// update user's  position
+  // user's cToken is decreased by this amount
+  let outputTokenAmount = cTokensAmount;
+
+  // user redeemed `underlyingTokensRedeemed` of underlying tokens
+  let inputTokensAmount: TokenBalance[] = [
+    new TokenBalance(cToken.underlying, redeemer.id, underlyingTokensRedeemed),
+  ];
+
+  // user's total balance of cTokens
+  let outputTokenBalance = userBalance.cTokenBalance;
+
+  // number of tokens that can be redeemed by user
+  let inputTokenBalances: TokenBalance[] = [
+    new TokenBalance(cToken.underlying, redeemer.id, userBalance.redeemableTokensBalance),
+  ];
+
+  redeemFromMarket(
+    event,
+    redeemer,
+    market,
+    outputTokenAmount,
+    inputTokensAmount,
+    [],
+    outputTokenBalance,
+    inputTokenBalances,
+    [],
+    redeemer.id
+  );
 }
