@@ -8,7 +8,9 @@ import { CToken as CTokenTemplate } from "../../generated/templates";
 
 import { ADDRESS_ZERO, getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
 
-let cETH = "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5";
+const cETH = "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5";
+const ADDRESS_ETH = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+
 let mantissaOne = BigInt.fromI32(10).pow(27);
 
 export function getOrCreateCToken(
@@ -26,7 +28,7 @@ export function getOrCreateCToken(
   // in case of cETH underlying asset is not ERC20
   let underlyingAsset: string;
   if (address == cETH) {
-    underlyingAsset = ADDRESS_ZERO;
+    underlyingAsset = ADDRESS_ETH;
   } else {
     underlyingAsset = getOrCreateERC20Token(event, cTokenContract.underlying()).id;
   }

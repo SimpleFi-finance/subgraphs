@@ -1,4 +1,4 @@
-import { Address } from "@graphprotocol/graph-ts";
+import { Address, log } from "@graphprotocol/graph-ts";
 
 import { MarketListed } from "../../generated/Comptroller/Comptroller";
 
@@ -9,11 +9,19 @@ import { ProtocolName, ProtocolType } from "../library/constants";
 import { getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
 import { getOrCreateCToken } from "../library/cTokenUtils";
 
+const ADDRESS_ETH = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+const cETH = "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5";
+
 export function handleMarketListed(event: MarketListed): void {
   let cTokenAddress = event.params.cToken;
-
   let cToken = getOrCreateCToken(cTokenAddress.toHexString(), event.address.toHexString(), event);
-  let underlying = getOrCreateERC20Token(event, Address.fromString(cToken.underlying));
+
+  let underlying: Token;
+  if (cTokenAddress.toHexString() == cETH) {
+    underlying = getOrCreateERC20Token(event, Address.fromString(ADDRESS_ETH));
+  } else {
+    underlying = getOrCreateERC20Token(event, Address.fromString(cToken.underlying));
+  }
 
   // create deposit market
   let marketId = cToken.id;
