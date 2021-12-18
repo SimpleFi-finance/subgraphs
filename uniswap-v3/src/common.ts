@@ -10,6 +10,7 @@ import {
   Transaction
 } from "../generated/schema"
 import { ERC20 } from "../generated/UniswapV3Factory/ERC20"
+import { ERC721 } from "../generated/NonfungiblePositionManager/ERC721"
 import { PositionType, TokenStandard, TransactionType } from "./constants"
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
@@ -48,6 +49,33 @@ export function getOrCreateERC20Token(event: ethereum.Event, address: Address): 
   if (!tryDecimals.reverted) {
     token.decimals = tryDecimals.value
   }
+  token.blockNumber = event.block.number
+  token.timestamp = event.block.timestamp
+  token.save()
+  return token as Token
+}
+
+export function getOrCreateERC721(event: ethereum.Event, address: Address): Token {
+  let addressHex = address.toHexString()
+  let token = Token.load(addressHex)
+  if (token != null) {
+    return token as Token
+  }
+
+  token = new Token(addressHex)
+  token.tokenStandard = TokenStandard.ERC721
+  let tokenInstance = ERC721.bind(address)
+  let tryName = tokenInstance.try_name()
+  if (!tryName.reverted) {
+    token.name = tryName.value
+  }
+  let trySymbol = tokenInstance.try_symbol()
+  if (!trySymbol.reverted) {
+    token.symbol = trySymbol.value
+  }
+
+  token.decimals = 0
+  
   token.blockNumber = event.block.number
   token.timestamp = event.block.timestamp
   token.save()

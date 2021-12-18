@@ -166,10 +166,11 @@ type PositionSnapshot @entity {
 
 # END - Common entities for all protocols
 
-# UniswapV2 protocol entities
+# UniswapV3 protocol entities
 
-# Created on PairCreated event on UniswapV2Factory.sol
-# feeTo is not part of Pair contract. We need to fetch it from factory contract
+# Created on PoolCreated event on UniswapV3Factory.sol
+# feeTo is not part of Pool contract. We need to fetch it from factory contract
+# @todo: Add fee to Pool
 type Pair @entity {
   id: ID! # {pairAddress}
   factory: Account!
@@ -177,7 +178,7 @@ type Pair @entity {
   token1: Token!
   reserve0: BigInt!
   reserve1: BigInt!
-  totalSupply: BigInt!
+  totalLiquidity: BigInt!
   blockNumber: BigInt!
   timestamp: BigInt!
   lastIncompleteBurn: Burn
@@ -198,23 +199,15 @@ type Mint @entity {
   liquityAmount: BigInt
   amount0: BigInt
   amount1: BigInt
-  transferEventApplied: Boolean!
-  syncEventApplied: Boolean!
-  mintEventApplied: Boolean!
 }
 
 type Burn @entity {
   id: ID! # {pairAddress}{trasactionHash}
   pair: Pair
   from: Account
-  to: Account
   liquityAmount: BigInt
   amount0: BigInt
   amount1: BigInt
-  transferToPairEventApplied: Boolean!
-  transferToZeroEventApplied: Boolean!
-  syncEventApplied: Boolean!
-  burnEventApplied: Boolean!
 }
 
-# END - UniswapV2 protocol entities
+# END - UniswapV3 protocol entities
