@@ -2,10 +2,13 @@ import { BigInt, ethereum } from "@graphprotocol/graph-ts";
 import { Account, CToken, Market, UserDepositBalance } from "../../generated/schema";
 import {
   AccrueInterest,
+  AccrueInterest1,
   Borrow,
   Mint,
   Redeem,
   RepayBorrow,
+  ReservesAdded,
+  ReservesReduced,
   Transfer,
 } from "../../generated/templates/CToken/CToken";
 import {
@@ -31,18 +34,19 @@ export function handleMint(event: Mint): void {
   let cTokensMinted = event.params.mintTokens;
   let minter = getOrCreateAccount(event.params.minter);
 
+  // update cToken state
+  cToken.totalSupply = cToken.totalSupply.plus(cTokensMinted);
+  cToken.save();
+
   // update market total supply
   let market = Market.load(cToken.id) as Market;
+  let newTotalSupply = cToken.totalSupply;
+
   let inputTokens = market.inputTokens as string[];
-  let prevInputTokenBalances = market.inputTokenTotalBalances as string[];
-  let prevInputBalance = TokenBalance.fromString(prevInputTokenBalances[0]).balance;
-  let newInputBalance = prevInputBalance.plus(underlyingTokensProvided);
+  let newInputBalance = newTotalSupply.times(getExchangeRate(cToken.id));
   let newInputTokenBalances: TokenBalance[] = [
     new TokenBalance(inputTokens[0], market.id, newInputBalance),
   ];
-
-  let prevTotalSupply = market.outputTokenTotalSupply;
-  let newTotalSupply = prevTotalSupply.plus(cTokensMinted);
 
   updateMarket(event, market, newInputTokenBalances, newTotalSupply);
 
@@ -57,18 +61,19 @@ export function handleRedeem(event: Redeem): void {
   let cTokensBurned = event.params.redeemTokens;
   let redeemer = getOrCreateAccount(event.params.redeemer);
 
+  // update cToken state
+  cToken.totalSupply = cToken.totalSupply.minus(cTokensBurned);
+  cToken.save();
+
   // update market total supply
   let market = Market.load(cToken.id) as Market;
+  let newTotalSupply = cToken.totalSupply;
+
   let inputTokens = market.inputTokens as string[];
-  let prevInputTokenBalances = market.inputTokenTotalBalances as string[];
-  let prevInputBalance = TokenBalance.fromString(prevInputTokenBalances[0]).balance;
-  let newInputBalance = prevInputBalance.minus(underlyingTokensRedeemed);
+  let newInputBalance = newTotalSupply.times(getExchangeRate(cToken.id));
   let newInputTokenBalances: TokenBalance[] = [
     new TokenBalance(inputTokens[0], market.id, newInputBalance),
   ];
-
-  let prevTotalSupply = market.outputTokenTotalSupply;
-  let newTotalSupply = prevTotalSupply.minus(cTokensBurned);
 
   updateMarket(event, market, newInputTokenBalances, newTotalSupply);
 
@@ -212,25 +217,23 @@ export function handleRepayBorrow(event: RepayBorrow): void {
 }
 
 export function handleAccrueInterest(event: AccrueInterest): void {
-  let cToken = CToken.load(event.address.toHexString()) as CToken;
+  accrueInterest(
+    event,
+    event.address.toHexString(),
+    event.params.borrowIndex,
+    event.params.totalBorrows,
+    event.params.cashPrior
+  );
+}
 
-  // update cToken state
-  cToken.borrowIndex = event.params.borrowIndex;
-  cToken.totalBorrows = event.params.totalBorrows;
-  cToken.save();
-
-  // update market total supply
-  let market = Market.load(cToken.id + "-BORROW") as Market;
-  let inputTokens = market.inputTokens as string[];
-  let newInputTokenBalances: TokenBalance[] = [
-    new TokenBalance(
-      inputTokens[0],
-      market.id,
-      getCollateralAmountLocked(cToken.id, cToken.totalBorrows)
-    ),
-  ];
-
-  updateMarket(event, market, newInputTokenBalances, cToken.totalBorrows);
+export function handleAccrueInterest1(event: AccrueInterest1): void {
+  accrueInterest(
+    event,
+    event.address.toHexString(),
+    event.params.borrowIndex,
+    event.params.totalBorrows,
+    BigInt.fromI32(0)
+  );
 }
 
 export function handleTransfer(event: Transfer): void {
@@ -252,6 +255,20 @@ export function handleTransfer(event: Transfer): void {
   // update positions for sender and receiver
   redeem(from, cToken, amount, underlyingAmount, event, market);
   mint(to, cToken, amount, underlyingAmount, event, market);
+}
+
+export function handleReservesAdded(event: ReservesAdded): void {
+  let cToken = CToken.load(event.address.toHexString()) as CToken;
+
+  cToken.totalReserves = event.params.newTotalReserves;
+  cToken.save();
+}
+
+export function handleReservesReduced(event: ReservesReduced): void {
+  let cToken = CToken.load(event.address.toHexString()) as CToken;
+
+  cToken.totalReserves = event.params.newTotalReserves;
+  cToken.save();
 }
 
 function mint(
@@ -344,4 +361,35 @@ function redeem(
     [],
     redeemer.id
   );
+}
+
+function accrueInterest(
+  event: ethereum.Event,
+  cTokenAddress: string,
+  borrowIndex: BigInt,
+  totalBorrows: BigInt,
+  cashPrior: BigInt
+): void {
+  let cToken = CToken.load(cTokenAddress) as CToken;
+
+  // update cToken state
+  cToken.borrowIndex = borrowIndex;
+  cToken.totalBorrows = totalBorrows;
+  if (cashPrior != BigInt.fromI32(0)) {
+    cToken.cash = cashPrior;
+  }
+  cToken.save();
+
+  // update market total supply
+  let market = Market.load(cToken.id + "-BORROW") as Market;
+  let inputTokens = market.inputTokens as string[];
+  let newInputTokenBalances: TokenBalance[] = [
+    new TokenBalance(
+      inputTokens[0],
+      market.id,
+      getCollateralAmountLocked(cToken.id, cToken.totalBorrows)
+    ),
+  ];
+
+  updateMarket(event, market, newInputTokenBalances, cToken.totalBorrows);
 }

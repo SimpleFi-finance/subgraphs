@@ -190,7 +190,13 @@ type CToken @entity {
   cTokenSymbol: String!
 
   " erc20 decimals "
-  cTokenDecimals: BigInt!
+  cTokenDecimals: Int!
+
+  " total amount of reserves of the underlying held in this market "
+  totalReserves: BigInt!
+
+  " total number of tokens in circulation "
+  totalSupply: BigInt!
 
   " accumulator of the total earned interest rate since the opening of the market "
   borrowIndex: BigInt!

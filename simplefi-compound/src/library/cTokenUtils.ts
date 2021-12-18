@@ -39,6 +39,8 @@ export function getOrCreateCToken(
   cToken.cTokenName = cTokenContract.name();
   cToken.cTokenSymbol = cTokenContract.symbol();
   cToken.cTokenDecimals = cTokenContract.decimals();
+  cToken.totalReserves = BigInt.fromI32(0);
+  cToken.totalSupply = BigInt.fromI32(0);
   cToken.borrowIndex = mantissaOne;
   cToken.cash = BigInt.fromI32(0);
   cToken.totalBorrows = BigInt.fromI32(0);
@@ -87,6 +89,7 @@ export function getExchangeRate(cToken: string): BigInt {
 }
 
 export function getCollateralAmountLocked(cToken: string, amount: BigInt): BigInt {
+  // TODO implement once we decide hot to track collateral
   return BigInt.fromI32(0);
 }
 
