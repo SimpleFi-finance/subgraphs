@@ -1,0 +1,19 @@
+{
+  "name": "simplefi-balancer-v2",
+  "license": "UNLICENSED",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "prepare-mainnet": "mustache ./config/mainnet.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
+    "prepare-polygon": "mustache ./config/polygon.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
+    "deploy-mainnet": "npm run prepare-mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/balancer-v2",
+    "deploy-polygon": "npm run prepare-polygon && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/balancer-v2-polygon",
+    "create-local": "graph create --node http://localhost:8020/ simplefi-finance/balancer-v2",
+    "remove-local": "graph remove --node http://localhost:8020/ simplefi-finance/balancer-v2",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 simplefi-finance/balancer-v2"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.21.1",
+    "@graphprotocol/graph-ts": "0.20.0"
+  }
+}
