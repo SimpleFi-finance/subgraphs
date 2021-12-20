@@ -11,12 +11,13 @@ import {
 
 import { CToken as CTokenContract } from "../../generated/templates/CToken/CToken";
 
-import { CToken as CTokenTemplate } from "../../generated/templates";
+import { CToken as CTokenTemplate, Comp } from "../../generated/templates";
 
 import { getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
 
 import { Comptroller as ComptrollerContract } from "../../generated/Comptroller/Comptroller";
 import { ProtocolName, ProtocolType } from "./constants";
+import { IERC20 } from "../../generated/templates/CToken/IERC20";
 
 const cETH = "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5";
 const ADDRESS_ETH = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
@@ -129,7 +130,8 @@ export function getOrCreateUserRewardBalance(userAddress: string): UserRewardBal
 }
 
 /**
- * Create rewarder market. In reality it maps to Comptroller contract.
+ * Create rewarder market and start indexing COMP transfers.
+ * Rewarder market is Comptroller contract itself.
  * @param comptrollerAddress
  * @param event
  * @returns
@@ -140,7 +142,7 @@ export function getOrCreateCompRewarder(
 ): CompRewarder {
   let compRewarder = CompRewarder.load(comptrollerAddress);
   if (compRewarder != null) {
-    return compRewarder;
+    return compRewarder as CompRewarder;
   }
 
   compRewarder = new CompRewarder(comptrollerAddress);
@@ -168,4 +170,9 @@ export function getOrCreateCompRewarder(
     outputToken,
     rewardTokens
   );
+
+  // Index COMP events to catch reward transfers
+  Comp.create(Address.fromString(comp.id));
+
+  return compRewarder as CompRewarder;
 }

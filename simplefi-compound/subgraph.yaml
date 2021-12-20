@@ -92,3 +92,31 @@ templates:
         - event: ReservesReduced(address,uint256,uint256)
           handler: handleReservesReduced
       file: ./src/mappings/cToken.ts
+
+  - kind: ethereum/contract
+    name: Comp
+    network: mainnet
+    source:
+      abi: IERC20
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - CToken
+        - IERC20
+      abis:
+        - name: IERC20
+          file: ./abis/IERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleCompTransfer
+      file: ./src/mappings/comptroller.ts
