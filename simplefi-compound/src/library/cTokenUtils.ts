@@ -1,6 +1,11 @@
 import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 
-import { CToken, UserBorrowBalance, UserDepositBalance } from "../../generated/schema";
+import {
+  CToken,
+  UserBorrowBalance,
+  UserDepositBalance,
+  UserRewardBalance,
+} from "../../generated/schema";
 
 import { CToken as CTokenContract } from "../../generated/templates/CToken/CToken";
 
@@ -74,18 +79,6 @@ export function getOrCreateUserDepositBalance(user: string, cToken: string): Use
 export function getExchangeRate(cToken: string): BigInt {
   let cTokenContract = CTokenContract.bind(Address.fromString(cToken));
   return cTokenContract.exchangeRateCurrent();
-
-  /* We emit an AccrueInterest event */
-  // emit AccrueInterest(cashPrior, interestAccumulated, borrowIndexNew, totalBorrowsNew);
-
-  // let res = exchangeRateStoredInternal();
-
-  // exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
-
-  // Gets balance of this contract in terms of the underlying
-  // uint totalCash = getCashPrior();
-  // addThenSubUInt(totalCash, totalBorrows, totalReserves);
-  // getExp(cashPlusBorrowsMinusReserves, _totalSupply);
 }
 
 export function getCollateralAmountLocked(cToken: string, amount: BigInt): BigInt {
@@ -107,4 +100,24 @@ export function getOrCreateUserBorrowBalance(user: string, cToken: string): User
   userBorrowBalance.principal = BigInt.fromI32(0);
   userBorrowBalance.interestIndex = BigInt.fromI32(0);
   return userBorrowBalance as UserBorrowBalance;
+}
+
+/**
+ * Init entity for tracking user's reward balances.
+ * @param userAddress
+ * @returns
+ */
+export function getOrCreateUserRewardBalance(userAddress: string): UserRewardBalance {
+  let user = UserRewardBalance.load(userAddress);
+  if (user != null) {
+    return user as UserRewardBalance;
+  }
+
+  user = new UserRewardBalance(userAddress);
+  user.lifetimeRewards = BigInt.fromI32(0);
+  user.claimedRewards = BigInt.fromI32(0);
+  user.unclaimedRewards = BigInt.fromI32(0);
+  user.save();
+
+  return user as UserRewardBalance;
 }

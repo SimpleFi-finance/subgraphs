@@ -1,13 +1,21 @@
 import { Address, log } from "@graphprotocol/graph-ts";
 
-import { MarketListed } from "../../generated/Comptroller/Comptroller";
+import {
+  DistributedBorrowerComp,
+  DistributedSupplierComp,
+  MarketListed,
+} from "../../generated/Comptroller/Comptroller";
 
 import { Token } from "../../generated/schema";
 
 import { ProtocolName, ProtocolType } from "../library/constants";
 
-import { getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
-import { getOrCreateCToken } from "../library/cTokenUtils";
+import {
+  getOrCreateAccount,
+  getOrCreateERC20Token,
+  getOrCreateMarketWithId,
+} from "../library/common";
+import { getOrCreateCToken, getOrCreateUserRewardBalance } from "../library/cTokenUtils";
 
 const ADDRESS_ETH = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 const cETH = "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5";
@@ -60,4 +68,24 @@ export function handleMarketListed(event: MarketListed): void {
     outputToken,
     rewardTokens
   );
+}
+
+export function handleDistributedSupplierComp(event: DistributedSupplierComp): void {
+  let user = getOrCreateAccount(event.params.supplier);
+  let accuredRewardsAmount = event.params.compDelta;
+
+  let rewardBalance = getOrCreateUserRewardBalance(user.id);
+  rewardBalance.unclaimedRewards = rewardBalance.unclaimedRewards.plus(accuredRewardsAmount);
+  rewardBalance.lifetimeRewards = rewardBalance.lifetimeRewards.plus(accuredRewardsAmount);
+  rewardBalance.save();
+}
+
+export function handleDistributedBorrowerComp(event: DistributedBorrowerComp): void {
+  let user = getOrCreateAccount(event.params.borrower);
+  let accuredRewardsAmount = event.params.compDelta;
+
+  let rewardBalance = getOrCreateUserRewardBalance(user.id);
+  rewardBalance.unclaimedRewards = rewardBalance.unclaimedRewards.plus(accuredRewardsAmount);
+  rewardBalance.lifetimeRewards = rewardBalance.lifetimeRewards.plus(accuredRewardsAmount);
+  rewardBalance.save();
 }

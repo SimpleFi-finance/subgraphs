@@ -34,6 +34,10 @@ dataSources:
       eventHandlers:
         - event: MarketListed(address)
           handler: handleMarketListed
+        - event: DistributedSupplierComp(indexed address,indexed address,uint256,uint256)
+          handler: handleDistributedSupplierComp
+        - event: DistributedBorrowerComp(indexed address,indexed address,uint256,uint256)
+          handler: handleDistributedBorrowerComp
       file: src/mappings/comptroller.ts
 
 templates:

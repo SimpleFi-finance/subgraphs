@@ -244,3 +244,17 @@ type UserBorrowBalance @entity {
   " global borrowIndex as of the most recent balance-changing action "
   interestIndex: BigInt!
 }
+
+type UserRewardBalance @entity {
+  " user address "
+  id: ID!
+
+  " amount of unclaimed reward tokens "
+  unclaimedRewards: BigInt!
+
+  " amount of claimed reward tokens "
+  claimedRewards: BigInt!
+
+  " total amount of rewards entitled to user "
+  lifetimeRewards: BigInt!
+}
