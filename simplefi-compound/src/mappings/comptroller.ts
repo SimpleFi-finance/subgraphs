@@ -15,7 +15,11 @@ import {
   getOrCreateERC20Token,
   getOrCreateMarketWithId,
 } from "../library/common";
-import { getOrCreateCToken, getOrCreateUserRewardBalance } from "../library/cTokenUtils";
+import {
+  getOrCreateCompRewarder,
+  getOrCreateCToken,
+  getOrCreateUserRewardBalance,
+} from "../library/cTokenUtils";
 
 const ADDRESS_ETH = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 const cETH = "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5";
@@ -68,6 +72,9 @@ export function handleMarketListed(event: MarketListed): void {
     outputToken,
     rewardTokens
   );
+
+  // create rewarder market (only once, first time this handler is executed)
+  getOrCreateCompRewarder(event.address.toHexString(), event);
 }
 
 export function handleDistributedSupplierComp(event: DistributedSupplierComp): void {

@@ -1,7 +1,9 @@
 import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 
 import {
+  CompRewarder,
   CToken,
+  Token,
   UserBorrowBalance,
   UserDepositBalance,
   UserRewardBalance,
@@ -11,10 +13,14 @@ import { CToken as CTokenContract } from "../../generated/templates/CToken/CToke
 
 import { CToken as CTokenTemplate } from "../../generated/templates";
 
-import { ADDRESS_ZERO, getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
+import { getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
+
+import { Comptroller as ComptrollerContract } from "../../generated/Comptroller/Comptroller";
+import { ProtocolName, ProtocolType } from "./constants";
 
 const cETH = "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5";
 const ADDRESS_ETH = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
 let mantissaOne = BigInt.fromI32(10).pow(27);
 
@@ -120,4 +126,46 @@ export function getOrCreateUserRewardBalance(userAddress: string): UserRewardBal
   user.save();
 
   return user as UserRewardBalance;
+}
+
+/**
+ * Create rewarder market. In reality it maps to Comptroller contract.
+ * @param comptrollerAddress
+ * @param event
+ * @returns
+ */
+export function getOrCreateCompRewarder(
+  comptrollerAddress: string,
+  event: ethereum.Event
+): CompRewarder {
+  let compRewarder = CompRewarder.load(comptrollerAddress);
+  if (compRewarder != null) {
+    return compRewarder;
+  }
+
+  compRewarder = new CompRewarder(comptrollerAddress);
+
+  let comptroller = ComptrollerContract.bind(Address.fromString(comptrollerAddress));
+  let comp = getOrCreateERC20Token(event, comptroller.getCompAddress());
+  let weth = getOrCreateERC20Token(event, Address.fromString(WETH));
+
+  // create staking market
+  let marketId = comptrollerAddress;
+  let marketAddress = Address.fromString(comptrollerAddress);
+  let protocolName = ProtocolName.COMPOUND;
+  let protocolType = ProtocolType.STAKING;
+  let inputTokens: Token[] = [weth];
+  let outputToken = weth;
+  let rewardTokens: Token[] = [comp];
+
+  getOrCreateMarketWithId(
+    event,
+    marketId,
+    marketAddress,
+    protocolName,
+    protocolType,
+    inputTokens,
+    outputToken,
+    rewardTokens
+  );
 }

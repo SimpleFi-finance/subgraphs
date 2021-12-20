@@ -258,3 +258,8 @@ type UserRewardBalance @entity {
   " total amount of rewards entitled to user "
   lifetimeRewards: BigInt!
 }
+
+type CompRewarder @entity {
+  " comptroller address "
+  id: ID!
+}
