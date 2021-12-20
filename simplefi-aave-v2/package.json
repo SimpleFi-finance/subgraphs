@@ -1,5 +1,5 @@
 {
-  "name": "simplefi-aave",
+  "name": "aave-v2",
   "license": "UNLICENSED",
   "scripts": {
     "prepare-mainnet": "mustache ./config/mainnet.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
@@ -7,18 +7,18 @@
     "prepare-avalanche": "mustache ./config/avalanche.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy-mainnet": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-aave",
-    "deploy-polygon": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-aave-polygon",
-    "deploy-avalanche": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-aave-avalanche",
-    "create-local": "graph create --node http://localhost:8020/ gvladika/simplefi-aave-v2",
-    "remove-local": "graph remove --node http://localhost:8020/ gvladika/simplefi-aave-v2",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 gvladika/simplefi-aave-v2"
+    "deploy-mainnet": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/aave-v2",
+    "deploy-polygon": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/aave-v2-polygon",
+    "deploy-avalanche": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/aave-v2-avalanche",
+    "create-local": "graph create --node http://localhost:8020/ simplefi-finance/aave-v2",
+    "remove-local": "graph remove --node http://localhost:8020/ simplefi-finance/aave-v2",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 simplefi-finance/aave-v2"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SimpleFi-finance/subgraphs.git"
   },
-  "author": "Goran Vladika",
+  "author": "SimpleFi",
   "bugs": {
     "url": "https://github.com/SimpleFi-finance/subgraphs.git/issues"
   },
