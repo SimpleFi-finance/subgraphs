@@ -171,7 +171,7 @@ type PositionSnapshot @entity {
 # Created on PoolCreated event on UniswapV3Factory.sol
 # feeTo is not part of Pool contract. We need to fetch it from factory contract
 # @todo: Add fee to Pool
-type Pair @entity {
+type Pool @entity {
   id: ID! # {pairAddress}
   factory: Account!
   token0: Token!
@@ -185,15 +185,15 @@ type Pair @entity {
 }
 
 type AccountLiquidity @entity {
-  id: ID! # {pairAddress}{accoutnAddress}
-  pair: Pair!
+  id: ID! # {poolAddress}{accoutnAddress}
+  pool: Pool!
   account: Account!
   balance: BigInt!
 }
 
 type Mint @entity {
-  id: ID! # {pairAddress}{trasactionHash}
-  pair: Pair
+  id: ID! # {poolAddress}{trasactionHash}
+  pool: Pool
   from: Account
   to: Account
   liquityAmount: BigInt
@@ -202,12 +202,43 @@ type Mint @entity {
 }
 
 type Burn @entity {
-  id: ID! # {pairAddress}{trasactionHash}
-  pair: Pair
+  id: ID! # {poolAddress}{trasactionHash}
+  pool: Pool
   from: Account
   liquityAmount: BigInt
   amount0: BigInt
   amount1: BigInt
+}
+
+type UniPosition @entity {
+  # Positions created through NonfungiblePositionManager
+  # NFT token id
+  id: ID!
+  # owner of the NFT
+  owner: Bytes!
+  # pool position is within
+  pool: Pool!
+  # allow indexing by tokens
+  token0: Token!
+  # allow indexing by tokens
+  token1: Token!
+  # total position liquidity
+  liquidity: BigInt!
+  # amount of token 0 ever deposited to position
+  depositedToken0: BigDecimal!
+  # amount of token 1 ever deposited to position
+  depositedToken1: BigDecimal!
+  # amount of token 0 ever withdrawn from position (without fees)
+  withdrawnToken0: BigDecimal!
+  # amount of token 1 ever withdrawn from position (without fees)
+  withdrawnToken1: BigDecimal!
+  # all time collected fees in token0
+  collectedFeesToken0: BigDecimal!
+  # all time collected fees in token1
+  collectedFeesToken1: BigDecimal!
+  # vars needed for fee computation
+  feeGrowthInside0LastX128: BigInt!
+  feeGrowthInside1LastX128: BigInt!
 }
 
 # END - UniswapV3 protocol entities

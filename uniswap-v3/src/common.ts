@@ -11,9 +11,7 @@ import {
 } from "../generated/schema"
 import { ERC20 } from "../generated/UniswapV3Factory/ERC20"
 import { ERC721 } from "../generated/NonfungiblePositionManager/ERC721"
-import { PositionType, TokenStandard, TransactionType } from "./constants"
-
-export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
+import { PositionType, TokenStandard, TransactionType, ADDRESS_ZERO } from "./constants"
 
 export function getOrCreateAccount(address: Address): Account {
   let addressHex = address.toHexString()
@@ -338,7 +336,10 @@ export function investInMarket(
   transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
   transaction.outputTokenAmount = outputTokenAmount
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasUsed
+  
+  // https://github.com/graphprotocol/graph-node/issues/2619
+  transaction.gasUsed = event.transaction.gasLimit
+
   transaction.gasPrice = event.transaction.gasPrice
   transaction.blockNumber = event.block.number
   transaction.timestamp = event.block.timestamp
@@ -396,7 +397,10 @@ export function redeemFromMarket(
   transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
   transaction.outputTokenAmount = outputTokenAmount
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasUsed
+  
+  // https://github.com/graphprotocol/graph-node/issues/2619
+  transaction.gasUsed = event.transaction.gasLimit
+  
   transaction.gasPrice = event.transaction.gasPrice
   transaction.blockNumber = event.block.number
   transaction.timestamp = event.block.timestamp
@@ -413,10 +417,10 @@ export function redeemFromMarket(
 
   // Check if it is transferred to some other account
   if (transferredTo != null) {
-    let exists = position.transferredTo.includes(transferredTo)
+    let exists = position.transferredTo.includes(transferredTo as string)
     if (!exists) {
       let newTransferredTo = position.transferredTo
-      newTransferredTo.push(transferredTo)
+      newTransferredTo.push(transferredTo as string)
       position.transferredTo = newTransferredTo
     }
   }
@@ -459,7 +463,10 @@ export function borrowFromMarket(
   transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
   transaction.outputTokenAmount = outputTokenAmount
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasUsed
+  
+  // https://github.com/graphprotocol/graph-node/issues/2619
+  transaction.gasUsed = event.transaction.gasLimit
+
   transaction.gasPrice = event.transaction.gasPrice
   transaction.blockNumber = event.block.number
   transaction.timestamp = event.block.timestamp
@@ -511,7 +518,10 @@ export function repayToMarket(
   transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
   transaction.outputTokenAmount = outputTokenAmount
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasUsed
+  
+  // https://github.com/graphprotocol/graph-node/issues/2619
+  transaction.gasUsed = event.transaction.gasLimit
+
   transaction.gasPrice = event.transaction.gasPrice
   transaction.blockNumber = event.block.number
   transaction.timestamp = event.block.timestamp
