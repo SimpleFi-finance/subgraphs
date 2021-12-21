@@ -94,7 +94,6 @@ function createOrUpdatePositionOnMint(event: ethereum.Event, pool: PoolEntity, m
 
   let outputTokenBalance = accountLiquidity.balance
   
-  // @todo: is it ok to div(totalLiquidity)?
   let token0Balance = outputTokenBalance.times(pool.reserve0).div(pool.totalLiquidity)
   let token1Balance = outputTokenBalance.times(pool.reserve1).div(pool.totalLiquidity)
   let inputTokenBalances: TokenBalance[] = []

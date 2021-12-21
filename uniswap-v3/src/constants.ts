@@ -62,5 +62,6 @@ import {
 } from "../generated/templates/UniswapV3Pool/UniswapV3Factory"
 
 // @todo: How to make this constant multichain (low priority: atm it's the same on L2s/sidechains)
+export const POSITION_MANAGER_ADDRESS = "0xC36442b4a4522E871399CD717aBDD847Ab11FE88"
 export const FACTORY_ADDRESS = "0x1F98431c8aD98523631AE4a59f267346ea31F984"
 export let factoryContract = UniswapV3Factory.bind(Address.fromString(FACTORY_ADDRESS))

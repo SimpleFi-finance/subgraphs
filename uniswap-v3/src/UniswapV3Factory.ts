@@ -1,4 +1,4 @@
-import { BigInt } from "@graphprotocol/graph-ts"
+import { BigInt, Address } from "@graphprotocol/graph-ts"
 
 import { Pool as PoolEntity } from "../generated/schema"
 
@@ -11,16 +11,22 @@ import {
 import {
   getOrCreateAccount,
   getOrCreateERC20Token,
+  getOrCreateERC721,
   getOrCreateMarket
 } from "./common"
 
-import { ProtocolName, ProtocolType } from "./constants"
+import { 
+  ProtocolName, 
+  ProtocolType,
+  POSITION_MANAGER_ADDRESS,
+} from "./constants"
 
 export function handlePoolCreated(event: PoolCreated): void {
   // Create a tokens and market entity
   let token0 = getOrCreateERC20Token(event, event.params.token0)
   let token1 = getOrCreateERC20Token(event, event.params.token1)
-  let lpToken = getOrCreateERC20Token(event, event.params.pool)
+  //let lpToken = getOrCreateERC20Token(event, event.params.pool)
+  let positionToken = getOrCreateERC721(event, Address.fromString(POSITION_MANAGER_ADDRESS))
 
   let market = getOrCreateMarket(
     event,
@@ -28,12 +34,13 @@ export function handlePoolCreated(event: PoolCreated): void {
     ProtocolName.UNISWAP_V3,
     ProtocolType.EXCHANGE,
     [token0, token1],
-    lpToken,
+    positionToken,
     []
   )
 
-  lpToken.mintedByMarket = market.id
-  lpToken.save()
+  // @todo: Is this used by Indexer? It can't be assigned as markets are many->one to positionToken (ERC721)
+  //lpToken.mintedByMarket = market.id
+  //lpToken.save()
 
   // Create pool
   let pool = new PoolEntity(event.params.pool.toHexString())

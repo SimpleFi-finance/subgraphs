@@ -22,6 +22,8 @@ dataSources:
       abis:
         - name: ERC20
           file: ./abis/ERC20.json
+        - name: ERC721
+          file: ./abis/ERC721.json
         - name: UniswapV3Factory
           file: ./abis/UniswapV3Factory.json
       eventHandlers:
