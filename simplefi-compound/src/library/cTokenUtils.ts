@@ -15,13 +15,12 @@ import { CToken as CTokenTemplate, Comp } from "../../generated/templates";
 
 import { getOrCreateERC20Token, getOrCreateMarketWithId } from "../library/common";
 
-import { Comptroller as ComptrollerContract } from "../../generated/Comptroller/Comptroller";
 import { ProtocolName, ProtocolType } from "./constants";
-import { IERC20 } from "../../generated/templates/CToken/IERC20";
 
 const cETH = "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5";
-const ADDRESS_ETH = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+const ETH = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+const COMP = "0xc00e94Cb662C3520282E6f5717214004A7f26888";
 
 let mantissaOne = BigInt.fromI32(10).pow(27);
 
@@ -40,7 +39,7 @@ export function getOrCreateCToken(
   // in case of cETH underlying asset is not ERC20
   let underlyingAsset: string;
   if (address == cETH) {
-    underlyingAsset = ADDRESS_ETH;
+    underlyingAsset = ETH;
   } else {
     underlyingAsset = getOrCreateERC20Token(event, cTokenContract.underlying()).id;
   }
@@ -132,6 +131,7 @@ export function getOrCreateUserRewardBalance(userAddress: string): UserRewardBal
 /**
  * Create rewarder market and start indexing COMP transfers.
  * Rewarder market is Comptroller contract itself.
+ *
  * @param comptrollerAddress
  * @param event
  * @returns
@@ -147,8 +147,7 @@ export function getOrCreateCompRewarder(
 
   compRewarder = new CompRewarder(comptrollerAddress);
 
-  let comptroller = ComptrollerContract.bind(Address.fromString(comptrollerAddress));
-  let comp = getOrCreateERC20Token(event, comptroller.getCompAddress());
+  let comp = getOrCreateERC20Token(event, Address.fromString(COMP));
   let weth = getOrCreateERC20Token(event, Address.fromString(WETH));
 
   // create staking market
