@@ -1,0 +1,17 @@
+{
+  "name": "simplefi-1inch",
+  "license": "UNLICENSED",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "prepare-mainnet": "mustache ./config/mainnet.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
+    "deploy-mainnet": "npm run prepare-mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/oneinch",
+    "create-local": "graph create --node http://localhost:8020/ simplefi-finance/oneinch",
+    "remove-local": "graph remove --node http://localhost:8020/ simplefi-finance/oneinch",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 simplefi-finance/oneinch"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "^0.25.1",
+    "@graphprotocol/graph-ts": "0.24.1"
+  }
+}
