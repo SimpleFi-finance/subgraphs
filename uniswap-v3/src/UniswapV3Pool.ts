@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum, store } from "@graphprotocol/graph-ts"
+import { Address, BigInt, ethereum, store, log } from "@graphprotocol/graph-ts"
 
 import {
   Account as AccountEntity,
@@ -9,10 +9,6 @@ import {
   Pool as PoolEntity,
   UniPosition as UniPositionEntity,
 } from "../generated/schema"
-
-import {
-  UniswapV3Factory
-} from "../generated/templates/UniswapV3Pool/UniswapV3Factory"
 
 import {
   Burn,
@@ -33,6 +29,7 @@ import {
 } from "./common"
 
 import { 
+  ONE_BI,
   ZERO_BI, 
   ZERO_BD, 
   ADDRESS_ZERO,
@@ -323,8 +320,28 @@ export function handleMint(event: Mint): void {
 
   pool.reserve0 = pool.reserve0.plus(event.params.amount0)
   pool.reserve1 = pool.reserve1.plus(event.params.amount1)
-  pool.totalLiquidity = pool.totalLiquidity.plus(event.params.amount1 as BigInt)
+
+  // On first deposit, we add 1 to liquidity to avoid dividing by zero later
+  if (pool.totalLiquidity.equals(ZERO_BI)) {
+    //log.info("Mint event: Liquidity plus one", [])
+    pool.totalLiquidity = pool.totalLiquidity.plus(ONE_BI)
+  }
+
+  // @todo: this is from Uniswap V3 official subgraph - is it needed for us?
+  // Pools liquidity tracks the currently active liquidity given pools current tick.
+  // We only want to update it on mint if the new position includes the current tick.
+  // if (
+  //   pool.tick !== null &&
+  //   BigInt.fromI32(event.params.tickLower).le(pool.tick as BigInt) &&
+  //   BigInt.fromI32(event.params.tickUpper).gt(pool.tick as BigInt)
+  // ) {
+  //   pool.liquidity = pool.liquidity.plus(event.params.amount)
+  // }
+
+  pool.totalLiquidity = pool.totalLiquidity.plus(event.params.amount as BigInt)
   pool.save()
+
+  //log.info("Mint event: Pool {} - Liquidity {} - Total Liquidity {} - TX {}", [pool.id, (event.params.amount as BigInt).toString(), pool.totalLiquidity.toString(), event.transaction.hash.toHexString()])
 
   createOrUpdatePositionOnMint(event, pool, mint)
 }
@@ -341,10 +358,26 @@ export function handleBurn(event: Burn): void {
   burn.liquityAmount = event.params.amount
   burn.save()
 
+  let prevLiquidity = pool.totalLiquidity
+
   pool.reserve0 = pool.reserve0.minus(event.params.amount0)
   pool.reserve1 = pool.reserve1.minus(event.params.amount1)
-  pool.totalLiquidity = pool.totalLiquidity.minus(event.params.amount1 as BigInt)
+
+  // @todo: this is from Uniswap V3 official subgraph - is it needed for us?
+  // Pools liquidity tracks the currently active liquidity given pools current tick.
+  // We only want to update it on burn if the position being burnt includes the current tick.
+  // if (
+  //   pool.tick !== null &&
+  //   BigInt.fromI32(event.params.tickLower).le(pool.tick as BigInt) &&
+  //   BigInt.fromI32(event.params.tickUpper).gt(pool.tick as BigInt)
+  // ) {
+  //   pool.liquidity = pool.liquidity.minus(event.params.amount)
+  // }
+
+  pool.totalLiquidity = pool.totalLiquidity.minus(event.params.amount as BigInt)
   pool.save()
+
+  //log.info("Burn event: Pool {} - Liquidity {} - Prev Liquidity {} - Total Liquidity {} - TX {}", [pool.id, (event.params.amount as BigInt).toString(), prevLiquidity.toString(), pool.totalLiquidity.toString(), event.transaction.hash.toHexString()])
 
   createOrUpdatePositionOnBurn(event, pool, burn)
 }

@@ -50,6 +50,8 @@ dataSources:
           file: ./abis/ERC721.json
         - name: NonfungiblePositionManager
           file: ./abis/NonfungiblePositionManager.json
+        - name: UniswapV3Factory
+          file: ./abis/UniswapV3Factory.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleTransfer
