@@ -207,6 +207,9 @@ type CToken @entity {
   " total amount of outstanding borrows of the underlying asset "
   totalBorrows: BigInt!
 
+  " the portion of compRate that each market currently receives "
+  compSpeed: BigInt!
+
   " TX at which CToken was registered "
   transactionHash: String!
 }
@@ -262,4 +265,7 @@ type UserRewardBalance @entity {
 type CompRewarder @entity {
   " comptroller address "
   id: ID!
+
+  " amount of COMP (in wei), per block, allocated for the markets "
+  compRate: BigInt!
 }

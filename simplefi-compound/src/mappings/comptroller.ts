@@ -4,6 +4,7 @@ import {
   DistributedBorrowerComp,
   DistributedSupplierComp,
   MarketListed,
+  NewCompRate,
 } from "../../generated/Comptroller/Comptroller";
 
 import { CompRewarder, Market, Token } from "../../generated/schema";
@@ -25,6 +26,7 @@ import {
 } from "../library/cTokenUtils";
 
 import { Transfer } from "../../generated/templates/Comp/IERC20";
+import { Comp } from "../../generated/templates";
 
 const ADDRESS_ETH = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 const cETH = "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5";
@@ -210,4 +212,12 @@ function accrueRewards(
     rewardTokenBalances,
     null
   );
+}
+
+export function handleNewCompRate(event: NewCompRate): void {
+  let id = event.address.toHexString();
+  let rewarder = CompRewarder.load(id) as CompRewarder;
+
+  rewarder.compRate = event.params.newCompRate;
+  rewarder.save();
 }

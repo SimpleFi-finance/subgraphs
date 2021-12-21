@@ -38,8 +38,9 @@ dataSources:
           handler: handleDistributedSupplierComp
         - event: DistributedBorrowerComp(indexed address,indexed address,uint256,uint256)
           handler: handleDistributedBorrowerComp
+        - event: NewCompRate(uint256,uint256)
+          handler: handleNewCompRate
       file: src/mappings/comptroller.ts
-
 templates:
   - kind: ethereum/contract
     name: CToken

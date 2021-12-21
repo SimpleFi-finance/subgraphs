@@ -146,6 +146,8 @@ export function getOrCreateCompRewarder(
   }
 
   compRewarder = new CompRewarder(comptrollerAddress);
+  compRewarder.compRate = BigInt.fromI32(0);
+  compRewarder.save();
 
   let comp = getOrCreateERC20Token(event, Address.fromString(COMP));
   let weth = getOrCreateERC20Token(event, Address.fromString(WETH));
