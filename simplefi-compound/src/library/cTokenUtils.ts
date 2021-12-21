@@ -24,6 +24,14 @@ const COMP = "0xc00e94Cb662C3520282E6f5717214004A7f26888";
 
 let mantissaOne = BigInt.fromI32(10).pow(27);
 
+/**
+ * Create CToken entity and generic Market representing it.
+ *
+ * @param address
+ * @param comptroller
+ * @param event
+ * @returns
+ */
 export function getOrCreateCToken(
   address: string,
   comptroller: string,
@@ -64,6 +72,13 @@ export function getOrCreateCToken(
   return cToken as CToken;
 }
 
+/**
+ * Create tracker for user's deposits
+ *
+ * @param user
+ * @param cToken
+ * @returns
+ */
 export function getOrCreateUserDepositBalance(user: string, cToken: string): UserDepositBalance {
   let id = user + "-" + cToken;
   let userDepositBalance = UserDepositBalance.load(id);
@@ -82,16 +97,36 @@ export function getOrCreateUserDepositBalance(user: string, cToken: string): Use
   return userDepositBalance as UserDepositBalance;
 }
 
+/**
+ * Return cToken exchange rate using contract call.
+ *
+ * @param cToken
+ * @returns
+ */
 export function getExchangeRate(cToken: string): BigInt {
   let cTokenContract = CTokenContract.bind(Address.fromString(cToken));
   return cTokenContract.exchangeRateCurrent();
 }
 
+/**
+ * Not implemented at the moment
+ *
+ * @param cToken
+ * @param amount
+ * @returns
+ */
 export function getCollateralAmountLocked(cToken: string, amount: BigInt): BigInt {
-  // TODO implement once we decide hot to track collateral
+  // TODO implement once we decide how to track collateral
   return BigInt.fromI32(0);
 }
 
+/**
+ * Create tracker for user's debt in particular market
+ *
+ * @param user
+ * @param cToken
+ * @returns
+ */
 export function getOrCreateUserBorrowBalance(user: string, cToken: string): UserBorrowBalance {
   let id = user + "-" + cToken;
   let userBorrowBalance = UserBorrowBalance.load(id);
@@ -105,11 +140,13 @@ export function getOrCreateUserBorrowBalance(user: string, cToken: string): User
   userBorrowBalance.cToken = cToken;
   userBorrowBalance.principal = BigInt.fromI32(0);
   userBorrowBalance.interestIndex = BigInt.fromI32(0);
+
   return userBorrowBalance as UserBorrowBalance;
 }
 
 /**
  * Init entity for tracking user's reward balances.
+ *
  * @param userAddress
  * @returns
  */

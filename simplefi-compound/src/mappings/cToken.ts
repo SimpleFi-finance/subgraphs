@@ -1,5 +1,7 @@
 import { BigInt, ethereum } from "@graphprotocol/graph-ts";
-import { Account, CToken, Market, UserDepositBalance } from "../../generated/schema";
+
+import { CToken, Market } from "../../generated/schema";
+
 import {
   AccrueInterest,
   AccrueInterest1,
@@ -11,6 +13,7 @@ import {
   ReservesReduced,
   Transfer,
 } from "../../generated/templates/CToken/CToken";
+
 import {
   borrowFromMarket,
   getOrCreateAccount,
@@ -20,6 +23,7 @@ import {
   TokenBalance,
   updateMarket,
 } from "../library/common";
+
 import {
   getCollateralAmountLocked,
   getExchangeRate,
@@ -27,6 +31,11 @@ import {
   getOrCreateUserDepositBalance,
 } from "../library/cTokenUtils";
 
+/**
+ * Handle user's deposit to CToken market - update user's position and market state.
+ *
+ * @param event
+ */
 export function handleMint(event: Mint): void {
   let cToken = CToken.load(event.address.toHexString()) as CToken;
 
@@ -88,6 +97,11 @@ export function handleMint(event: Mint): void {
   );
 }
 
+/**
+ * Handle user's withdrawal from CToken market - update user's position and market state.
+ *
+ * @param event
+ */
 export function handleRedeem(event: Redeem): void {
   let cToken = CToken.load(event.address.toHexString()) as CToken;
 
@@ -149,6 +163,11 @@ export function handleRedeem(event: Redeem): void {
   );
 }
 
+/**
+ * Handle user's borrowing from CToken market - update user's position and market state.
+ *
+ * @param event
+ */
 export function handleBorrow(event: Borrow): void {
   let cToken = CToken.load(event.address.toHexString()) as CToken;
 
@@ -216,6 +235,11 @@ export function handleBorrow(event: Borrow): void {
   );
 }
 
+/**
+ * Handle user's debt repayment to CToken market - update user's position and market state.
+ *
+ * @param event
+ */
 export function handleRepayBorrow(event: RepayBorrow): void {
   let cToken = CToken.load(event.address.toHexString()) as CToken;
 
@@ -284,6 +308,10 @@ export function handleRepayBorrow(event: RepayBorrow): void {
   );
 }
 
+/**
+ * Update market state when borrow interest is accrued
+ * @param event
+ */
 export function handleAccrueInterest(event: AccrueInterest): void {
   accrueInterest(
     event,
@@ -294,6 +322,10 @@ export function handleAccrueInterest(event: AccrueInterest): void {
   );
 }
 
+/**
+ * Update market state when borrow interest is accrued
+ * @param event
+ */
 export function handleAccrueInterest1(event: AccrueInterest1): void {
   accrueInterest(
     event,
@@ -304,6 +336,12 @@ export function handleAccrueInterest1(event: AccrueInterest1): void {
   );
 }
 
+/**
+ * Handle transfer of CTokens - update sender's and receiver's position.
+ *
+ * @param event
+ * @returns
+ */
 export function handleTransfer(event: Transfer): void {
   let cTokenAddress = event.address;
 
@@ -392,6 +430,10 @@ export function handleTransfer(event: Transfer): void {
   );
 }
 
+/**
+ * Update state of market reserves
+ * @param event
+ */
 export function handleReservesAdded(event: ReservesAdded): void {
   let cToken = CToken.load(event.address.toHexString()) as CToken;
 
@@ -399,6 +441,10 @@ export function handleReservesAdded(event: ReservesAdded): void {
   cToken.save();
 }
 
+/**
+ * Update state of market reserves
+ * @param event
+ */
 export function handleReservesReduced(event: ReservesReduced): void {
   let cToken = CToken.load(event.address.toHexString()) as CToken;
 
@@ -406,6 +452,15 @@ export function handleReservesReduced(event: ReservesReduced): void {
   cToken.save();
 }
 
+/**
+ * Update market state when borrow interest in accured.
+ *
+ * @param event
+ * @param cTokenAddress
+ * @param borrowIndex
+ * @param totalBorrows
+ * @param cashPrior
+ */
 function accrueInterest(
   event: ethereum.Event,
   cTokenAddress: string,

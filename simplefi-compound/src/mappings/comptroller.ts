@@ -19,6 +19,7 @@ import {
   redeemFromMarket,
   TokenBalance,
 } from "../library/common";
+
 import {
   getOrCreateCompRewarder,
   getOrCreateCToken,
@@ -26,18 +27,22 @@ import {
 } from "../library/cTokenUtils";
 
 import { Transfer } from "../../generated/templates/Comp/IERC20";
-import { Comp } from "../../generated/templates";
 
-const ADDRESS_ETH = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+const ETH = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 const cETH = "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5";
 
+/**
+ * Create deposit, borrow and reward markets, and start indexing new CToken.
+ *
+ * @param event
+ */
 export function handleMarketListed(event: MarketListed): void {
   let cTokenAddress = event.params.cToken;
   let cToken = getOrCreateCToken(cTokenAddress.toHexString(), event.address.toHexString(), event);
 
   let underlying: Token;
   if (cTokenAddress.toHexString() == cETH) {
-    underlying = getOrCreateERC20Token(event, Address.fromString(ADDRESS_ETH));
+    underlying = getOrCreateERC20Token(event, Address.fromString(ETH));
   } else {
     underlying = getOrCreateERC20Token(event, Address.fromString(cToken.underlying));
   }
@@ -65,7 +70,7 @@ export function handleMarketListed(event: MarketListed): void {
   // create borrow market
   marketId = cToken.id + "-BORROW";
   protocolType = ProtocolType.DEBT;
-  inputTokens = [getOrCreateERC20Token(event, Address.fromString(ADDRESS_ETH))];
+  inputTokens = [getOrCreateERC20Token(event, Address.fromString(ETH))];
   outputToken = getOrCreateERC20Token(event, Address.fromString(underlying.id));
   rewardTokens = [];
 
@@ -84,14 +89,30 @@ export function handleMarketListed(event: MarketListed): void {
   getOrCreateCompRewarder(event.address.toHexString(), event);
 }
 
+/**
+ * Keep track of accured rewards for user
+ *
+ * @param event
+ */
 export function handleDistributedSupplierComp(event: DistributedSupplierComp): void {
   accrueRewards(event.params.supplier, event.params.compDelta, event);
 }
 
+/**
+ * Keep track of accured rewards for user
+ *
+ * @param event
+ */
 export function handleDistributedBorrowerComp(event: DistributedBorrowerComp): void {
   accrueRewards(event.params.borrower, event.params.compDelta, event);
 }
 
+/**
+ * Keep track of claimed rewards by tracking COMP transfers where sender is Comptroller.
+ *
+ * @param event
+ * @returns
+ */
 export function handleCompTransfer(event: Transfer): void {
   let comptroller = event.address;
 
@@ -214,6 +235,11 @@ function accrueRewards(
   );
 }
 
+/**
+ * Update market's COMP reward rate
+ *
+ * @param event
+ */
 export function handleNewCompRate(event: NewCompRate): void {
   let id = event.address.toHexString();
   let rewarder = CompRewarder.load(id) as CompRewarder;
