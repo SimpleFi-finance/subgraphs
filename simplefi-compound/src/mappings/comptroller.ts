@@ -14,6 +14,7 @@ import {
   getOrCreateAccount,
   getOrCreateERC20Token,
   getOrCreateMarketWithId,
+  investInMarket,
   redeemFromMarket,
   TokenBalance,
 } from "../library/common";
@@ -104,6 +105,49 @@ export function handleCompTransfer(event: Transfer): void {
   rewardBalance.claimedRewards = rewardBalance.claimedRewards.plus(claimedAmount);
   rewardBalance.unclaimedRewards = rewardBalance.unclaimedRewards.minus(claimedAmount);
   rewardBalance.save();
+
+  ////// update user's position
+
+  // staking market which controlls rewards
+  let market = Market.load(event.address.toHexString()) as Market;
+
+  // no change as only rewards are claimed
+  let outputTokenAmount = BigInt.fromI32(0);
+
+  // no change as only rewards are claimed
+  let inputTokensAmount: TokenBalance[] = [];
+
+  // number of reward tokens claimed by user in this transaction
+  let rewardTokens = market.rewardTokens as string[];
+  let rewardTokenAmounts: TokenBalance[] = [
+    new TokenBalance(rewardTokens[0], user.id, claimedAmount),
+  ];
+
+  // TODO - for now there is no definition of output token for incentive controller
+  // use 1 instead of 0 in order to keep reward position open at all times
+  let outputTokenBalance = BigInt.fromI32(1);
+
+  // TODO - for now there is no definition of input token for incentive controlelr
+  let inputTokenBalances: TokenBalance[] = [];
+
+  // reward token amounts claimable by user
+  let rewardTokenBalances: TokenBalance[] = [
+    new TokenBalance(rewardTokens[0], user.id, rewardBalance.unclaimedRewards),
+  ];
+
+  // use common function to update position and store transaction
+  redeemFromMarket(
+    event,
+    user,
+    market,
+    outputTokenAmount,
+    inputTokensAmount,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
 }
 
 /**
@@ -154,7 +198,7 @@ function accrueRewards(
   ];
 
   // use common function to update position and store transaction
-  redeemFromMarket(
+  investInMarket(
     event,
     user,
     market,
