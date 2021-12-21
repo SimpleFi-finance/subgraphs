@@ -1,4 +1,4 @@
-import { Address, log } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 
 import {
   DistributedBorrowerComp,
@@ -6,7 +6,7 @@ import {
   MarketListed,
 } from "../../generated/Comptroller/Comptroller";
 
-import { Token } from "../../generated/schema";
+import { CompRewarder, Market, Token } from "../../generated/schema";
 
 import { ProtocolName, ProtocolType } from "../library/constants";
 
@@ -14,6 +14,8 @@ import {
   getOrCreateAccount,
   getOrCreateERC20Token,
   getOrCreateMarketWithId,
+  redeemFromMarket,
+  TokenBalance,
 } from "../library/common";
 import {
   getOrCreateCompRewarder,
@@ -80,23 +82,11 @@ export function handleMarketListed(event: MarketListed): void {
 }
 
 export function handleDistributedSupplierComp(event: DistributedSupplierComp): void {
-  let user = getOrCreateAccount(event.params.supplier);
-  let accuredRewardsAmount = event.params.compDelta;
-
-  let rewardBalance = getOrCreateUserRewardBalance(user.id);
-  rewardBalance.unclaimedRewards = rewardBalance.unclaimedRewards.plus(accuredRewardsAmount);
-  rewardBalance.lifetimeRewards = rewardBalance.lifetimeRewards.plus(accuredRewardsAmount);
-  rewardBalance.save();
+  accrueRewards(event.params.supplier, event.params.compDelta, event);
 }
 
 export function handleDistributedBorrowerComp(event: DistributedBorrowerComp): void {
-  let user = getOrCreateAccount(event.params.borrower);
-  let accuredRewardsAmount = event.params.compDelta;
-
-  let rewardBalance = getOrCreateUserRewardBalance(user.id);
-  rewardBalance.unclaimedRewards = rewardBalance.unclaimedRewards.plus(accuredRewardsAmount);
-  rewardBalance.lifetimeRewards = rewardBalance.lifetimeRewards.plus(accuredRewardsAmount);
-  rewardBalance.save();
+  accrueRewards(event.params.borrower, event.params.compDelta, event);
 }
 
 export function handleCompTransfer(event: Transfer): void {
@@ -114,4 +104,66 @@ export function handleCompTransfer(event: Transfer): void {
   rewardBalance.claimedRewards = rewardBalance.claimedRewards.plus(claimedAmount);
   rewardBalance.unclaimedRewards = rewardBalance.unclaimedRewards.minus(claimedAmount);
   rewardBalance.save();
+}
+
+/**
+ * Update user position on reward accrual.
+ *
+ * @param userAddress
+ * @param accuredRewardsAmount
+ * @param event
+ */
+function accrueRewards(
+  userAddress: Address,
+  accuredRewardsAmount: BigInt,
+  event: ethereum.Event
+): void {
+  let user = getOrCreateAccount(userAddress);
+
+  let rewardBalance = getOrCreateUserRewardBalance(user.id);
+  rewardBalance.unclaimedRewards = rewardBalance.unclaimedRewards.plus(accuredRewardsAmount);
+  rewardBalance.lifetimeRewards = rewardBalance.lifetimeRewards.plus(accuredRewardsAmount);
+  rewardBalance.save();
+
+  ////// update user's position
+
+  // staking market which controlls rewards
+  let id = event.address.toHexString();
+  let market = Market.load(id) as Market;
+
+  // no change as only rewards are claimed
+  let outputTokenAmount = BigInt.fromI32(0);
+
+  // no change as only rewards are claimed
+  let inputTokensAmount: TokenBalance[] = [];
+
+  // no change
+  let rewardTokenAmounts: TokenBalance[] = [];
+
+  // TODO - for now there is no definition of output token for rewarder
+  // use 1 instead of 0 in order to keep reward position open at all times
+  let outputTokenBalance = BigInt.fromI32(1);
+
+  // TODO - for now there is no definition of input token for rewarder
+  let inputTokenBalances: TokenBalance[] = [];
+
+  // reward token amounts claimable by user
+  let rewardTokens = market.rewardTokens as string[];
+  let rewardTokenBalances: TokenBalance[] = [
+    new TokenBalance(rewardTokens[0], user.id, rewardBalance.unclaimedRewards),
+  ];
+
+  // use common function to update position and store transaction
+  redeemFromMarket(
+    event,
+    user,
+    market,
+    outputTokenAmount,
+    inputTokensAmount,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
 }
