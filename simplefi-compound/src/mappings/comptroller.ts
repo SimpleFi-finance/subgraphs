@@ -220,4 +220,8 @@ export function handleNewCompRate(event: NewCompRate): void {
 
   rewarder.compRate = event.params.newCompRate;
   rewarder.save();
+
+  let market = Market.load(id) as Market;
+  market.rewardRate = event.params.newCompRate;
+  market.save();
 }

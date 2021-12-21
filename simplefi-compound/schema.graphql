@@ -81,6 +81,7 @@ type Market @entity {
   inputTokenTotalBalances: [String!]! # Total balance of this market contract of all input tokens in TokenBalance string format
   outputTokenTotalSupply: BigInt! # Total supply of output token
   balanceMultiplier: BigInt # optional; defines multiplier to derive inputTokenBalance from outputTokenBalance of a user
+  rewardRate: BigInt # optional; used in reward market to specify amount of reward tokens generated with every block
   blockNumber: BigInt!
   timestamp: BigInt!
   positions: [Position!]! @derivedFrom(field: "market")
