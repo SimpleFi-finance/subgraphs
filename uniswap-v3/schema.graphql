@@ -170,7 +170,6 @@ type PositionSnapshot @entity {
 
 # Created on PoolCreated event on UniswapV3Factory.sol
 # feeTo is not part of Pool contract. We need to fetch it from factory contract
-# @todo: Add fee to Pool
 type Pool @entity {
   id: ID! # {pairAddress}
   factory: Account!
@@ -181,7 +180,6 @@ type Pool @entity {
   totalLiquidity: BigInt!
   blockNumber: BigInt!
   timestamp: BigInt!
-  lastIncompleteBurn: Burn
 }
 
 type AccountLiquidity @entity {
@@ -225,17 +223,21 @@ type UniPosition @entity {
   # total position liquidity
   liquidity: BigInt!
   # amount of token 0 ever deposited to position
-  depositedToken0: BigDecimal!
+  depositedToken0: BigInt!
   # amount of token 1 ever deposited to position
-  depositedToken1: BigDecimal!
+  depositedToken1: BigInt!
   # amount of token 0 ever withdrawn from position (without fees)
-  withdrawnToken0: BigDecimal!
+  withdrawnToken0: BigInt!
   # amount of token 1 ever withdrawn from position (without fees)
-  withdrawnToken1: BigDecimal!
+  withdrawnToken1: BigInt!
   # all time collected fees in token0
-  collectedFeesToken0: BigDecimal!
+  collectedFeesToken0: BigInt!
   # all time collected fees in token1
-  collectedFeesToken1: BigDecimal!
+  collectedFeesToken1: BigInt!
+  # all time collected token0 (including fees)
+  collectedToken0: BigInt!
+  # all time collected token1 (including fees)
+  collectedToken1: BigInt!
   # vars needed for fee computation
   feeGrowthInside0LastX128: BigInt!
   feeGrowthInside1LastX128: BigInt!

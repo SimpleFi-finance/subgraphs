@@ -16,8 +16,11 @@ import {
 } from "../generated/templates/UniswapV3Pool/UniswapV3Pool"
 
 import {
+  Collect,
   Transfer,
-  NonfungiblePositionManager
+  IncreaseLiquidity,
+  DecreaseLiquidity,
+  NonfungiblePositionManager,
 } from "../generated/NonfungiblePositionManager/NonfungiblePositionManager"
 
 import {
@@ -25,13 +28,12 @@ import {
   investInMarket,
   redeemFromMarket,
   TokenBalance,
-  updateMarket
+  updateMarket,
 } from "./common"
 
 import { 
   ONE_BI,
   ZERO_BI, 
-  ZERO_BD, 
   ADDRESS_ZERO,
   factoryContract,
 } from "./constants"
@@ -88,7 +90,6 @@ function createOrUpdatePositionOnMint(event: ethereum.Event, pool: PoolEntity, m
   let outputTokenAmount = mint.liquityAmount as BigInt
   let inputTokenAmounts: TokenBalance[] = []
 
-  // @todo: Shouldn't this be mint.to?? Which is the 'owner' of the position
   inputTokenAmounts.push(new TokenBalance(pool.token0, mint.from as string, mint.amount0 as BigInt))
   inputTokenAmounts.push(new TokenBalance(pool.token1, mint.from as string, mint.amount1 as BigInt))
 
@@ -196,30 +197,79 @@ function getOrFetchUniPosition(event: ethereum.Event, tokenId: BigInt): UniPosit
       position.token0 = positionResult.value2.toHexString()
       position.token1 = positionResult.value3.toHexString()
       position.liquidity = ZERO_BI
-      position.depositedToken0 = ZERO_BD
-      position.depositedToken1 = ZERO_BD
-      position.withdrawnToken0 = ZERO_BD
-      position.withdrawnToken1 = ZERO_BD
-      position.collectedFeesToken0 = ZERO_BD
-      position.collectedFeesToken1 = ZERO_BD
+      position.depositedToken0 = ZERO_BI
+      position.depositedToken1 = ZERO_BI
+      position.withdrawnToken0 = ZERO_BI
+      position.withdrawnToken1 = ZERO_BI
+      position.collectedFeesToken0 = ZERO_BI
+      position.collectedFeesToken1 = ZERO_BI
       position.feeGrowthInside0LastX128 = positionResult.value8
       position.feeGrowthInside1LastX128 = positionResult.value9
-      position.amountDepositedUSD = ZERO_BD
-      position.amountWithdrawnUSD = ZERO_BD
-      position.amountCollectedUSD = ZERO_BD
     }
   }
 
   return position
 }
 
+export function handleMint(event: Mint): void {
+  let pool = PoolEntity.load(event.address.toHexString()) as PoolEntity
+  let mint = getOrCreateMint(event, pool)
+
+  mint.amount0 = event.params.amount0
+  mint.amount1 = event.params.amount1
+  mint.liquityAmount = event.params.amount
+  mint.from = getOrCreateAccount(event.transaction.from).id
+  mint.to = getOrCreateAccount(event.params.owner).id
+  mint.save()
+
+  pool.reserve0 = pool.reserve0.plus(event.params.amount0)
+  pool.reserve1 = pool.reserve1.plus(event.params.amount1)
+
+  // On first deposit, we add 1 to liquidity to avoid dividing by zero later
+  if (pool.totalLiquidity.equals(ZERO_BI)) {
+    //log.info("Mint event: Liquidity plus one", [])
+    pool.totalLiquidity = pool.totalLiquidity.plus(ONE_BI)
+  }
+
+  pool.totalLiquidity = pool.totalLiquidity.plus(event.params.amount as BigInt)
+  pool.save()
+
+  //log.info("Mint event: Pool {} - Liquidity {} - Total Liquidity {} - TX {}", [pool.id, (event.params.amount as BigInt).toString(), pool.totalLiquidity.toString(), event.transaction.hash.toHexString()])
+
+  createOrUpdatePositionOnMint(event, pool, mint)
+}
+
+// @todo: is closing position a two-transaction process? Burn + Claim tokens back
+export function handleBurn(event: Burn): void {
+  let pool = PoolEntity.load(event.address.toHexString()) as PoolEntity
+  let burn = getOrCreateBurn(event, pool)
+
+  burn.from = getOrCreateAccount(event.params.owner).id
+  burn.amount0 = event.params.amount0
+  burn.amount1 = event.params.amount1
+  burn.liquityAmount = event.params.amount
+  burn.save()
+
+  let prevLiquidity = pool.totalLiquidity
+
+  pool.reserve0 = pool.reserve0.minus(event.params.amount0)
+  pool.reserve1 = pool.reserve1.minus(event.params.amount1)
+  pool.totalLiquidity = pool.totalLiquidity.minus(event.params.amount as BigInt)
+  pool.save()
+
+  //log.info("Burn event: Pool {} - Liquidity {} - Prev Liquidity {} - Total Liquidity {} - TX {}", [pool.id, (event.params.amount as BigInt).toString(), prevLiquidity.toString(), pool.totalLiquidity.toString(), event.transaction.hash.toHexString()])
+
+  createOrUpdatePositionOnBurn(event, pool, burn)
+}
+
 /**
  * This is ERC721 transfer so it can only transfer the whole position all together
+ * NonfungiblePositionManager contract
  * 
  * @param event 
  * @returns 
  */
-export function handleTransfer(event: Transfer): void {
+ export function handleTransfer(event: Transfer): void {
   let position = getOrFetchUniPosition(event, event.params.tokenId)
 
   // position was not able to be fetched
@@ -305,78 +355,65 @@ export function handleTransfer(event: Transfer): void {
   }
 }
 
-export function handleMint(event: Mint): void {
-  let pool = PoolEntity.load(event.address.toHexString()) as PoolEntity
-  let mint = getOrCreateMint(event, pool)
+export function handleIncreaseLiquidity(event: IncreaseLiquidity): void {
+  let position = getOrFetchUniPosition(event, event.params.tokenId)
 
-  mint.amount0 = event.params.amount0
-  mint.amount1 = event.params.amount1
-  mint.liquityAmount = event.params.amount
-  // @todo: event.transaction.from or event.params.sender?
-  mint.from = getOrCreateAccount(event.transaction.from).id
-  mint.to = getOrCreateAccount(event.params.owner).id
-  mint.save()
-
-  pool.reserve0 = pool.reserve0.plus(event.params.amount0)
-  pool.reserve1 = pool.reserve1.plus(event.params.amount1)
-
-  // On first deposit, we add 1 to liquidity to avoid dividing by zero later
-  if (pool.totalLiquidity.equals(ZERO_BI)) {
-    //log.info("Mint event: Liquidity plus one", [])
-    pool.totalLiquidity = pool.totalLiquidity.plus(ONE_BI)
+  // position was not able to be fetched
+  if (position == null) {
+    return
   }
 
-  // @todo: this is from Uniswap V3 official subgraph - is it needed for us?
-  // Pools liquidity tracks the currently active liquidity given pools current tick.
-  // We only want to update it on mint if the new position includes the current tick.
-  // if (
-  //   pool.tick !== null &&
-  //   BigInt.fromI32(event.params.tickLower).le(pool.tick as BigInt) &&
-  //   BigInt.fromI32(event.params.tickUpper).gt(pool.tick as BigInt)
-  // ) {
-  //   pool.liquidity = pool.liquidity.plus(event.params.amount)
-  // }
+  // temp fix (edge case comming from Official Uni v3)
+  if (Address.fromString(position.pool).equals(Address.fromHexString('0x8fe8d9bb8eeba3ed688069c3d6b556c9ca258248'))) {
+    return
+  }
+  position.liquidity = position.liquidity.plus(event.params.liquidity)
+  position.depositedToken0 = position.depositedToken0.plus(event.params.amount0)
+  position.depositedToken1 = position.depositedToken1.plus(event.params.amount1)
 
-  pool.totalLiquidity = pool.totalLiquidity.plus(event.params.amount as BigInt)
-  pool.save()
-
-  //log.info("Mint event: Pool {} - Liquidity {} - Total Liquidity {} - TX {}", [pool.id, (event.params.amount as BigInt).toString(), pool.totalLiquidity.toString(), event.transaction.hash.toHexString()])
-
-  createOrUpdatePositionOnMint(event, pool, mint)
+  position.save()
 }
 
-// @todo: is closing position a two-transaction process? Burn + Claim tokens back
-// @todo: there is such thing as from & to, it's only the position owner, saved as from
-export function handleBurn(event: Burn): void {
-  let pool = PoolEntity.load(event.address.toHexString()) as PoolEntity
-  let burn = getOrCreateBurn(event, pool)
+export function handleDecreaseLiquidity(event: DecreaseLiquidity): void {
+  let position = getOrFetchUniPosition(event, event.params.tokenId)
 
-  burn.from = getOrCreateAccount(event.params.owner).id
-  burn.amount0 = event.params.amount0
-  burn.amount1 = event.params.amount1
-  burn.liquityAmount = event.params.amount
-  burn.save()
+  // position was not able to be fetched
+  if (position == null) {
+    return
+  }
 
-  let prevLiquidity = pool.totalLiquidity
+  // @todo: what is it temp fixing? (low priority)
+  // temp fix (edge case comming from Official Uni v3)
+  if (Address.fromString(position.pool).equals(Address.fromHexString('0x8fe8d9bb8eeba3ed688069c3d6b556c9ca258248'))) {
+    return
+  }
 
-  pool.reserve0 = pool.reserve0.minus(event.params.amount0)
-  pool.reserve1 = pool.reserve1.minus(event.params.amount1)
+  position.liquidity = position.liquidity.minus(event.params.liquidity)
+  position.withdrawnToken0 = position.withdrawnToken0.plus(event.params.amount0)
+  position.withdrawnToken1 = position.withdrawnToken1.plus(event.params.amount1)
 
-  // @todo: this is from Uniswap V3 official subgraph - is it needed for us?
-  // Pools liquidity tracks the currently active liquidity given pools current tick.
-  // We only want to update it on burn if the position being burnt includes the current tick.
-  // if (
-  //   pool.tick !== null &&
-  //   BigInt.fromI32(event.params.tickLower).le(pool.tick as BigInt) &&
-  //   BigInt.fromI32(event.params.tickUpper).gt(pool.tick as BigInt)
-  // ) {
-  //   pool.liquidity = pool.liquidity.minus(event.params.amount)
-  // }
+  position.save()
+}
 
-  pool.totalLiquidity = pool.totalLiquidity.minus(event.params.amount as BigInt)
-  pool.save()
+export function handleCollect(event: Collect): void {
+  let position = getOrFetchUniPosition(event, event.params.tokenId)
+  
+  // position was not able to be fetched
+  if (position == null) {
+    return
+  }
 
-  //log.info("Burn event: Pool {} - Liquidity {} - Prev Liquidity {} - Total Liquidity {} - TX {}", [pool.id, (event.params.amount as BigInt).toString(), prevLiquidity.toString(), pool.totalLiquidity.toString(), event.transaction.hash.toHexString()])
+  // temp fix (edge case comming from Official Uni v3)
+  if (Address.fromString(position.pool).equals(Address.fromHexString('0x8fe8d9bb8eeba3ed688069c3d6b556c9ca258248'))) {
+    return
+  }
 
-  createOrUpdatePositionOnBurn(event, pool, burn)
+  // @todo: do we need this?
+  position.collectedToken0 = position.collectedToken0.plus(event.params.amount0)
+  position.collectedToken1 = position.collectedToken1.plus(event.params.amount1)
+
+  position.collectedFeesToken0 = position.collectedToken0.minus(position.withdrawnToken0)
+  position.collectedFeesToken1 = position.collectedToken1.minus(position.withdrawnToken1)
+  
+  position.save()
 }
