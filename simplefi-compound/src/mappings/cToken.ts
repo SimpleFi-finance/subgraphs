@@ -31,6 +31,8 @@ import {
   getOrCreateUserDepositBalance,
 } from "../library/cTokenUtils";
 
+let mantissa = BigInt.fromI32(10).pow(18);
+
 /**
  * Handle user's deposit to CToken market - update user's position and market state.
  *
@@ -52,7 +54,8 @@ export function handleMint(event: Mint): void {
   let newTotalSupply = cToken.totalSupply;
 
   let inputTokens = market.inputTokens as string[];
-  let newInputBalance = newTotalSupply.times(getExchangeRate(cToken.id));
+  let exchangeRate = getExchangeRate(cToken.id);
+  let newInputBalance = newTotalSupply.times(exchangeRate).div(mantissa);
   let newInputTokenBalances: TokenBalance[] = [
     new TokenBalance(inputTokens[0], market.id, newInputBalance),
   ];
@@ -62,7 +65,7 @@ export function handleMint(event: Mint): void {
   // update balance tracker
   let userBalance = getOrCreateUserDepositBalance(minter.id, cToken.id);
   userBalance.cTokenBalance = userBalance.cTokenBalance.plus(cTokensMinted);
-  userBalance.redeemableTokensBalance = userBalance.cTokenBalance.times(getExchangeRate(cToken.id));
+  userBalance.redeemableTokensBalance = userBalance.cTokenBalance.times(exchangeRate).div(mantissa);
   userBalance.save();
 
   //// update user's  position
@@ -118,7 +121,8 @@ export function handleRedeem(event: Redeem): void {
   let newTotalSupply = cToken.totalSupply;
 
   let inputTokens = market.inputTokens as string[];
-  let newInputBalance = newTotalSupply.times(getExchangeRate(cToken.id));
+  let exchangeRate = getExchangeRate(cToken.id);
+  let newInputBalance = newTotalSupply.times(exchangeRate).div(mantissa);
   let newInputTokenBalances: TokenBalance[] = [
     new TokenBalance(inputTokens[0], market.id, newInputBalance),
   ];
@@ -128,7 +132,7 @@ export function handleRedeem(event: Redeem): void {
   // update balance tracker
   let userBalance = getOrCreateUserDepositBalance(redeemer.id, cToken.id);
   userBalance.cTokenBalance = userBalance.cTokenBalance.minus(cTokensBurned);
-  userBalance.redeemableTokensBalance = userBalance.cTokenBalance.times(getExchangeRate(cToken.id));
+  userBalance.redeemableTokensBalance = userBalance.cTokenBalance.times(exchangeRate).div(mantissa);
   userBalance.save();
 
   //// update user's  position
@@ -360,11 +364,13 @@ export function handleTransfer(event: Transfer): void {
   // update positions for sender and receiver
 
   // update sender's balance tracker
+  let exchangeRate = getExchangeRate(cToken.id);
+
   let senderBalance = getOrCreateUserDepositBalance(from.id, cToken.id);
   senderBalance.cTokenBalance = senderBalance.cTokenBalance.minus(amount);
-  senderBalance.redeemableTokensBalance = senderBalance.cTokenBalance.times(
-    getExchangeRate(cToken.id)
-  );
+  senderBalance.redeemableTokensBalance = senderBalance.cTokenBalance
+    .times(exchangeRate)
+    .div(mantissa);
   senderBalance.save();
 
   //// update user's  position
@@ -401,9 +407,9 @@ export function handleTransfer(event: Transfer): void {
   // update receiver's balance tracker
   let receiverBalance = getOrCreateUserDepositBalance(to.id, cToken.id);
   receiverBalance.cTokenBalance = receiverBalance.cTokenBalance.plus(amount);
-  receiverBalance.redeemableTokensBalance = receiverBalance.cTokenBalance.times(
-    getExchangeRate(cToken.id)
-  );
+  receiverBalance.redeemableTokensBalance = receiverBalance.cTokenBalance
+    .times(exchangeRate)
+    .div(mantissa);
   receiverBalance.save();
 
   //// update receiver's  position

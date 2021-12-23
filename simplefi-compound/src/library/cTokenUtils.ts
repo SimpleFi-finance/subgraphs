@@ -22,8 +22,6 @@ const ETH = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 const COMP = "0xc00e94Cb662C3520282E6f5717214004A7f26888";
 
-let mantissaOne = BigInt.fromI32(10).pow(27);
-
 /**
  * Create CToken entity and generic Market representing it.
  *
@@ -60,7 +58,7 @@ export function getOrCreateCToken(
   cToken.cTokenDecimals = cTokenContract.decimals();
   cToken.totalReserves = BigInt.fromI32(0);
   cToken.totalSupply = BigInt.fromI32(0);
-  cToken.borrowIndex = mantissaOne;
+  cToken.borrowIndex = BigInt.fromI32(0);
   cToken.cash = BigInt.fromI32(0);
   cToken.totalBorrows = BigInt.fromI32(0);
   cToken.transactionHash = event.transaction.hash.toHexString();
