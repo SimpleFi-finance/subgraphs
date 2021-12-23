@@ -67,6 +67,9 @@ export function handleMarketListed(event: MarketListed): void {
     rewardTokens
   );
 
+  outputToken.mintedByMarket = marketId;
+  outputToken.save();
+
   // create borrow market
   marketId = cToken.id + "-BORROW";
   protocolType = ProtocolType.DEBT;
