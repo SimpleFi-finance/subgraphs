@@ -47,6 +47,8 @@ function getOrCreateMint(event: ethereum.Event, pool: PoolEntity): MintEntity {
 
   mint = new MintEntity(mintId)
   mint.pool = pool.id
+  mint.eventIncreaseLiquidityApplied = false
+  mint.eventMintApplied = false
   mint.save()
   return mint as MintEntity
 }
@@ -60,10 +62,10 @@ function getOrCreateBurn(event: ethereum.Event, pool: PoolEntity): BurnEntity {
 
   burn = new BurnEntity(burnId)
   burn.pool = pool.id
+  burn.eventDecreaseLiquidityApplied = false
+  burn.eventBurnApplied = false
   burn.save()
 
-  pool.lastIncompleteBurn = burn.id
-  pool.save()
   return burn as BurnEntity
 }
 
@@ -82,6 +84,11 @@ function getOrCreateLiquidity(pool: PoolEntity, accountAddress: Address): Accoun
 }
 
 function createOrUpdatePositionOnMint(event: ethereum.Event, pool: PoolEntity, mint: MintEntity): void {
+  let isComplete = mint.eventIncreaseLiquidityApplied && mint.eventMintApplied
+  if (!isComplete) {
+    return
+  }
+  
   let accountAddress = Address.fromString(mint.to as string)
   let account = new AccountEntity(mint.to as string)
   let market = MarketEntity.load(mint.pool as string) as MarketEntity
@@ -131,6 +138,11 @@ function createOrUpdatePositionOnMint(event: ethereum.Event, pool: PoolEntity, m
 }
 
 function createOrUpdatePositionOnBurn(event: ethereum.Event, pool: PoolEntity, burn: BurnEntity): void {
+  let isComplete = burn.eventDecreaseLiquidityApplied && burn.eventBurnApplied
+  if (!isComplete) {
+    return
+  }
+  
   let accountAddress = Address.fromString(burn.from as string)
   let account = new AccountEntity(burn.from as string)
   let market = MarketEntity.load(burn.pool as string) as MarketEntity
@@ -214,16 +226,18 @@ function getOrFetchUniPosition(event: ethereum.Event, tokenId: BigInt): UniPosit
 export function handleMint(event: Mint): void {
   let pool = PoolEntity.load(event.address.toHexString()) as PoolEntity
   let mint = getOrCreateMint(event, pool)
-
-  mint.amount0 = event.params.amount0
-  mint.amount1 = event.params.amount1
-  mint.liquityAmount = event.params.amount
-  mint.from = getOrCreateAccount(event.transaction.from).id
-  mint.to = getOrCreateAccount(event.params.owner).id
+  mint.eventMintApplied = true
   mint.save()
 
-  pool.reserve0 = pool.reserve0.plus(event.params.amount0)
-  pool.reserve1 = pool.reserve1.plus(event.params.amount1)
+  // mint.amount0 = event.params.amount0
+  // mint.amount1 = event.params.amount1
+  // mint.liquityAmount = event.params.amount
+  // mint.from = getOrCreateAccount(event.transaction.from).id
+  // mint.to = getOrCreateAccount(event.params.owner).id
+  // mint.save()
+
+  // pool.reserve0 = pool.reserve0.plus(event.params.amount0)
+  // pool.reserve1 = pool.reserve1.plus(event.params.amount1)
 
   // On first deposit, we add 1 to liquidity to avoid dividing by zero later
   if (pool.totalLiquidity.equals(ZERO_BI)) {
@@ -242,15 +256,18 @@ export function handleMint(event: Mint): void {
 // @todo: is closing position a two-transaction process? Burn + Claim tokens back
 export function handleBurn(event: Burn): void {
   let pool = PoolEntity.load(event.address.toHexString()) as PoolEntity
+  
   let burn = getOrCreateBurn(event, pool)
-
-  burn.from = getOrCreateAccount(event.params.owner).id
-  burn.amount0 = event.params.amount0
-  burn.amount1 = event.params.amount1
-  burn.liquityAmount = event.params.amount
+  burn.eventBurnApplied = true
   burn.save()
 
-  let prevLiquidity = pool.totalLiquidity
+  // burn.from = getOrCreateAccount(event.params.owner).id
+  // burn.amount0 = event.params.amount0
+  // burn.amount1 = event.params.amount1
+  // burn.liquityAmount = event.params.amount
+  // burn.save()
+
+  // let prevLiquidity = pool.totalLiquidity
 
   pool.reserve0 = pool.reserve0.minus(event.params.amount0)
   pool.reserve1 = pool.reserve1.minus(event.params.amount1)
@@ -372,6 +389,24 @@ export function handleIncreaseLiquidity(event: IncreaseLiquidity): void {
   position.depositedToken1 = position.depositedToken1.plus(event.params.amount1)
 
   position.save()
+
+  let pool = PoolEntity.load(position.pool) as PoolEntity
+  let mint = getOrCreateMint(event, pool)
+
+  mint.amount0 = event.params.amount0
+  mint.amount1 = event.params.amount1
+  mint.liquityAmount = event.params.liquidity
+  mint.from = getOrCreateAccount(event.transaction.from).id
+  mint.to = getOrCreateAccount(Address.fromString(position.owner.toHexString())).id
+  mint.save()
+
+  pool.reserve0 = pool.reserve0.plus(event.params.amount0)
+  pool.reserve1 = pool.reserve1.plus(event.params.amount1)
+  pool.save()
+
+  log.info("Mint event: Pool {} - Liquidity {} - Total Liquidity {} - TX {}", [pool.id, (event.params.liquidity as BigInt).toString(), pool.totalLiquidity.toString(), event.transaction.hash.toHexString()])
+
+  createOrUpdatePositionOnMint(event, pool, mint)
 }
 
 export function handleDecreaseLiquidity(event: DecreaseLiquidity): void {
@@ -393,6 +428,27 @@ export function handleDecreaseLiquidity(event: DecreaseLiquidity): void {
   position.withdrawnToken1 = position.withdrawnToken1.plus(event.params.amount1)
 
   position.save()
+
+  let pool = PoolEntity.load(position.pool) as PoolEntity
+  let burn = getOrCreateBurn(event, pool)
+
+  burn.from = getOrCreateAccount(Address.fromString(position.owner.toHexString())).id
+  burn.amount0 = event.params.amount0
+  burn.amount1 = event.params.amount1
+  burn.liquityAmount = event.params.liquidity
+  burn.eventDecreaseLiquidityApplied = true
+  burn.save()
+
+  let prevLiquidity = pool.totalLiquidity
+
+  pool.reserve0 = pool.reserve0.minus(event.params.amount0)
+  pool.reserve1 = pool.reserve1.minus(event.params.amount1)
+  pool.totalLiquidity = pool.totalLiquidity.minus(event.params.liquidity as BigInt)
+  pool.save()
+
+  log.info("Burn event: Pool {} - Liquidity {} - Prev Liquidity {} - Total Liquidity {} - TX {}", [pool.id, (event.params.liquidity as BigInt).toString(), prevLiquidity.toString(), pool.totalLiquidity.toString(), event.transaction.hash.toHexString()])
+
+  createOrUpdatePositionOnBurn(event, pool, burn)
 }
 
 export function handleCollect(event: Collect): void {

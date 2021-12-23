@@ -197,6 +197,8 @@ type Mint @entity {
   liquityAmount: BigInt
   amount0: BigInt
   amount1: BigInt
+  eventIncreaseLiquidityApplied: Boolean!
+  eventMintApplied: Boolean!
 }
 
 type Burn @entity {
@@ -206,6 +208,8 @@ type Burn @entity {
   liquityAmount: BigInt
   amount0: BigInt
   amount1: BigInt
+  eventDecreaseLiquidityApplied: Boolean!
+  eventBurnApplied: Boolean!
 }
 
 type UniPosition @entity {
