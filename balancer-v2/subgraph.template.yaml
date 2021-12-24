@@ -140,7 +140,7 @@ dataSources:
   {{/liquidityBootstrappingPoolFactoryAddress}}
   {{#noProtocolFeeLiquidityBootstrappingPoolFactoryAddress}}
   - kind: ethereum/contract
-    name: LiquidityBootstrappingPoolFactory
+    name: NoProtocolFeeLiquidityBootstrappingPoolFactory
     network: {{network}}
     source:
       address: '{{noProtocolFeeLiquidityBootstrappingPoolFactoryAddress}}'
@@ -160,7 +160,7 @@ dataSources:
       eventHandlers:
         - event: PoolCreated(indexed address)
           handler: handlePoolCreated
-      file: ./src/liquidityBootstrappingPoolFactory.ts
+      file: ./src/noProtocolFeeLiquidityBootstrappingPoolFactory.ts
   {{/noProtocolFeeLiquidityBootstrappingPoolFactoryAddress}}
   {{#metastablePoolFactoryAddress}}
   - kind: ethereum/contract
