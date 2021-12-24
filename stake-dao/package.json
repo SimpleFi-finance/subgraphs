@@ -4,10 +4,10 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ tarunbhm/simplefi-stake-dao-fixed",
-    "create-local": "graph create --node http://localhost:8020/ tarunbhm/simplefi-stake-dao-fixed",
-    "remove-local": "graph remove --node http://localhost:8020/ tarunbhm/simplefi-stake-dao-fixed",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 tarunbhm/simplefi-stake-dao-fixed"
+    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ simplefi-finance/stake-dao",
+    "create-local": "graph create --node http://localhost:8020/ simplefi-finance/stake-dao",
+    "remove-local": "graph remove --node http://localhost:8020/ simplefi-finance/stake-dao",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 simplefi-finance/stake-dao"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.21.1",

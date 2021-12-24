@@ -4,10 +4,10 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-curve-gauges",
-    "create-local": "graph create --node http://localhost:8020/ gvladika/simplefi-curve-gauges",
-    "remove-local": "graph remove --node http://localhost:8020/ gvladika/simplefi-curve-gauges",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 gvladika/simplefi-curve-gauges"
+    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/curve-gauges",
+    "create-local": "graph create --node http://localhost:8020/ simplefi-finance/curve-gauges",
+    "remove-local": "graph remove --node http://localhost:8020/ simplefi-finance/curve-gauges",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 simplefi-finance/curve-gauges"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.20.0",
