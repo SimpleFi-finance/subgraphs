@@ -18,8 +18,7 @@ enum TokenStandard {
 
 enum ProtocolName {
   UNISWAP_V2
-  CURVE_POOL
-  CURVE_GAUGE
+  AAVE_POOL
 }
 
 enum ProtocolType {
@@ -65,7 +64,7 @@ type Token @entity {
 }
 
 type Market @entity {
-  id: ID! # {protocol pool/pool/vault address}
+  id: ID! # {protocol pair/pool/vault address}
   account: Account!
   protocolName: ProtocolName!
   protocolType: ProtocolType!
@@ -166,89 +165,3 @@ type PositionSnapshot @entity {
 }
 
 # END - Common entities for all protocols
-
-# Curve gauge entities
-
-type Gauge @entity {
-  " Gauge contract address "
-  id: ID!
-  type: GaugeType!
-
-  created: BigInt!
-  createdAtBlock: BigInt!
-  createdAtTransaction: Bytes!
-
-  " API version of gauge implementation "
-  version: GaugeVersion!
-
-  " Input token for gauge "
-  lpToken: Token
-
-  " Total amount of LP tokens deposited to gauge "
-  totalSupply: BigInt!
-
-  " Effective total LP token amount after all deposits have been boosted "
-  workingSupply: BigInt!
-}
-
-enum GaugeVersion {
-  LIQUIDITY_GAUGE_REWARD
-  LIQUIDITY_GAUGE_V1
-  LIQUIDITY_GAUGE_V2
-  LIQUIDITY_GAUGE_V3
-  LIQUIDITY_GAUGE_ANDRE
-}
-
-type GaugeSnapshot @entity {
-  id: ID! # {trasactionHash}{logIndex}
-  gauge: Gauge!
-  originalSupply: BigInt!
-  workingSupply: BigInt!
-  timestamp: BigInt!
-  blockNumber: BigInt!
-  transactionHash: String!
-  transactionIndexInBlock: BigInt!
-  logIndex: BigInt!
-}
-
-type GaugeType @entity {
-  id: ID!
-  name: String!
-  gauges: [Gauge!] @derivedFrom(field: "type")
-  #weights: [GaugeTypeWeight!] @derivedFrom(field: "type")
-}
-
-type GaugeDeposit @entity {
-  id: ID!
-  gauge: Gauge!
-  provider: Account!
-  value: BigInt!
-}
-
-type GaugeWithdraw @entity {
-  id: ID!
-  gauge: Gauge!
-  provider: Account!
-  value: BigInt!
-}
-
-type GaugeUpdateLiquidityLimit @entity {
-  id: ID! # {transactionHash}{account}{gauge}
-  gauge: Gauge!
-  user: Account!
-  original_balance: BigInt!
-  original_supply: BigInt!
-  working_balance: BigInt!
-  working_supply: BigInt!
-}
-
-type AccountLiquidity @entity {
-  id: ID! # {accountAddress}{gaugeAddress}
-  gauge: Gauge!
-  account: Account!
-  balance: BigInt!
-  workingBalance: BigInt!
-  crvReceived: BigInt!
-}
-
-# END - Curve protocol entities
