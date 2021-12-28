@@ -108,7 +108,7 @@ export function handleNewGauge(event: NewGauge): void {
     event,
     event.params.addr,
     ProtocolName.CURVE_GAUGE,
-    ProtocolType.TOKEN_MANAGEMENT,
+    ProtocolType.LP_FARMING,
     inputTokens,
     outputToken,
     rewardTokens
