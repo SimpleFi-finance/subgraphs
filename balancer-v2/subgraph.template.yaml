@@ -1,0 +1,411 @@
+specVersion: 0.0.2
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: Vault
+    network: {{network}}
+    source:
+      address: '{{vaultAddress}}'
+      abi: Vault
+      startBlock: {{vaultStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - PoolId
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Pool
+        - Mint
+        - Burn
+        - AccountLiquidity
+      abis:
+        - name: Vault
+          file: ./abis/Vault.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+      eventHandlers:
+        - event: PoolRegistered(indexed bytes32,indexed address,uint8)
+          handler: handlePoolRegistered
+        - event: TokensRegistered(indexed bytes32,address[],address[])
+          handler: handleTokensRegistered
+        - event: TokensDeregistered(indexed bytes32,address[])
+          handler: handleTokensDeregistered
+        - event: PoolBalanceChanged(indexed bytes32,indexed address,address[],int256[],uint256[])
+          handler: handlePoolBalanceChanged
+      file: ./src/vault.ts
+  {{#weightedPoolFactoryAddress}}
+  - kind: ethereum/contract
+    name: WeightedPoolFactory
+    network: {{network}}
+    source:
+      address: '{{weightedPoolFactoryAddress}}'
+      abi: WeightedPoolFactory
+      startBlock: {{weightedPoolFactoryStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Markets
+        - Token
+        - Pool
+      abis:
+        - name: WeightedPoolFactory
+          file: ./abis/WeightedPoolFactory.json
+      eventHandlers:
+        - event: PoolCreated(indexed address)
+          handler: handlePoolCreated
+      file: ./src/weightedPoolFactory.ts
+  {{/weightedPoolFactoryAddress}}
+  {{#weightedPool2TokensFactoryAddress}}
+  - kind: ethereum/contract
+    name: WeightedPool2TokensFactory
+    network: {{network}}
+    source:
+      address: '{{weightedPool2TokensFactoryAddress}}'
+      abi: WeightedPool2TokensFactory
+      startBlock: {{weightedPool2TokensFactoryStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Markets
+        - Token
+        - Pool
+      abis:
+        - name: WeightedPool2TokensFactory
+          file: ./abis/WeightedPool2TokensFactory.json
+      eventHandlers:
+        - event: PoolCreated(indexed address)
+          handler: handlePoolCreated
+      file: ./src/weightedPool2TokensFactory.ts
+  {{/weightedPool2TokensFactoryAddress}}
+  {{#investmentPoolFactoryAddress}}
+  - kind: ethereum/contract
+    name: InvestmentPoolFactory
+    network: {{network}}
+    source:
+      address: '{{investmentPoolFactoryAddress}}'
+      abi: InvestmentPoolFactory
+      startBlock: {{investmentPoolFactoryStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Markets
+        - Token
+        - Pool
+      abis:
+        - name: InvestmentPoolFactory
+          file: ./abis/InvestmentPoolFactory.json
+      eventHandlers:
+        - event: PoolCreated(indexed address)
+          handler: handlePoolCreated
+      file: ./src/investmentPoolFactory.ts
+  {{/investmentPoolFactoryAddress}}
+  {{#liquidityBootstrappingPoolFactoryAddress}}
+  - kind: ethereum/contract
+    name: LiquidityBootstrappingPoolFactory
+    network: {{network}}
+    source:
+      address: '{{liquidityBootstrappingPoolFactoryAddress}}'
+      abi: LiquidityBootstrappingPoolFactory
+      startBlock: {{liquidityBootstrappingPoolFactoryStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Markets
+        - Token
+        - Pool
+      abis:
+        - name: LiquidityBootstrappingPoolFactory
+          file: ./abis/LiquidityBootstrappingPoolFactory.json
+      eventHandlers:
+        - event: PoolCreated(indexed address)
+          handler: handlePoolCreated
+      file: ./src/liquidityBootstrappingPoolFactory.ts
+  {{/liquidityBootstrappingPoolFactoryAddress}}
+  {{#noProtocolFeeLiquidityBootstrappingPoolFactoryAddress}}
+  - kind: ethereum/contract
+    name: NoProtocolFeeLiquidityBootstrappingPoolFactory
+    network: {{network}}
+    source:
+      address: '{{noProtocolFeeLiquidityBootstrappingPoolFactoryAddress}}'
+      abi: LiquidityBootstrappingPoolFactory
+      startBlock: {{noProtocolFeeLiquidityBootstrappingPoolFactoryStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Markets
+        - Token
+        - Pool
+      abis:
+        - name: LiquidityBootstrappingPoolFactory
+          file: ./abis/LiquidityBootstrappingPoolFactory.json
+      eventHandlers:
+        - event: PoolCreated(indexed address)
+          handler: handlePoolCreated
+      file: ./src/noProtocolFeeLiquidityBootstrappingPoolFactory.ts
+  {{/noProtocolFeeLiquidityBootstrappingPoolFactoryAddress}}
+  {{#metastablePoolFactoryAddress}}
+  - kind: ethereum/contract
+    name: MetastablePoolFactory
+    network: {{network}}
+    source:
+      address: '{{metastablePoolFactoryAddress}}'
+      abi: MetastablePoolFactory
+      startBlock: {{metastablePoolFactoryStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Markets
+        - Token
+        - Pool
+      abis:
+        - name: MetastablePoolFactory
+          file: ./abis/MetastablePoolFactory.json
+      eventHandlers:
+        - event: PoolCreated(indexed address)
+          handler: handlePoolCreated
+      file: ./src/metastablePoolFactory.ts
+  {{/metastablePoolFactoryAddress}}
+  {{#stablePoolFactoryAddress}}
+  - kind: ethereum/contract
+    name: StablePoolFactory
+    network: {{network}}
+    source:
+      address: '{{stablePoolFactoryAddress}}'
+      abi: StablePoolFactory
+      startBlock: {{stablePoolFactoryStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Markets
+        - Token
+        - Pool
+      abis:
+        - name: StablePoolFactory
+          file: ./abis/StablePoolFactory.json
+      eventHandlers:
+        - event: PoolCreated(indexed address)
+          handler: handlePoolCreated
+      file: ./src/stablePoolFactory.ts
+  {{/stablePoolFactoryAddress}}
+templates:
+  - kind: ethereum/contract
+    name: WeightedPool
+    network: {{network}}
+    source:
+      abi: WeightedPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/pool.ts
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Pool
+        - Mint
+        - Burn
+        - AccountLiquidity
+      abis:
+        - name: ERC20
+          file: ./abis/IERC20.json
+        - name: WeightedPoolFactory
+          file: ./abis/WeightedPoolFactory.json
+        - name: WeightedPool
+          file: ./abis/WeightedPool.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+  - kind: ethereum/contract
+    name: WeightedPool2Tokens
+    network: {{network}}
+    source:
+      abi: WeightedPool2Tokens
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/pool.ts
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Pool
+        - Mint
+        - Burn
+        - AccountLiquidity
+      abis:
+        - name: ERC20
+          file: ./abis/IERC20.json
+        - name: WeightedPool2TokensFactory
+          file: ./abis/WeightedPool2TokensFactory.json
+        - name: WeightedPool2Tokens
+          file: ./abis/WeightedPool2Tokens.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+  - kind: ethereum/contract
+    name: InvestmentPool
+    network: {{network}}
+    source:
+      abi: InvestmentPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/pool.ts
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Pool
+        - Mint
+        - Burn
+        - AccountLiquidity
+      abis:
+        - name: ERC20
+          file: ./abis/IERC20.json
+        - name: InvestmentPoolFactory
+          file: ./abis/InvestmentPoolFactory.json
+        - name: InvestmentPool
+          file: ./abis/InvestmentPool.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+  - kind: ethereum/contract
+    name: LiquidityBootstrappingPool
+    network: {{network}}
+    source:
+      abi: LiquidityBootstrappingPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/pool.ts
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Pool
+        - Mint
+        - Burn
+        - AccountLiquidity
+      abis:
+        - name: ERC20
+          file: ./abis/IERC20.json
+        - name: LiquidityBootstrappingPoolFactory
+          file: ./abis/LiquidityBootstrappingPoolFactory.json
+        - name: LiquidityBootstrappingPool
+          file: ./abis/LiquidityBootstrappingPool.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+  - kind: ethereum/contract
+    name: MetastablePool
+    network: {{network}}
+    source:
+      abi: MetastablePool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/pool.ts
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Pool
+        - Mint
+        - Burn
+        - AccountLiquidity
+      abis:
+        - name: ERC20
+          file: ./abis/IERC20.json
+        - name: MetastablePoolFactory
+          file: ./abis/MetastablePoolFactory.json
+        - name: MetastablePool
+          file: ./abis/MetastablePool.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+  - kind: ethereum/contract
+    name: StablePool
+    network: {{network}}
+    source:
+      abi: StablePool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/pool.ts
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Pool
+        - Mint
+        - Burn
+        - AccountLiquidity
+      abis:
+        - name: ERC20
+          file: ./abis/IERC20.json
+        - name: StablePoolFactory
+          file: ./abis/StablePoolFactory.json
+        - name: StablePool
+          file: ./abis/StablePool.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
