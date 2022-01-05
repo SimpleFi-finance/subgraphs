@@ -117,10 +117,10 @@ export function handleDistributedBorrowerComp(event: DistributedBorrowerComp): v
  * @returns
  */
 export function handleCompTransfer(event: Transfer): void {
-  let comptroller = event.address;
+  let sender = event.params.from.toHexString();
 
   // don't handle COMP transfers which are not originated from comptroller
-  if (event.params.from != comptroller) {
+  if (CompRewarder.load(sender) == null) {
     return;
   }
 
