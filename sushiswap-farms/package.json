@@ -4,13 +4,20 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/sushiswap-farms",
-    "create-local": "graph create --node http://localhost:8020/ simplefi-finance/sushiswap-farms",
-    "remove-local": "graph remove --node http://localhost:8020/ simplefi-finance/sushiswap-farms",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 simplefi-finance/sushiswap-farms"
+    "prepare-sushiswap-arbitrum": "mustache ./config/sushiswap-arbitrum.json subgraph.minichef.template.yaml > subgraph.yaml && npm run codegen",
+    "prepare-sushiswap-celo": "mustache ./config/sushiswap-celo.json subgraph.minichef.template.yaml > subgraph.yaml && npm run codegen",
+    "prepare-sushiswap-mainnet": "cp subgraph.mainnet.yaml subgraph.yaml && npm run codegen",
+    "prepare-sushiswap-polygon": "mustache ./config/sushiswap-polygon.json subgraph.minichef.template.yaml > subgraph.yaml && npm run codegen",
+    "prepare-sushiswap-xdai": "mustache ./config/sushiswap-xdai.json subgraph.minichef.template.yaml > subgraph.yaml && npm run codegen",
+    "deploy-sushiswap-arbitrum": "npm run prepare-sushiswap-arbitrum && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-sushiswap-farms-arbitrum",
+    "deploy-sushiswap-celo": "npm run prepare-sushiswap-celo && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-sushiswap-farms-celo",
+    "deploy-sushiswap-mainnet": "npm run prepare-sushiswap-mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-sushiswap-farms",
+    "deploy-sushiswap-polygon": "npm run prepare-sushiswap-polygon && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-sushiswap-farms-polygon",
+    "deploy-sushiswap-xdai": "npm run prepare-sushiswap-xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-sushiswap-farms-xdai"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.20.0",
-    "@graphprotocol/graph-ts": "0.20.0"
+    "@graphprotocol/graph-ts": "0.20.0",
+    "mustache": "^4.2.0"
   }
 }

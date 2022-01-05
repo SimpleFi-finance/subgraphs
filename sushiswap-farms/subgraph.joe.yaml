@@ -1,31 +1,31 @@
 specVersion: 0.0.2
-description: MasterChef farms subgraph
+description: SushiSwap farms subgraph - MasterChefV2
 schema:
   file: ./schema.graphql
 
 dataSources:
-  # Controls pools (farms) and SUSHI issuance - V2 version
-  - name: MasterChefV2
+  # Controls pools (farms) and SUSHI issuance - V1 version
+  - name: MasterChef
     kind: ethereum/contract
-    network: xdai
+    network: mainnet
     source:
-      abi: MasterChefV2
-      address: "0xdDCbf776dF3dE60163066A5ddDF2277cB445E0F3"
-      startBlock: 16655565
+      abi: MasterChef
+      address: "0xd6a4F121CA35509aF06A0Be99093d08462f53052"
+      startBlock: 2486444
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
       language: wasm/assemblyscript
-      file: ./src/mappings/masterChefV2.ts
+      file: ./src/mappings/masterChef.ts
       abis:
-        - name: MasterChefV2
-          file: ./abis/MasterChefV2.json
+        - name: MasterChef
+          file: ./abis/MasterChef.json
         - name: IERC20
           file: ./abis/IERC20.json
         - name: IRewarder
           file: ./abis/IRewarder.json
       entities:
-        - MasterChefV2
+        - MasterChef
         - Block
         - Account
         - Token
@@ -35,28 +35,23 @@ dataSources:
         - Position
         - PositionSnapshot
       eventHandlers:
-        - event: Deposit(indexed address,indexed uint256,uint256,indexed address)
+        - event: Deposit(indexed address,indexed uint256,uint256)
           handler: handleDeposit
-        - event: Withdraw(indexed address,indexed uint256,uint256,indexed address)
+        - event: Withdraw(indexed address,indexed uint256,uint256)
           handler: handleWithdraw
-        - event: EmergencyWithdraw(indexed address,indexed uint256,uint256,indexed address)
+        - event: EmergencyWithdraw(indexed address,indexed uint256,uint256)
           handler: handleEmergencyWithdraw
+        - event: UpdatePool(indexed uint256,uint256,uint256,uint256)
+          handler: handleLogUpdatePool
         - event: Harvest(indexed address,indexed uint256,uint256)
           handler: handleHarvest
-        - event: LogPoolAddition(indexed uint256,uint256,indexed address,indexed address)
-          handler: handleLogPoolAddition
-        - event: LogSetPool(indexed uint256,uint256,indexed address,bool)
-          handler: handleLogSetPool
-        - event: LogUpdatePool(indexed uint256,uint64,uint256,uint256)
-          handler: handleLogUpdatePool
-      callHandlers:
-        - function: migrate(uint256)
-          handler: handleMigrate
+        - event: UpdateEmissionRate(indexed address,uint256)
+          handler: handleHarvest
 
 templates:
   - kind: ethereum/contract
     name: RewardToken
-    network: xdai
+    network: mainnet
     source:
       abi: IERC20
     mapping:

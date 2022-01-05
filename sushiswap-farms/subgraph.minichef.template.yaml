@@ -7,11 +7,11 @@ dataSources:
   # Controls pools (farms) and SUSHI issuance - V2 version
   - name: MasterChefV2
     kind: ethereum/contract
-    network: xdai
+    network: {{network}}
     source:
       abi: MasterChefV2
-      address: "0xdDCbf776dF3dE60163066A5ddDF2277cB445E0F3"
-      startBlock: 16655565
+      address: "{{contractAddress}}"
+      startBlock: {{startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
@@ -56,7 +56,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: RewardToken
-    network: xdai
+    network: {{network}}
     source:
       abi: IERC20
     mapping:
