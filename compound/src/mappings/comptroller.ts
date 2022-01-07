@@ -120,7 +120,8 @@ export function handleCompTransfer(event: Transfer): void {
   let sender = event.params.from.toHexString();
 
   // don't handle COMP transfers which are not originated from comptroller
-  if (CompRewarder.load(sender) == null) {
+  let comptroller = CompRewarder.load(sender);
+  if (comptroller == null) {
     return;
   }
 
@@ -135,7 +136,7 @@ export function handleCompTransfer(event: Transfer): void {
   ////// update user's position
 
   // staking market which controlls rewards
-  let market = Market.load(event.address.toHexString()) as Market;
+  let market = Market.load(comptroller.id) as Market;
 
   // no change as only rewards are claimed
   let outputTokenAmount = BigInt.fromI32(0);
