@@ -1,0 +1,23 @@
+{
+  "name": "simplefi-sushiswap-farms",
+  "license": "UNLICENSED",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "prepare-sushiswap-mainnet": "cp subgraph.mainnet.yaml subgraph.yaml && npm run codegen",
+    "prepare-sushiswap-arbitrum": "mustache ./config/sushiswap-arbitrum.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
+    "prepare-sushiswap-celo": "mustache ./config/sushiswap-celo.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
+    "prepare-sushiswap-polygon": "mustache ./config/sushiswap-polygon.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
+    "prepare-sushiswap-gnosis": "mustache ./config/sushiswap-xdai.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
+    "deploy-sushiswap-mainnet": "npm run prepare-sushiswap-mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-sushiswap-farms",
+    "deploy-sushiswap-arbitrum": "npm run prepare-sushiswap-arbitrum && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/sushiswap-farms-arbitrum",
+    "deploy-sushiswap-celo": "npm run prepare-sushiswap-celo && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-sushiswap-farms-celo",
+    "deploy-sushiswap-polygon": "npm run prepare-sushiswap-polygon && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-sushiswap-farms-polygon",
+    "deploy-sushiswap-gnosis": "npm run prepare-sushiswap-xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/sushiswap-farms-gnosis"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.20.0",
+    "@graphprotocol/graph-ts": "0.20.0",
+    "mustache": "^4.2.0"
+  }
+}

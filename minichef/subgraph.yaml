@@ -1,0 +1,80 @@
+specVersion: 0.0.2
+description: MasterChef farms subgraph
+schema:
+  file: ./schema.graphql
+
+dataSources:
+  # Controls pools (farms) and SUSHI issuance - V2 version
+  - name: MiniChef
+    kind: ethereum/contract
+    network: arbitrum-one
+    source:
+      abi: MiniChef
+      address: "0xF4d73326C13a4Fc5FD7A064217e12780e9Bd62c3"
+      startBlock: 226981
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/mappings/minichef.ts
+      abis:
+        - name: MiniChef
+          file: ./abis/MiniChef.json
+        - name: IERC20
+          file: ./abis/IERC20.json
+        - name: IRewarder
+          file: ./abis/IRewarder.json
+      entities:
+        - MiniChef
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+      eventHandlers:
+        - event: Deposit(indexed address,indexed uint256,uint256,indexed address)
+          handler: handleDeposit
+        - event: Withdraw(indexed address,indexed uint256,uint256,indexed address)
+          handler: handleWithdraw
+        - event: EmergencyWithdraw(indexed address,indexed uint256,uint256,indexed address)
+          handler: handleEmergencyWithdraw
+        - event: Harvest(indexed address,indexed uint256,uint256)
+          handler: handleHarvest
+        - event: LogPoolAddition(indexed uint256,uint256,indexed address,indexed address)
+          handler: handleLogPoolAddition
+        - event: LogSetPool(indexed uint256,uint256,indexed address,bool)
+          handler: handleLogSetPool
+        - event: LogUpdatePool(indexed uint256,uint64,uint256,uint256)
+          handler: handleLogUpdatePool
+        - event: LogSushiPerSecond(uint256)
+          handler: handleLogSushiPerSecond
+
+templates:
+  - kind: ethereum/contract
+    name: RewardToken
+    network: arbitrum-one
+    source:
+      abi: IERC20
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+      abis:
+        - name: IERC20
+          file: ./abis/IERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleRewardTokenTransfer
+      file: ./src/mappings/minichef.ts
