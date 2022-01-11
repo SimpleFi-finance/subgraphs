@@ -6,5 +6,5 @@ import { ProtocolName } from "../constants"
 import { handlePairCreated as PairCreatedHandler } from "../uniswapV2Factory"
 
 export function handlePairCreated(event: PairCreated): void {
-  PairCreatedHandler(event, ProtocolName.SUSHISWAP)
+  PairCreatedHandler(event, ProtocolName.PANCAKESWAP)
 }

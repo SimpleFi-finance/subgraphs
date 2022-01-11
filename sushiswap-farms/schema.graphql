@@ -18,8 +18,8 @@ enum TokenStandard {
 
 enum ProtocolName {
   UNISWAP_V2
-  CURVE_POOL
-  CURVE_GAUGE
+  SUSHISWAP
+  SUSHISWAP_FARM
 }
 
 enum ProtocolType {
@@ -168,88 +168,201 @@ type PositionSnapshot @entity {
 
 # END - Common entities for all protocols
 
-# Curve gauge entities
+# Sushiswap farm protocol entities
 
-type Gauge @entity {
-  " Gauge contract address "
+type SushiFarm @entity {
+  " masterchef-farmPid "
   id: ID!
-  type: GaugeType!
 
-  created: BigInt!
-  createdAtBlock: BigInt!
-  createdAtTransaction: Bytes!
+  " pid of the farm/pool assigned by the masterChef "
+  farmPid: BigInt!
 
-  " API version of gauge implementation "
-  version: GaugeVersion!
+  " masterchef contract address "
+  masterChef: MasterChef!
 
-  " Input token for gauge "
-  lpToken: Token
+  " sushi LP token which is farm's input token "
+  lpToken: Token!
 
-  " Total amount of LP tokens deposited to gauge "
+  " contract which tracks and distributes extra reward tokens  "
+  rewarder: Rewarder
+
+  " amount of sushi to distribute per block. "
+  allocPoint: BigInt!
+
+  " total amount of LP tokens provided to farm "
   totalSupply: BigInt!
 
-  " Effective total LP token amount after all deposits have been boosted "
-  workingSupply: BigInt!
+  " last block number where sushi distribution occurs. "
+  lastRewardBlock: BigInt!
+
+  " accumulated amount of sushi per share"
+  accSushiPerShare: BigInt!
+
+  " creation timestamp "
+  created: BigInt!
+
+  " creation block number "
+  createdAtBlock: BigInt!
+
+  " creation transaction "
+  createdAtTransaction: Bytes!
 }
 
-enum GaugeVersion {
-  LIQUIDITY_GAUGE_REWARD
-  LIQUIDITY_GAUGE_V1
-  LIQUIDITY_GAUGE_V2
-  LIQUIDITY_GAUGE_V3
-  LIQUIDITY_GAUGE_ANDRE
-}
+type SushiFarmSnapshot @entity {
+  " trasactionHash-logIndex "
+  id: ID!
 
-type GaugeSnapshot @entity {
-  id: ID! # {trasactionHash}{logIndex}
-  gauge: Gauge!
-  originalSupply: BigInt!
-  workingSupply: BigInt!
+  " pid of the farm/pool assigned by the masterChef "
+  farmPid: BigInt!
+
+  " farm of which snapshot is taken "
+  sushiFarm: SushiFarm!
+
+  " amount of sushi to distribute per block. "
+  allocPoint: BigInt!
+
+  " total amount of LP tokens provided to farm "
+  totalSupply: BigInt!
+
+  " snapshot timestamp "
   timestamp: BigInt!
+
+  " block number in which snapshot is taken "
   blockNumber: BigInt!
+
+  " transaction in which snapshot is taken "
   transactionHash: String!
+
+  " index of transaction in block "
   transactionIndexInBlock: BigInt!
+
+  " snapshot log index "
   logIndex: BigInt!
 }
 
-type GaugeType @entity {
+type UserInfo @entity {
+  " usersAddress-farmPID"
   id: ID!
-  name: String!
-  gauges: [Gauge!] @derivedFrom(field: "type")
-  #weights: [GaugeTypeWeight!] @derivedFrom(field: "type")
-}
 
-type GaugeDeposit @entity {
-  id: ID!
-  gauge: Gauge!
-  provider: Account!
-  value: BigInt!
-}
-
-type GaugeWithdraw @entity {
-  id: ID!
-  gauge: Gauge!
-  provider: Account!
-  value: BigInt!
-}
-
-type GaugeUpdateLiquidityLimit @entity {
-  id: ID! # {transactionHash}{account}{gauge}
-  gauge: Gauge!
+  " user taking positions in farm "
   user: Account!
-  original_balance: BigInt!
-  original_supply: BigInt!
-  working_balance: BigInt!
-  working_supply: BigInt!
+
+  " farm to which user position belongs to "
+  farm: SushiFarm!
+
+  " LP token amount the user has provided "
+  amount: BigInt!
+
+  " amount of SUSHI entitled to the user "
+  rewardDebt: BigInt!
 }
 
-type AccountLiquidity @entity {
-  id: ID! # {accountAddress}{gaugeAddress}
-  gauge: Gauge!
-  account: Account!
-  balance: BigInt!
-  workingBalance: BigInt!
-  crvReceived: BigInt!
+type FarmDeposit @entity {
+  " transactionHash-logIndex "
+  id: ID!
+
+  " transaction in which deposit took place "
+  transactionHash: String!
+
+  " farm to which LP tokens are deposited "
+  sushiFarm: SushiFarm!
+
+  " account which performed the deposit "
+  depositer: Account!
+
+  " receiver of `amount` deposit benefit "
+  depositReceiver: Account
+
+  " LP token amount to deposit "
+  amount: BigInt!
 }
 
-# END - Curve protocol entities
+type FarmWithdrawal @entity {
+  " transactionHash-logIndex "
+  id: ID!
+
+  " transaction in which withdrawal took place "
+  transactionHash: String!
+
+  " farm from which LP tokens are withdrawn "
+  sushiFarm: SushiFarm!
+
+  " account which performed the withdrawal "
+  withdrawer: Account!
+
+  " receiver of LP tokens "
+  withdrawalReceiver: Account
+
+  " LP token amount to withdraw "
+  amount: BigInt!
+}
+
+type SushiRewardTransfer @entity {
+  " transactionHash-receiver "
+  id: ID!
+
+  " transaction in which transfer took place "
+  transactionHash: String!
+
+  " sender is the MasterChef when Sushi is rewarded "
+  from: Account!
+
+  " receiver of Sushi reward "
+  to: Account
+
+  " amount of rewarded Sushi "
+  value: BigInt!
+}
+
+type ExtraRewardTokenTransfer @entity {
+  " transactionHash-tokenAddress "
+  id: ID!
+
+  " transaction in which transfer took place "
+  transactionHash: String!
+
+  " token rewarded in addition to Sushi "
+  rewardToken: Token!
+
+  " sender is the Rewarder contract "
+  from: Account!
+
+  " receiver of token reward "
+  to: Account
+
+  " amount of rewarded tokens "
+  value: BigInt!
+}
+
+type MasterChef @entity {
+  " contract address "
+  id: ID!
+
+  " masterchef contract version "
+  version: BigInt!
+
+  " address of sushi token"
+  sushi: Token!
+
+  " total number of farms/pools this masterChef is tracking "
+  numberOfFarms: BigInt!
+
+  " sum of all allocation points in all farms "
+  totalAllocPoint: BigInt!
+
+  " sushi tokens created per block "
+  sushiPerBlock: BigInt!
+
+  " block number when bonus Sushi period ends "
+  bonusEndBlock: BigInt
+
+  " bonus muliplier for early sushi makers "
+  bonusMultiplier: BigInt
+}
+
+type Rewarder @entity {
+  " contract address "
+  id: ID!
+}
+
+# END - Sushiswap farm protocol entities

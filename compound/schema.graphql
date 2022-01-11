@@ -19,12 +19,14 @@ enum TokenStandard {
 enum ProtocolName {
   UNISWAP_V2
   CURVE_POOL
-  CURVE_GAUGE
+  AAVE_POOL
+  COMPOUND
 }
 
 enum ProtocolType {
   STAKING
   LENDING
+  DEBT
   EXCHANGE
   INSURANCE
   STABLECOIN
@@ -32,7 +34,6 @@ enum ProtocolType {
   SYNTHETIC_TOKEN
   TOKEN_MANAGEMENT # Meta LP vaults
   PREDICTION_MARKET
-  LP_FARMING
 }
 
 enum PositionType {
@@ -66,7 +67,7 @@ type Token @entity {
 }
 
 type Market @entity {
-  id: ID! # {protocol pair/pool/vault address}
+  id: ID! # {protocol pool/pool/vault address}
   account: Account!
   protocolName: ProtocolName!
   protocolType: ProtocolType!
@@ -79,6 +80,8 @@ type Market @entity {
   rewardTokens: [Token!] # Aditional tokens that are given as reward for position in a protocol
   inputTokenTotalBalances: [String!]! # Total balance of this market contract of all input tokens in TokenBalance string format
   outputTokenTotalSupply: BigInt! # Total supply of output token
+  balanceMultiplier: BigInt # optional; defines multiplier to derive inputTokenBalance from outputTokenBalance of a user
+  rewardRate: BigInt # optional; used in reward market to specify amount of reward tokens generated with every block
   blockNumber: BigInt!
   timestamp: BigInt!
   positions: [Position!]! @derivedFrom(field: "market")
@@ -90,6 +93,7 @@ type MarketSnapshot @entity {
   market: Market!
   inputTokenBalances: [String!]! # TokenBalance string format
   outputTokenTotalSupply: BigInt!
+  balanceMultiplier: BigInt # optional; defines multiplier to derive inputTokenBalance from outputTokenBalance of a user
   blockNumber: BigInt!
   timestamp: BigInt!
   transactionHash: String!
@@ -168,88 +172,101 @@ type PositionSnapshot @entity {
 
 # END - Common entities for all protocols
 
-# Curve gauge entities
+# Compound protocol entities
 
-type Gauge @entity {
-  " Gauge contract address "
+type CToken @entity {
+  " contract address "
   id: ID!
-  type: GaugeType!
 
-  created: BigInt!
-  createdAtBlock: BigInt!
-  createdAtTransaction: Bytes!
+  " underlying ERC20 asset or 0x00 if it's ETH "
+  underlying: String!
 
-  " API version of gauge implementation "
-  version: GaugeVersion!
+  " address of lending pool to which aToken belongs "
+  comptroller: String!
 
-  " Input token for gauge "
-  lpToken: Token
+  " erc20 name "
+  cTokenName: String!
 
-  " Total amount of LP tokens deposited to gauge "
+  " erc20 symbol "
+  cTokenSymbol: String!
+
+  " erc20 decimals "
+  cTokenDecimals: Int!
+
+  " total amount of reserves of the underlying held in this market "
+  totalReserves: BigInt!
+
+  " total number of tokens in circulation "
   totalSupply: BigInt!
 
-  " Effective total LP token amount after all deposits have been boosted "
-  workingSupply: BigInt!
-}
+  " accumulator of the total earned interest rate since the opening of the market "
+  borrowIndex: BigInt!
 
-enum GaugeVersion {
-  LIQUIDITY_GAUGE_REWARD
-  LIQUIDITY_GAUGE_V1
-  LIQUIDITY_GAUGE_V2
-  LIQUIDITY_GAUGE_V3
-  LIQUIDITY_GAUGE_ANDRE
-}
+  " balance of contract in terms of the underlying asset "
+  cash: BigInt!
 
-type GaugeSnapshot @entity {
-  id: ID! # {trasactionHash}{logIndex}
-  gauge: Gauge!
-  originalSupply: BigInt!
-  workingSupply: BigInt!
-  timestamp: BigInt!
-  blockNumber: BigInt!
+  " total amount of outstanding borrows of the underlying asset "
+  totalBorrows: BigInt!
+
+  " the portion of compRate that each market currently receives "
+  compSpeed: BigInt!
+
+  " TX at which CToken was registered "
   transactionHash: String!
-  transactionIndexInBlock: BigInt!
-  logIndex: BigInt!
 }
 
-type GaugeType @entity {
+type UserDepositBalance @entity {
+  " userAddress-cTokenId"
   id: ID!
-  name: String!
-  gauges: [Gauge!] @derivedFrom(field: "type")
-  #weights: [GaugeTypeWeight!] @derivedFrom(field: "type")
-}
 
-type GaugeDeposit @entity {
-  id: ID!
-  gauge: Gauge!
-  provider: Account!
-  value: BigInt!
-}
-
-type GaugeWithdraw @entity {
-  id: ID!
-  gauge: Gauge!
-  provider: Account!
-  value: BigInt!
-}
-
-type GaugeUpdateLiquidityLimit @entity {
-  id: ID! # {transactionHash}{account}{gauge}
-  gauge: Gauge!
+  " user taking positions in pool "
   user: Account!
-  original_balance: BigInt!
-  original_supply: BigInt!
-  working_balance: BigInt!
-  working_supply: BigInt!
+
+  " cToken market in which user invested "
+  cToken: CToken!
+
+  " total cToken balance "
+  cTokenBalance: BigInt!
+
+  " amount of underlying asset tokens user can redeem "
+  redeemableTokensBalance: BigInt!
 }
 
-type AccountLiquidity @entity {
-  id: ID! # {accountAddress}{gaugeAddress}
-  gauge: Gauge!
-  account: Account!
-  balance: BigInt!
-  workingBalance: BigInt!
-  crvReceived: BigInt!
+type UserBorrowBalance @entity {
+  " userAddress-cTokenId"
+  id: ID!
+
+  " user taking on debt "
+  user: Account!
+
+  " cToken market from which user borrowed "
+  cToken: CToken!
+
+  " total balance (with accrued interest) "
+  principal: BigInt!
+
+  " global borrowIndex as of the most recent balance-changing action "
+  interestIndex: BigInt!
 }
 
-# END - Curve protocol entities
+type UserRewardBalance @entity {
+  " user address "
+  id: ID!
+
+  " amount of unclaimed reward tokens "
+  unclaimedRewards: BigInt!
+
+  " amount of claimed reward tokens "
+  claimedRewards: BigInt!
+
+  " total amount of rewards entitled to user "
+  lifetimeRewards: BigInt!
+}
+
+type CompRewarder @entity {
+  " comptroller address "
+  id: ID!
+
+  " amount of COMP (in wei), per block, allocated for the markets "
+  compRate: BigInt!
+}

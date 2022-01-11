@@ -9,9 +9,9 @@ import {
   getOrCreateERC20Token,
   getOrCreateMarket
 } from "./common"
-import { ProtocolName, ProtocolType } from "./constants"
+import { ProtocolType } from "./constants"
 
-export function handlePairCreated(event: PairCreated): void {
+export function handlePairCreated(event: PairCreated, protocolName: string): void {
   // Create a tokens and market entity
   let token0 = getOrCreateERC20Token(event, event.params.token0)
   let token1 = getOrCreateERC20Token(event, event.params.token1)
@@ -20,7 +20,7 @@ export function handlePairCreated(event: PairCreated): void {
   let market = getOrCreateMarket(
     event,
     event.params.pair,
-    ProtocolName.UNISWAP_V2,
+    protocolName,
     ProtocolType.EXCHANGE,
     [token0, token1],
     lpToken,

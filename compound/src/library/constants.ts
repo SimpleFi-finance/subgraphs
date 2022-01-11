@@ -19,12 +19,14 @@ export namespace TokenStandard {
 export namespace ProtocolName {
   export const UNISWAP_V2 = "UNISWAP_V2";
   export const CURVE_POOL = "CURVE_POOL";
-  export const CURVE_GAUGE = "CURVE_GAUGE";
+  export const AAVE_POOL = "AAVE_POOL";
+  export const COMPOUND = "COMPOUND";
 }
 
 export namespace ProtocolType {
   export const STAKING = "STAKING";
   export const LENDING = "LENDING";
+  export const DEBT = "DEBT";
   export const EXCHANGE = "EXCHANGE";
   export const INSURANCE = "INSURANCE";
   export const STABLECOIN = "STABLECOIN";
@@ -32,7 +34,6 @@ export namespace ProtocolType {
   export const SYNTHETIC_TOKEN = "SYNTHETIC_TOKEN";
   export const TOKEN_MANAGEMENT = "TOKEN_MANAGEMENT";
   export const PREDICTION_MARKET = "PREDICTION_MARKET";
-  export const LP_FARMING = "LP_FARMING";
 }
 
 export namespace PositionType {
@@ -263,11 +264,3 @@ lpTokenToPool.set(LINK_LP_TOKEN, LINK_POOL);
 lpTokenToPool.set(LINKUSD_LP_TOKEN, LINKUSD_POOL);
 lpTokenToPool.set(TRICRYPTO_LP_TOKEN, TRICRYPTO_POOL);
 lpTokenToPool.set(TRICRYPTO_2_LP_TOKEN, TRICRYPTO_2_POOL);
-
-export namespace GaugeVersion {
-  export const LIQUIDITY_GAUGE_REWARD = "LIQUIDITY_GAUGE_REWARD";
-  export const LIQUIDITY_GAUGE_V1 = "LIQUIDITY_GAUGE_V1";
-  export const LIQUIDITY_GAUGE_V2 = "LIQUIDITY_GAUGE_V2";
-  export const LIQUIDITY_GAUGE_V3 = "LIQUIDITY_GAUGE_V3";
-  export const LIQUIDITY_GAUGE_ANDRE = "LIQUIDITY_GAUGE_ANDRE";
-}
