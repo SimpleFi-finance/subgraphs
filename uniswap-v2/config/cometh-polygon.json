@@ -1,0 +1,6 @@
+{
+  "network": "matic",
+  "factoryAddress": "0x800b052609c355cA8103E06F022aA30647eAd60a",
+  "factoryStartBlock": 11633169,
+  "factoryMappingPath": "cometh.ts"
+}

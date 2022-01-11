@@ -20,6 +20,12 @@ export namespace ProtocolName {
   export const QUICKSWAP = "QUICKSWAP"
   export const TRISOLARIS = "TRISOLARIS"
   export const PANCAKESWAP = "PANCAKESWAP"
+  export const APESWAP = "APESWAP"
+  export const BISWAP = "BISWAP"
+  export const COMETH = "COMETH"
+  export const PANGOLIN = "PANGOLIN"
+  export const TRADER_JOE = "TRADER_JOE"
+  export const WANNASWAP = "WANNASWAP"
 }
 
 export namespace ProtocolType {
