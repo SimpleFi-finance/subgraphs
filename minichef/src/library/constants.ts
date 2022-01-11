@@ -20,6 +20,7 @@ export namespace ProtocolName {
   export const UNISWAP_V2 = "UNISWAP_V2";
   export const CURVE_POOL = "CURVE_POOL";
   export const SUSHISWAP_FARM = "SUSHISWAP_FARM";
+  export const APESWAP_FARM = "APESWAP_FARM";
 }
 
 export namespace ProtocolType {
@@ -34,7 +35,6 @@ export namespace ProtocolType {
   export const PREDICTION_MARKET = "PREDICTION_MARKET";
   export const LP_FARMING = "LP_FARMING";
 }
-
 
 export namespace PositionType {
   export const INVESTMENT = "INVESTMENT";

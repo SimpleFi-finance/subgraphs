@@ -20,6 +20,7 @@ enum ProtocolName {
   UNISWAP_V2
   SUSHISWAP
   SUSHISWAP_FARM
+  APESWAP_FARM
 }
 
 enum ProtocolType {

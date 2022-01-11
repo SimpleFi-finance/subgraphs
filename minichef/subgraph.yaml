@@ -7,19 +7,19 @@ dataSources:
   # Controls pools (farms) and SUSHI issuance - V2 version
   - name: MiniChef
     kind: ethereum/contract
-    network: arbitrum-one
+    network: matic
     source:
       abi: MiniChef
-      address: "0xF4d73326C13a4Fc5FD7A064217e12780e9Bd62c3"
-      startBlock: 226981
+      address: "0x54aff400858Dcac39797a81894D9920f16972D1D"
+      startBlock: 15797922
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
       language: wasm/assemblyscript
-      file: ./src/mappings/minichef.ts
+      file: ./src/mappings/minichef-apeswap.ts
       abis:
         - name: MiniChef
-          file: ./abis/MiniChef.json
+          file: ./abis/MiniApe.json
         - name: IERC20
           file: ./abis/IERC20.json
         - name: IRewarder
@@ -49,13 +49,13 @@ dataSources:
           handler: handleLogSetPool
         - event: LogUpdatePool(indexed uint256,uint64,uint256,uint256)
           handler: handleLogUpdatePool
-        - event: LogSushiPerSecond(uint256)
+        - event: LogBananaPerSecond(uint256)
           handler: handleLogSushiPerSecond
 
 templates:
   - kind: ethereum/contract
     name: RewardToken
-    network: arbitrum-one
+    network: matic
     source:
       abi: IERC20
     mapping:
@@ -77,4 +77,4 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleRewardTokenTransfer
-      file: ./src/mappings/minichef.ts
+      file: ./src/mappings/minichef-apeswap.ts
