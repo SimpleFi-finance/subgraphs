@@ -332,6 +332,18 @@ export class TokenBalance {
   }
 }
 
+export class TokenBalanceFormula {
+  output: string;
+  input: string[];
+  reward: string[];
+
+  constructor(output: string, input: string[], reward: string[]) {
+    this.output = output;
+    this.input = input;
+    this.reward = reward;
+  }
+}
+
 /**
  * Create snapshot of user's position at certain block
  *
@@ -339,7 +351,11 @@ export class TokenBalance {
  * @param {Transaction} transaction Transaction which triggered the change in position
  * @return {*}  {PositionSnapshot} PositionSnapshot entity
  */
-function createPositionSnapshot(position: Position, transaction: Transaction): PositionSnapshot {
+function createPositionSnapshot(
+  position: Position, 
+  transaction: Transaction, 
+  tokenBalanceFormula: TokenBalanceFormula | null
+): PositionSnapshot {
   let newCounter = position.historyCounter.plus(BigInt.fromI32(1));
   let newSnapshot = new PositionSnapshot(position.id.concat("-").concat(newCounter.toString()));
   newSnapshot.position = position.id;
@@ -347,6 +363,9 @@ function createPositionSnapshot(position: Position, transaction: Transaction): P
   newSnapshot.outputTokenBalance = position.outputTokenBalance;
   newSnapshot.inputTokenBalances = position.inputTokenBalances;
   newSnapshot.rewardTokenBalances = position.rewardTokenBalances;
+  newSnapshot.outputTokenBalanceFormula = tokenBalanceFormula.output;
+  newSnapshot.inputTokenBalanceFormula = tokenBalanceFormula.input;
+  newSnapshot.rewardTokenBalanceFormula = tokenBalanceFormula.reward;
   newSnapshot.transferredTo = position.transferredTo;
   position.blockNumber = transaction.blockNumber;
   position.timestamp = transaction.timestamp;
@@ -387,7 +406,8 @@ export function investInMarket(
   outputTokenBalance: BigInt,
   inputTokenBalances: TokenBalance[],
   rewardTokenBalances: TokenBalance[],
-  transferredFrom: string | null
+  transferredFrom: string | null,
+  tokenBalanceFormula: TokenBalanceFormula | null 
 ): Position {
   // Create marketSnapshot for transaction
   let marketSnapshot = createMarketSnapshot(event, market);
@@ -423,7 +443,7 @@ export function investInMarket(
   transaction.save();
 
   let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT);
-  let positionSnapshot = createPositionSnapshot(position, transaction);
+  let positionSnapshot = createPositionSnapshot(position, transaction, tokenBalanceFormula);
 
   position.inputTokenBalances = inputTokenBalances.map<string>((tb) => tb.toString());
   position.outputTokenBalance = outputTokenBalance;
@@ -468,7 +488,8 @@ export function redeemFromMarket(
   outputTokenBalance: BigInt,
   inputTokenBalances: TokenBalance[],
   rewardTokenBalances: TokenBalance[],
-  transferredTo: string | null
+  transferredTo: string | null,
+  tokenBalanceFormula: TokenBalanceFormula | null 
 ): Position {
   // Create marketSnapshot for transaction
   let marketSnapshot = createMarketSnapshot(event, market);
@@ -504,7 +525,7 @@ export function redeemFromMarket(
   transaction.save();
 
   let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT);
-  let postionSnapshot = createPositionSnapshot(position, transaction);
+  let postionSnapshot = createPositionSnapshot(position, transaction, tokenBalanceFormula);
 
   // No change in investment amount as no new investment has been made
   position.inputTokenBalances = inputTokenBalances.map<string>((tb) => tb.toString());
@@ -556,7 +577,8 @@ export function borrowFromMarket(
   rewardTokenAmounts: TokenBalance[],
   outputTokenBalance: BigInt,
   inputTokenBalances: TokenBalance[],
-  rewardTokenBalances: TokenBalance[]
+  rewardTokenBalances: TokenBalance[],
+  tokenBalanceFormula: TokenBalanceFormula | null 
 ): Position {
   // Create marketSnapshot for transaction
   let marketSnapshot = createMarketSnapshot(event, market);
@@ -587,7 +609,7 @@ export function borrowFromMarket(
   transaction.save();
 
   let position = getOrCreateOpenPosition(event, account, market, PositionType.DEBT);
-  let positionSnapshot = createPositionSnapshot(position, transaction);
+  let positionSnapshot = createPositionSnapshot(position, transaction, tokenBalanceFormula);
 
   position.inputTokenBalances = inputTokenBalances.map<string>((tb) => tb.toString());
   position.outputTokenBalance = outputTokenBalance;
@@ -629,7 +651,8 @@ export function repayToMarket(
   rewardTokenAmounts: TokenBalance[],
   outputTokenBalance: BigInt,
   inputTokenBalances: TokenBalance[],
-  rewardTokenBalances: TokenBalance[]
+  rewardTokenBalances: TokenBalance[],
+  tokenBalanceFormula: TokenBalanceFormula | null 
 ): Position {
   // Create marketSnapshot for transaction
   let marketSnapshot = createMarketSnapshot(event, market);
@@ -660,7 +683,7 @@ export function repayToMarket(
   transaction.save();
 
   let position = getOrCreateOpenPosition(event, account, market, PositionType.DEBT);
-  let postionSnapshot = createPositionSnapshot(position, transaction);
+  let postionSnapshot = createPositionSnapshot(position, transaction, tokenBalanceFormula);
 
   // Loan amount is not changed on repayment
   position.inputTokenBalances = inputTokenBalances.map<string>((tb) => tb.toString());

@@ -163,6 +163,9 @@ type PositionSnapshot @entity {
   outputTokenBalance: BigInt!
   inputTokenBalances: [String!]! # TokenBalance string format
   rewardTokenBalances: [String!]! # TokenBalance string format
+  outputTokenBalanceFormula: String
+  inputTokenBalanceFormula: [String!]
+  rewardTokenBalanceFormula: [String!]
   transferredTo: [String!]! # TokenBalance string format
 }
 
@@ -255,6 +258,35 @@ type UserInfo @entity {
 
   " amount of SUSHI entitled to the user "
   rewardDebt: BigInt!
+}
+
+type UserInfoSnapshot @entity {
+  " UserInfo.id-trasactionHash-logIndex "
+  id: ID!
+
+  " UserInfo for which the snapshot is taken "
+  userInfo: UserInfo!
+
+  " LP token amount the user has provided "
+  amount: BigInt!
+
+  " amount of SUSHI entitled to the user "
+  rewardDebt: BigInt!
+
+  " snapshot timestamp "
+  timestamp: BigInt!
+
+  " block number in which snapshot is taken "
+  blockNumber: BigInt!
+
+  " transaction in which snapshot is taken "
+  transactionHash: String!
+
+  " index of transaction in block "
+  transactionIndexInBlock: BigInt!
+
+  " snapshot log index "
+  logIndex: BigInt!
 }
 
 type FarmDeposit @entity {

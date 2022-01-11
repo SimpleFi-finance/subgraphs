@@ -29,9 +29,10 @@ import {
   investInMarket,
   redeemFromMarket,
   TokenBalance,
+  TokenBalanceFormula,
 } from "../library/common";
 
-import { getOrCreateUserInfo } from "../library/masterChefUtils";
+import { getOrCreateUserInfo, updateUserInfo } from "../library/masterChefUtils";
 
 import { ProtocolName, ProtocolType } from "../library/constants";
 
@@ -120,9 +121,9 @@ export function handleDeposit(event: Deposit): void {
     .minus(userInfo.rewardDebt);
 
   // increase user's balance of provided LP tokens and amount of rewards entitled to user
-  userInfo.amount = userInfo.amount.plus(amount);
-  userInfo.rewardDebt = userInfo.amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION);
-  userInfo.save();
+  let newUserInfoAmount = userInfo.amount.plus(amount);
+  let newUserInfoRewardDebt = userInfo.amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION);
+  userInfo = updateUserInfo(event, userInfo, newUserInfoAmount, newUserInfoRewardDebt);
 
   ////// update market LP supply
 
@@ -165,6 +166,9 @@ export function handleDeposit(event: Deposit): void {
     new TokenBalance(rewardTokens[0], user.id, BigInt.fromI32(0)),
   ];
 
+  let rewardTokenBalanceFormula = "(UserInfo.amount * SushiFarm.accSushiPerShare / MasterChef.precision) - UserInfo.rewardDebt|" + "UserInfo:" + userInfo.id + "|SushiFarm:"+sushiFarm.id + "|MasterChef:"+ masterChef.id;
+  let tokenBalanceFormula = new TokenBalanceFormula(null, null, [rewardTokenBalanceFormula]);
+
   investInMarket(
     event,
     user,
@@ -175,7 +179,8 @@ export function handleDeposit(event: Deposit): void {
     outputTokenBalance,
     inputTokenBalances,
     rewardTokenBalances,
-    null
+    null,
+    tokenBalanceFormula
   );
 }
 
@@ -212,9 +217,9 @@ export function handleWithdraw(event: Withdraw): void {
     .minus(userInfo.rewardDebt);
 
   // decrease user's balance of provided LP tokens and amount of rewards entitled to user
-  userInfo.amount = userInfo.amount.minus(amount);
-  userInfo.rewardDebt = userInfo.amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION);
-  userInfo.save();
+  let newUserInfoAmount = userInfo.amount.minus(amount);
+  let newUserInfoRewardDebt = userInfo.amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION);
+  userInfo = updateUserInfo(event, userInfo, newUserInfoAmount, newUserInfoRewardDebt);
 
   ////// update market LP supply
 
@@ -257,6 +262,9 @@ export function handleWithdraw(event: Withdraw): void {
     new TokenBalance(rewardTokens[0], user.id, BigInt.fromI32(0)),
   ];
 
+  let rewardTokenBalanceFormula = "(UserInfo.amount * SushiFarm.accSushiPerShare / MasterChef.precision) - UserInfo.rewardDebt|" + "UserInfo:" + userInfo.id + "|SushiFarm:"+sushiFarm.id + "|MasterChef:"+ masterChef.id;
+  let tokenBalanceFormula = new TokenBalanceFormula(null, null, [rewardTokenBalanceFormula]);
+
   redeemFromMarket(
     event,
     user,
@@ -267,7 +275,8 @@ export function handleWithdraw(event: Withdraw): void {
     outputTokenBalance,
     inputTokenBalances,
     rewardTokenBalances,
-    null
+    null,
+    tokenBalanceFormula
   );
 }
 
@@ -295,9 +304,7 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
 
   // LP token balance and claimable rewards are resetted to 0 in EmergencyWithdraw
   let userInfo = getOrCreateUserInfo(user.id, sushiFarm.id);
-  userInfo.amount = BigInt.fromI32(0);
-  userInfo.rewardDebt = BigInt.fromI32(0);
-  userInfo.save();
+  userInfo = updateUserInfo(event, userInfo, BigInt.fromI32(0), BigInt.fromI32(0));
 
   ////// update market LP supply
 
@@ -338,6 +345,9 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
     new TokenBalance(rewardTokens[0], user.id, BigInt.fromI32(0)),
   ];
 
+  let rewardTokenBalanceFormula = "(UserInfo.amount * SushiFarm.accSushiPerShare / MasterChef.precision) - UserInfo.rewardDebt|" + "UserInfo:" + userInfo.id + "|SushiFarm:"+sushiFarm.id + "|MasterChef:"+ masterChef.id;
+  let tokenBalanceFormula = new TokenBalanceFormula(null, null, [rewardTokenBalanceFormula]);
+
   redeemFromMarket(
     event,
     user,
@@ -348,7 +358,8 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
     outputTokenBalance,
     inputTokenBalances,
     rewardTokenBalances,
-    null
+    null,
+    tokenBalanceFormula
   );
 }
 
