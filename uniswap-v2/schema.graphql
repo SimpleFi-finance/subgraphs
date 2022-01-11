@@ -18,6 +18,16 @@ enum TokenStandard {
 
 enum ProtocolName {
   UNISWAP_V2
+  SUSHISWAP
+  QUICKSWAP
+  TRISOLARIS
+  APESWAP
+  BISWAP
+  COMETH
+  PANGOLIN
+  TRADER_JOE
+  WANNASWAP
+  PANCAKESWAP
 }
 
 enum ProtocolType {
@@ -28,7 +38,7 @@ enum ProtocolType {
   STABLECOIN
   DERIVATIVE
   SYNTHETIC_TOKEN
-  TOKEN_MANAGEMENT  # Meta LP vaults
+  TOKEN_MANAGEMENT # Meta LP vaults
   PREDICTION_MARKET
 }
 
@@ -69,13 +79,13 @@ type Market @entity {
   protocolType: ProtocolType!
   # Generally protocols accept one or multiple tokens and mint tokens to the depositor to track ownership
   # Some protocols reward DAO tokens or other incentivisation tokens to holders of LP tokens
-  # Some protocols don't mint any tokens to track ownership, in that case outputToken is null 
+  # Some protocols don't mint any tokens to track ownership, in that case outputToken is null
   # and inputToken balances are used to calculate returns
-  inputTokens: [Token!]!   # Tokens that need to be deposited to take a position in protocol
-  outputToken: Token       # Token that is minted to track ownership of position in protocol
-  rewardTokens: [Token!]   # Aditional tokens that are given as reward for position in a protocol
-  inputTokenTotalBalances: [String!]!   # Total balance of this market contract of all input tokens in TokenBalance string format
-  outputTokenTotalSupply: BigInt!       # Total supply of output token
+  inputTokens: [Token!]! # Tokens that need to be deposited to take a position in protocol
+  outputToken: Token # Token that is minted to track ownership of position in protocol
+  rewardTokens: [Token!] # Aditional tokens that are given as reward for position in a protocol
+  inputTokenTotalBalances: [String!]! # Total balance of this market contract of all input tokens in TokenBalance string format
+  outputTokenTotalSupply: BigInt! # Total supply of output token
   blockNumber: BigInt!
   timestamp: BigInt!
   positions: [Position!]! @derivedFrom(field: "market")
@@ -85,7 +95,7 @@ type Market @entity {
 type MarketSnapshot @entity {
   id: ID! # {trasactionHash}{logIndex}
   market: Market!
-  inputTokenBalances: [String!]!  # TokenBalance string format
+  inputTokenBalances: [String!]! # TokenBalance string format
   outputTokenTotalSupply: BigInt!
   blockNumber: BigInt!
   timestamp: BigInt!
@@ -130,7 +140,7 @@ type AccountPosition @entity {
   positions: [Position!]! @derivedFrom(field: "accountPosition")
 }
 
-# We can not keep balances and roi updated all the time. 
+# We can not keep balances and roi updated all the time.
 # We can update these only when the account of the position makes some changes in the position
 # at others time when market variables are changing because of other's actions then we won't update these
 type Position @entity {
@@ -142,8 +152,8 @@ type Position @entity {
   marketAddress: String!
   positionType: PositionType!
   outputTokenBalance: BigInt!
-  inputTokenBalances: [String!]!    # TokenBalance string format
-  rewardTokenBalances: [String!]!   # TokenBalance string format
+  inputTokenBalances: [String!]! # TokenBalance string format
+  rewardTokenBalances: [String!]! # TokenBalance string format
   transferredTo: [String!]!
   closed: Boolean!
   blockNumber: BigInt!
@@ -158,9 +168,9 @@ type PositionSnapshot @entity {
   position: Position!
   transaction: Transaction!
   outputTokenBalance: BigInt!
-  inputTokenBalances: [String!]!    # TokenBalance string format
-  rewardTokenBalances: [String!]!   # TokenBalance string format
-  transferredTo: [String!]!         # TokenBalance string format
+  inputTokenBalances: [String!]! # TokenBalance string format
+  rewardTokenBalances: [String!]! # TokenBalance string format
+  transferredTo: [String!]! # TokenBalance string format
 }
 
 # END - Common entities for all protocols

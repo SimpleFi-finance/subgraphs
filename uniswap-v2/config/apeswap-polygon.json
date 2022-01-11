@@ -1,5 +1,6 @@
 {
   "network": "matic",
   "factoryAddress": "0xCf083Be4164828f00cAE704EC15a36D711491284",
-  "factoryStartBlock": 15298801
+  "factoryStartBlock": 15298801,
+  "factoryMappingPath": "apeswap.ts"
 }

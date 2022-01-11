@@ -27,7 +27,7 @@ dataSources:
       eventHandlers:
         - event: PairCreated(indexed address,indexed address,address,uint256)
           handler: handlePairCreated
-      file: ./src/uniswapV2Factory.ts
+      file: ./src/factories/{{factoryMappingPath}}
 templates:
   - kind: ethereum/contract
     name: UniswapV2Pair

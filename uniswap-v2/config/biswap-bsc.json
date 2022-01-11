@@ -1,5 +1,6 @@
 {
   "network": "bsc",
   "factoryAddress": "0x858E3312ed3A876947EA49d572A7C42DE08af7EE",
-  "factoryStartBlock": 7664646
+  "factoryStartBlock": 7664646,
+  "factoryMappingPath": "biswap.ts"
 }
