@@ -16,6 +16,10 @@ export namespace TokenStandard {
 
 export namespace ProtocolName {
   export const UNISWAP_V2 = "UNISWAP_V2"
+  export const SUSHISWAP = "SUSHISWAP"
+  export const QUICKSWAP = "QUICKSWAP"
+  export const TRISOLARIS = "TRISOLARIS"
+  export const PANCAKESWAP = "PANCAKESWAP"
 }
 
 export namespace ProtocolType {
