@@ -10,12 +10,14 @@
     "prepare-sushiswap-celo": "mustache ./config/sushiswap-celo.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
     "prepare-sushiswap-polygon": "mustache ./config/sushiswap-polygon.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
     "prepare-sushiswap-gnosis": "mustache ./config/sushiswap-xdai.json subgraph.template.yaml > subgraph.yaml && npm run codegen",
+    "prepare-traderjoe-avalanche": "cp subgraph.joe.yaml subgraph.yaml && npm run codegen",
     "deploy-sushiswap-mainnet": "npm run prepare-sushiswap-mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-sushiswap-farms",
     "deploy-apeswap-polygon": "npm run prepare-apeswap-polygon && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-apeswap-farms-polygon",
     "deploy-sushiswap-arbitrum": "npm run prepare-sushiswap-arbitrum && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/sushiswap-farms-arbitrum",
     "deploy-sushiswap-celo": "npm run prepare-sushiswap-celo && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-sushiswap-farms-celo",
     "deploy-sushiswap-polygon": "npm run prepare-sushiswap-polygon && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-sushiswap-farms-polygon",
-    "deploy-sushiswap-gnosis": "npm run prepare-sushiswap-xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/sushiswap-farms-gnosis"
+    "deploy-sushiswap-gnosis": "npm run prepare-sushiswap-xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/sushiswap-farms-gnosis",
+    "deploy-traderjoe-avalanche": "npm run prepare-traderjoe-avalanche && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/simplefi-traderjoe-farms-avalanche"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.20.0",

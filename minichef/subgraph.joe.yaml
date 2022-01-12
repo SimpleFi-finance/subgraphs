@@ -4,22 +4,22 @@ schema:
   file: ./schema.graphql
 
 dataSources:
-  # Controls pools (farms) and SUSHI issuance - V1 version
-  - name: MasterChef
+  # Controls pools (farms) and JOE issuance - V2 version
+  - name: MiniChef
     kind: ethereum/contract
-    network: mainnet
+    network: avalanche
     source:
-      abi: MasterChef
+      abi: MiniChef
       address: "0xd6a4F121CA35509aF06A0Be99093d08462f53052"
       startBlock: 2486444
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
       language: wasm/assemblyscript
-      file: ./src/mappings/masterChef.ts
+      file: ./src/mappings/masterChefJoe.ts
       abis:
-        - name: MasterChef
-          file: ./abis/MasterChef.json
+        - name: MiniChef
+          file: ./abis/MasterChefJoe.json
         - name: IERC20
           file: ./abis/IERC20.json
         - name: IRewarder
@@ -35,23 +35,27 @@ dataSources:
         - Position
         - PositionSnapshot
       eventHandlers:
+        - event: Add(indexed uint256,uint256,indexed address,indexed address)
+          handler: handleAdd
+        - event: Set(indexed uint256,uint256,indexed address,bool)
+          handler: handleSet
         - event: Deposit(indexed address,indexed uint256,uint256)
           handler: handleDeposit
         - event: Withdraw(indexed address,indexed uint256,uint256)
           handler: handleWithdraw
-        - event: EmergencyWithdraw(indexed address,indexed uint256,uint256)
-          handler: handleEmergencyWithdraw
         - event: UpdatePool(indexed uint256,uint256,uint256,uint256)
-          handler: handleLogUpdatePool
+          handler: handleUpdatePool
         - event: Harvest(indexed address,indexed uint256,uint256)
           handler: handleHarvest
+        - event: EmergencyWithdraw(indexed address,indexed uint256,uint256)
+          handler: handleEmergencyWithdraw
         - event: UpdateEmissionRate(indexed address,uint256)
-          handler: handleHarvest
+          handler: handleUpdateEmissionRate
 
 templates:
   - kind: ethereum/contract
     name: RewardToken
-    network: mainnet
+    network: avalanche
     source:
       abi: IERC20
     mapping:
@@ -73,4 +77,4 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleRewardTokenTransfer
-      file: ./src/mappings/masterChefV2.ts
+      file: ./src/mappings/masterChefJoe.ts
