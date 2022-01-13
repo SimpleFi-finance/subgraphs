@@ -118,7 +118,7 @@ export function handleAdd(event: Add): void {
   // create market representing the farm
   let marketId = sushiFarm.id;
   let marketAddress = Address.fromString(sushiFarm.masterChef);
-  let protocolName = ProtocolName.SUSHISWAP_FARM;
+  let protocolName = ProtocolName.TRADER_JOE_FARM;
   let protocolType = ProtocolType.LP_FARMING;
   let inputTokens: Token[] = [inputToken];
   let rewardTokens: Token[] = getRewardTokens(sushiFarm, event);

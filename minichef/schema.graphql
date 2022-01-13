@@ -21,6 +21,7 @@ enum ProtocolName {
   SUSHISWAP
   SUSHISWAP_FARM
   APESWAP_FARM
+  TRADER_JOE_FARM
 }
 
 enum ProtocolType {

@@ -21,6 +21,7 @@ export namespace ProtocolName {
   export const CURVE_POOL = "CURVE_POOL";
   export const SUSHISWAP_FARM = "SUSHISWAP_FARM";
   export const APESWAP_FARM = "APESWAP_FARM";
+  export const TRADER_JOE_FARM = "TRADER_JOE_FARM";
 }
 
 export namespace ProtocolType {
