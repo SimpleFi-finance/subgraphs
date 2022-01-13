@@ -1,5 +1,5 @@
 specVersion: 0.0.2
-description: MasterChef farms subgraph
+description: ApeSwap farms subgraph
 schema:
   file: ./schema.graphql
 

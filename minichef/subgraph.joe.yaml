@@ -1,5 +1,5 @@
 specVersion: 0.0.2
-description: SushiSwap farms subgraph - MasterChefV2
+description: TraderJoe farms subgraph
 schema:
   file: ./schema.graphql
 
@@ -16,7 +16,7 @@ dataSources:
       kind: ethereum/events
       apiVersion: 0.0.4
       language: wasm/assemblyscript
-      file: ./src/mappings/masterChefJoe.ts
+      file: ./src/mappings/minichef-joe.ts
       abis:
         - name: MiniChef
           file: ./abis/MasterChefJoe.json
@@ -77,4 +77,4 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleRewardTokenTransfer
-      file: ./src/mappings/masterChefJoe.ts
+      file: ./src/mappings/minichef-joe.ts
