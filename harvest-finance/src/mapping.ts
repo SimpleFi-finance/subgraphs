@@ -107,7 +107,33 @@ export function handleTransfer(event: Transfer): void {
     )
   } else {
     // simple transfer
+    let sender = getOrCreateAccount(event.params.from);
+    redeemFromMarket(
+      event,
+      sender,
+      market,
+      outputTokenAmount,
+      inputTokenAmounts,
+      rewardTokenAmounts,
+      outputTokenBalance,
+      inputTokenBalances,
+      rewardTokenBalances,
+      null
+    );
 
+    let receiver = getOrCreateAccount(event.params.to);    
+    investInMarket(
+      event,
+      receiver,
+      market,
+      outputTokenAmount,
+      inputTokenAmounts,
+      rewardTokenAmounts,
+      outputTokenBalance,
+      inputTokenBalances,
+      rewardTokenBalances,
+      null
+    );
   }
 
 
