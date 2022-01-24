@@ -1,0 +1,6 @@
+{
+  "network": "aurora",
+  "factoryAddress": "0x7928D4FeA7b2c90C732c10aFF59cf403f0C38246",
+  "factoryStartBlock": 54112812,
+  "factoryMappingPath": "wannaswap.ts"
+}

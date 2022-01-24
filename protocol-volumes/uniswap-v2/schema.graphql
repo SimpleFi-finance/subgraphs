@@ -1,0 +1,12 @@
+type Market @entity {
+  id: ID! # {protocol pair/pool/vault address}
+  inputTokens: [Token!]! # Tokens that need to be deposited to take a position in protocol
+  outputToken: Token # Token that is minted to track ownership of position in protocol
+}
+
+type MarketData @entity {
+  id: ID! # {address + dayId}
+  inputTokensDailyVolume: [BigInt!]! #
+  outputTokenDailyInflowVolume: BigInt! #
+  outputTokenDailyOutflowVolume: BigInt! #
+}
