@@ -1,9 +1,9 @@
-import {AddVaultAndStrategyCall} from "../generated/HarvestEthController/HarvestEthController";
+import {AddVaultAndStrategyCall, DoHardWorkCall} from "../generated/HarvestEthController/HarvestEthController";
 import { Market } from "../generated/schema";
-import { ADDRESS_ZERO, getOrCreateAccount, getOrCreateERC20Token, getOrCreateMarket, investInMarket, redeemFromMarket, TokenBalance } from "./common";
+import { ADDRESS_ZERO, getOrCreateAccount, getOrCreateERC20Token, getOrCreateMarket, investInMarket, redeemFromMarket, TokenBalance, updateMarket } from "./common";
 import { ProtocolName, ProtocolType } from "./constants";
 import { IERC20, Transfer } from "../generated/templates/RewardToken/IERC20";
-import { Address } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes, ethereum, log } from "@graphprotocol/graph-ts";
 
 import { Vault } from '../generated/templates'
 import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
@@ -52,12 +52,32 @@ export function handleTransfer(event: Transfer): void {
   let market = Market.load(vault) as Market;
   
   let contract = VaultContract.bind(event.address);
-  let addressERC20Input = contract.underlying();
-  let pricePerShare = contract.getPricePerFullShare();
-  let underlyingUnit = contract.underlyingUnit();
+  let addressERC20InputResponse = contract.try_underlying();
+  if(addressERC20InputResponse.reverted) {
+    return;
+  } 
+  let addressERC20Input = addressERC20InputResponse.value;
+
+
+  let pricePerShareResponse = contract.try_getPricePerFullShare();
+  if(pricePerShareResponse.reverted) {
+    return;
+  }
+  let pricePerShare = pricePerShareResponse.value;
+
+  let underlyingUnitResponse = contract.try_underlyingUnit();
+  if(underlyingUnitResponse.reverted) {
+    return;
+  }
+  let underlyingUnit = underlyingUnitResponse.value;
+
+  let outputTokenBalanceResponse = contract.try_balanceOf(event.params.to);
+  if(outputTokenBalanceResponse.reverted) {
+    return;
+  }
+  let outputTokenBalance = outputTokenBalanceResponse.value;
 
   let inputTokenAmount = event.params.value.times(pricePerShare).div(underlyingUnit);
-  let outputTokenBalance = contract.balanceOf(event.params.to);
   let inputTokenBalance = outputTokenBalance.div(pricePerShare).times(underlyingUnit)
 
   let inputTokenAmounts: TokenBalance[] = [
@@ -135,6 +155,59 @@ export function handleTransfer(event: Transfer): void {
       null
     );
   }
+}
 
+export function handleDoHardWork(call: DoHardWorkCall): void {
+  // create fake event
+  let transaction = new ethereum.Transaction(
+    call.block.hash,
+    BigInt.fromI32(0),
+    call.from,
+    call.to,
+    BigInt.fromI32(0),
+    BigInt.fromI32(0),
+    BigInt.fromI32(0),
+    Bytes.empty()
+  );
 
+  let fakeEvent = new ethereum.Event(
+    call.to,
+    BigInt.fromI32(0),
+    BigInt.fromI32(0),
+    null,
+    call.block,
+    transaction,
+    []
+  );
+  
+  
+
+  let market = Market.load(call.to.toHexString()) as Market;
+  let contract = VaultContract.bind(call.to);
+  let addressERC20InputResponse = contract.try_underlying();
+  if(addressERC20InputResponse.reverted) {
+    return;
+  }
+  let addressERC20Input = addressERC20InputResponse.value;
+
+  let pricePerShareResponse = contract.try_getPricePerFullShare();
+  if(pricePerShareResponse.reverted)  {
+    return;
+  }
+  let pricePerShare = pricePerShareResponse.value;
+  
+  let underlyingUnitResponse = contract.try_underlyingUnit();
+  if(underlyingUnitResponse.reverted) {
+    return;
+  }
+  let underlyingUnit = underlyingUnitResponse.value;
+
+  let outputTokenBalance = market.outputTokenTotalSupply;
+  let inputTokenBalance = outputTokenBalance.div(pricePerShare).times(underlyingUnit);
+
+  let inputTokenBalances: TokenBalance[] = [
+    new TokenBalance(addressERC20Input.toHexString(), call.to.toHexString(), inputTokenBalance)
+  ];
+
+  updateMarket(fakeEvent, market, inputTokenBalances, market.outputTokenTotalSupply);
 }

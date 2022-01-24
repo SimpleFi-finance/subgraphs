@@ -52,4 +52,7 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
+      callHandlers:
+        - function: doHardWork()
+          handler: handleDoHardWork
       file: ./src/mapping.ts
