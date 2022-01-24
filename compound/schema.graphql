@@ -18,21 +18,15 @@ enum TokenStandard {
 
 enum ProtocolName {
   UNISWAP_V2
-  SUSHISWAP
-  QUICKSWAP
-  TRISOLARIS
-  APESWAP
-  BISWAP
-  COMETH
-  PANGOLIN
-  TRADER_JOE
-  WANNASWAP
-  PANCAKESWAP
+  CURVE_POOL
+  AAVE_POOL
+  COMPOUND
 }
 
 enum ProtocolType {
   STAKING
   LENDING
+  DEBT
   EXCHANGE
   INSURANCE
   STABLECOIN
@@ -73,7 +67,7 @@ type Token @entity {
 }
 
 type Market @entity {
-  id: ID! # {protocol pair/pool/vault address}
+  id: ID! # {protocol pool/pool/vault address}
   account: Account!
   protocolName: ProtocolName!
   protocolType: ProtocolType!
@@ -86,6 +80,8 @@ type Market @entity {
   rewardTokens: [Token!] # Aditional tokens that are given as reward for position in a protocol
   inputTokenTotalBalances: [String!]! # Total balance of this market contract of all input tokens in TokenBalance string format
   outputTokenTotalSupply: BigInt! # Total supply of output token
+  balanceMultiplier: BigInt # optional; defines multiplier to derive inputTokenBalance from outputTokenBalance of a user
+  rewardRate: BigInt # optional; used in reward market to specify amount of reward tokens generated with every block
   blockNumber: BigInt!
   timestamp: BigInt!
   positions: [Position!]! @derivedFrom(field: "market")
@@ -97,6 +93,7 @@ type MarketSnapshot @entity {
   market: Market!
   inputTokenBalances: [String!]! # TokenBalance string format
   outputTokenTotalSupply: BigInt!
+  balanceMultiplier: BigInt # optional; defines multiplier to derive inputTokenBalance from outputTokenBalance of a user
   blockNumber: BigInt!
   timestamp: BigInt!
   transactionHash: String!
@@ -175,55 +172,101 @@ type PositionSnapshot @entity {
 
 # END - Common entities for all protocols
 
-# UniswapV2 protocol entities
+# Compound protocol entities
 
-# Created on PairCreated event on UniswapV2Factory.sol
-# feeTo is not part of Pair contract. We need to fetch it from factory contract
-type Pair @entity {
-  id: ID! # {pairAddress}
-  factory: Account!
-  token0: Token!
-  token1: Token!
-  reserve0: BigInt!
-  reserve1: BigInt!
+type CToken @entity {
+  " contract address "
+  id: ID!
+
+  " underlying ERC20 asset or 0x00 if it's ETH "
+  underlying: String!
+
+  " address of lending pool to which aToken belongs "
+  comptroller: String!
+
+  " erc20 name "
+  cTokenName: String!
+
+  " erc20 symbol "
+  cTokenSymbol: String!
+
+  " erc20 decimals "
+  cTokenDecimals: Int!
+
+  " total amount of reserves of the underlying held in this market "
+  totalReserves: BigInt!
+
+  " total number of tokens in circulation "
   totalSupply: BigInt!
-  blockNumber: BigInt!
-  timestamp: BigInt!
-  lastIncompleteBurn: Burn
+
+  " accumulator of the total earned interest rate since the opening of the market "
+  borrowIndex: BigInt!
+
+  " balance of contract in terms of the underlying asset "
+  cash: BigInt!
+
+  " total amount of outstanding borrows of the underlying asset "
+  totalBorrows: BigInt!
+
+  " the portion of compRate that each market currently receives "
+  compSpeed: BigInt!
+
+  " TX at which CToken was registered "
+  transactionHash: String!
 }
 
-type AccountLiquidity @entity {
-  id: ID! # {pairAddress}{accoutnAddress}
-  pair: Pair!
-  account: Account!
-  balance: BigInt!
+type UserDepositBalance @entity {
+  " userAddress-cTokenId"
+  id: ID!
+
+  " user taking positions in pool "
+  user: Account!
+
+  " cToken market in which user invested "
+  cToken: CToken!
+
+  " total cToken balance "
+  cTokenBalance: BigInt!
+
+  " amount of underlying asset tokens user can redeem "
+  redeemableTokensBalance: BigInt!
 }
 
-type Mint @entity {
-  id: ID! # {pairAddress}{trasactionHash}
-  pair: Pair
-  from: Account
-  to: Account
-  liquityAmount: BigInt
-  amount0: BigInt
-  amount1: BigInt
-  transferEventApplied: Boolean!
-  syncEventApplied: Boolean!
-  mintEventApplied: Boolean!
+type UserBorrowBalance @entity {
+  " userAddress-cTokenId"
+  id: ID!
+
+  " user taking on debt "
+  user: Account!
+
+  " cToken market from which user borrowed "
+  cToken: CToken!
+
+  " total balance (with accrued interest) "
+  principal: BigInt!
+
+  " global borrowIndex as of the most recent balance-changing action "
+  interestIndex: BigInt!
 }
 
-type Burn @entity {
-  id: ID! # {pairAddress}{trasactionHash}
-  pair: Pair
-  from: Account
-  to: Account
-  liquityAmount: BigInt
-  amount0: BigInt
-  amount1: BigInt
-  transferToPairEventApplied: Boolean!
-  transferToZeroEventApplied: Boolean!
-  syncEventApplied: Boolean!
-  burnEventApplied: Boolean!
+type UserRewardBalance @entity {
+  " user address "
+  id: ID!
+
+  " amount of unclaimed reward tokens "
+  unclaimedRewards: BigInt!
+
+  " amount of claimed reward tokens "
+  claimedRewards: BigInt!
+
+  " total amount of rewards entitled to user "
+  lifetimeRewards: BigInt!
 }
 
-# END - UniswapV2 protocol entities
+type CompRewarder @entity {
+  " comptroller address "
+  id: ID!
+
+  " amount of COMP (in wei), per block, allocated for the markets "
+  compRate: BigInt!
+}

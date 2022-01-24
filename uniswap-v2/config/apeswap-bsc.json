@@ -1,0 +1,6 @@
+{
+  "network": "bsc",
+  "factoryAddress": "0x0841BD0B734E4F5853f0dD8d7Ea041c241fb0Da6",
+  "factoryStartBlock": 4855901,
+  "factoryMappingPath": "apeswap.ts"
+}
