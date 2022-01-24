@@ -1,7 +1,19 @@
 type Market @entity {
   id: ID! # {protocol pair/pool/vault address}
-  inputTokens: [Token!]! # Tokens that need to be deposited to take a position in protocol
-  outputToken: Token # Token that is minted to track ownership of position in protocol
+  inputTokens: [String!]! # Tokens that need to be deposited to take a position in protocol
+  outputToken: String # Token that is minted to track ownership of position in protocol
+}
+
+type Pair @entity {
+  id: ID! # {pairAddress}
+  factory: String!
+  token0: String!
+  token1: String!
+  reserve0: BigInt!
+  reserve1: BigInt!
+  totalSupply: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
 }
 
 type MarketData @entity {

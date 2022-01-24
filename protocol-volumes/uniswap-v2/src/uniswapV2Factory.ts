@@ -1,47 +1,30 @@
-import { BigInt } from "@graphprotocol/graph-ts"
-import { Pair as PairEntity } from "../generated/schema"
-import { UniswapV2Pair } from "../generated/templates"
-import {
-  PairCreated
-} from "../generated/UniswapV2Factory/UniswapV2Factory"
-import {
-  getOrCreateAccount,
-  getOrCreateERC20Token,
-  getOrCreateMarket
-} from "./common"
-import { ProtocolType } from "./constants"
+import { BigInt } from "@graphprotocol/graph-ts";
+import { Market, Pair as PairEntity } from "../generated/schema";
+import { UniswapV2Pair } from "../generated/templates";
+import { PairCreated } from "../generated/UniswapV2Factory/UniswapV2Factory";
 
-export function handlePairCreated(event: PairCreated, protocolName: string): void {
+export function handlePairCreated(event: PairCreated): void {
   // Create a tokens and market entity
-  let token0 = getOrCreateERC20Token(event, event.params.token0)
-  let token1 = getOrCreateERC20Token(event, event.params.token1)
-  let lpToken = getOrCreateERC20Token(event, event.params.pair)
+  let token0 = event.params.token0.toHexString();
+  let token1 = event.params.token1.toHexString();
+  let lpToken = event.params.pair.toHexString();
 
-  let market = getOrCreateMarket(
-    event,
-    event.params.pair,
-    protocolName,
-    ProtocolType.EXCHANGE,
-    [token0, token1],
-    lpToken,
-    []
-  )
-
-  lpToken.mintedByMarket = market.id
-  lpToken.save()
+  let market = new Market(lpToken);
+  market.inputTokens = [token0, token1];
+  market.outputToken = lpToken;
 
   // Create pair
-  let pair = new PairEntity(event.params.pair.toHexString())
-  pair.factory = getOrCreateAccount(event.address).id
-  pair.token0 = token0.id
-  pair.token1 = token1.id
-  pair.totalSupply = BigInt.fromI32(0)
-  pair.reserve0 = BigInt.fromI32(0)
-  pair.reserve1 = BigInt.fromI32(0)
-  pair.blockNumber = event.block.number
-  pair.timestamp = event.block.timestamp
-  pair.save()
+  let pair = new PairEntity(event.params.pair.toHexString());
+  pair.factory = event.address.toHexString();
+  pair.token0 = token0;
+  pair.token1 = token1;
+  pair.totalSupply = BigInt.fromI32(0);
+  pair.reserve0 = BigInt.fromI32(0);
+  pair.reserve1 = BigInt.fromI32(0);
+  pair.blockNumber = event.block.number;
+  pair.timestamp = event.block.timestamp;
+  pair.save();
 
   // Start listening for market events
-  UniswapV2Pair.create(event.params.pair)
+  UniswapV2Pair.create(event.params.pair);
 }
