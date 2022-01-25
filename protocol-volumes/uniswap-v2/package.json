@@ -36,7 +36,7 @@
     "deploy-sushiswap-bsc": "npm run prepare-sushiswap-bsc && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/sushiswap-bsc",
     "deploy-sushiswap-celo": "npm run prepare-sushiswap-celo && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/sushiswap-celo",
     "deploy-sushiswap-fantom": "npm run prepare-sushiswap-fantom && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/sushiswap-fantom",
-    "deploy-sushiswap-mainnet": "npm run prepare-sushiswap-mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/sushiswap",
+    "deploy-sushiswap-mainnet": "npm run prepare-sushiswap-mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/sushiswap-protocol-data",
     "deploy-sushiswap-polygon": "npm run prepare-sushiswap-polygon && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/sushiswap-polygon",
     "deploy-sushiswap-gnosis": "npm run prepare-sushiswap-gnosis && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/sushiswap-gnosis",
     "deploy-traderjoe-avalanche": "npm run prepare-traderjoe-avalanche && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/traderjoe-avalanche",
