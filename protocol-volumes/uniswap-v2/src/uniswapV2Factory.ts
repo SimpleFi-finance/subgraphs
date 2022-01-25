@@ -12,6 +12,7 @@ export function handlePairCreated(event: PairCreated): void {
   let market = new Market(lpToken);
   market.inputTokens = [token0, token1];
   market.outputToken = lpToken;
+  market.save();
 
   // Create pair
   let pair = new PairEntity(event.params.pair.toHexString());

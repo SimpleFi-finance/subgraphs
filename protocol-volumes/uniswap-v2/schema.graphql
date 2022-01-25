@@ -1,8 +1,20 @@
 type Market @entity {
-  id: ID! # {protocol pair/pool/vault address}
+  id: ID! # {pairAddress}
   inputTokens: [String!]! # Tokens that need to be deposited to take a position in protocol
   outputToken: String # Token that is minted to track ownership of position in protocol
 }
+
+type MarketDayData @entity {
+  id: ID! # {address + dayId}
+  timestamp: BigInt!
+  market: Market!
+  inputTokensDailyVolume: [BigInt!]! #
+  outputTokenDailyInflowVolume: BigInt! #
+  outputTokenDailyOutflowVolume: BigInt! #
+  dailyTransactions: BigInt!
+}
+
+############# Uniswap specific entities
 
 type Pair @entity {
   id: ID! # {pairAddress}
@@ -14,11 +26,4 @@ type Pair @entity {
   totalSupply: BigInt!
   blockNumber: BigInt!
   timestamp: BigInt!
-}
-
-type MarketData @entity {
-  id: ID! # {address + dayId}
-  inputTokensDailyVolume: [BigInt!]! #
-  outputTokenDailyInflowVolume: BigInt! #
-  outputTokenDailyOutflowVolume: BigInt! #
 }
