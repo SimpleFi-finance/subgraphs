@@ -35,8 +35,14 @@ type MarketDayData @entity {
   " amount of LP tokens burned this day "
   outputTokenDailyOutflowVolume: BigInt!
 
-  " number of TXs this day (swap + mint + burn) "
-  dailyTransactions: BigInt!
+  " number of TXs this day swap "
+  dailySwapTXs: BigInt!
+
+  " number of TXs this day mint "
+  dailyMintTXs: BigInt!
+
+  " number of TXs this day burn "
+  dailyBurnTXs: BigInt!
 }
 
 ############# Uniswap specific entities

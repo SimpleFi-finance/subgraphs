@@ -56,24 +56,34 @@ export function handleSync(event: Sync): void {
 }
 
 export function handleMint(event: Mint): void {
-  let pair = Pair.load(event.address.toHexString()) as Pair;
-
   let marketDayData = getMarketDayData(event);
 
-  marketDayData.inputTokenDailyInflow[0] = marketDayData.inputTokenDailyInflow[0].plus(
-    event.params.amount0
-  );
-  marketDayData.inputTokenDailyInflow[1] = marketDayData.inputTokenDailyInflow[1].plus(
-    event.params.amount1
-  );
+  let inflows = marketDayData.inputTokenDailyInflow;
+  let prevToken0Inflow = inflows[0];
+  let prevToken1Inflow = inflows[1];
 
-  marketDayData.dailyTransactions = marketDayData.dailyTransactions.plus(BigInt.fromI32(1));
+  marketDayData.inputTokenDailyInflow = [
+    prevToken0Inflow.plus(event.params.amount0),
+    prevToken1Inflow.plus(event.params.amount1),
+  ];
+
+  marketDayData.dailyMintTXs = marketDayData.dailyMintTXs.plus(BigInt.fromI32(1));
   marketDayData.save();
 }
 
 export function handleBurn(event: Burn): void {
   let marketDayData = getMarketDayData(event);
-  marketDayData.dailyTransactions = marketDayData.dailyTransactions.plus(BigInt.fromI32(1));
+
+  let outflows = marketDayData.inputTokenDailyOutflow;
+  let prevToken0Outflow = outflows[0];
+  let prevToken1Outflow = outflows[1];
+
+  marketDayData.inputTokenDailyOutflow = [
+    prevToken0Outflow.plus(event.params.amount0),
+    prevToken1Outflow.plus(event.params.amount1),
+  ];
+
+  marketDayData.dailyBurnTXs = marketDayData.dailyBurnTXs.plus(BigInt.fromI32(1));
   marketDayData.save();
 }
 
@@ -84,13 +94,17 @@ export function handleSwap(event: Swap): void {
 
   // update daily swap volume per token
   let marketDayData = getMarketDayData(event);
-  marketDayData.inputTokensDailySwapVolume[0] = marketDayData.inputTokensDailySwapVolume[0].plus(
-    amount0Total
-  );
-  marketDayData.inputTokensDailySwapVolume[1] = marketDayData.inputTokensDailySwapVolume[1].plus(
-    amount1Total
-  );
-  marketDayData.dailyTransactions = marketDayData.dailyTransactions.plus(BigInt.fromI32(1));
+
+  let swapVolumes = marketDayData.inputTokensDailySwapVolume;
+  let prevToken0SwapVolume = swapVolumes[0];
+  let prevToken1SwapVolume = swapVolumes[1];
+
+  marketDayData.inputTokensDailySwapVolume = [
+    prevToken0SwapVolume.plus(amount0Total),
+    prevToken1SwapVolume.plus(amount1Total),
+  ];
+
+  marketDayData.dailySwapTXs = marketDayData.dailySwapTXs.plus(BigInt.fromI32(1));
   marketDayData.save();
 }
 
@@ -110,7 +124,9 @@ function getMarketDayData(event: ethereum.Event): MarketDayData {
     marketDayData.inputTokenDailyOutflow = [BigInt.fromI32(0), BigInt.fromI32(0)];
     marketDayData.outputTokenDailyInflowVolume = BigInt.fromI32(0);
     marketDayData.outputTokenDailyOutflowVolume = BigInt.fromI32(0);
-    marketDayData.dailyTransactions = BigInt.fromI32(0);
+    marketDayData.dailySwapTXs = BigInt.fromI32(0);
+    marketDayData.dailyMintTXs = BigInt.fromI32(0);
+    marketDayData.dailyBurnTXs = BigInt.fromI32(0);
 
     let pair = Pair.load(pairAddress);
     marketDayData.inputTokenTotalBalances = [pair.reserve0, pair.reserve1];
