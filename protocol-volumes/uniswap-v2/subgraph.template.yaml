@@ -59,3 +59,5 @@ templates:
           handler: handleMint
         - event: Burn(indexed address,uint256,uint256,indexed address)
           handler: handleBurn
+        - event: Swap(indexed address,uint256,uint256,uint256,uint256,indexed address)
+          handler: handleSwap
