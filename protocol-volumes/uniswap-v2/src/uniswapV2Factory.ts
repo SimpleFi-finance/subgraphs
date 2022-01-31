@@ -3,6 +3,10 @@ import { Pair } from "../generated/schema";
 import { UniswapV2Pair } from "../generated/templates";
 import { PairCreated } from "../generated/UniswapV2Factory/UniswapV2Factory";
 
+/**
+ * Create Pair entity and start indexing pair contract
+ * @param event
+ */
 export function handlePairCreated(event: PairCreated): void {
   // Create a tokens and market entity
   let token0 = event.params.token0.toHexString();

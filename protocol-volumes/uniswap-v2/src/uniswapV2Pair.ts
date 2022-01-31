@@ -10,6 +10,10 @@ import {
 
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 
+/**
+ * Handle LP token transfer by updating totalSupply and outputToken daily inflow/outflow.
+ * @param event
+ */
 export function handleTransfer(event: Transfer): void {
   let pair = Pair.load(event.address.toHexString());
 
@@ -44,6 +48,10 @@ export function handleTransfer(event: Transfer): void {
   }
 }
 
+/**
+ * Handle sync by updating reserves
+ * @param event
+ */
 export function handleSync(event: Sync): void {
   let pair = Pair.load(event.address.toHexString()) as Pair;
   pair.reserve0 = event.params.reserve0;
@@ -55,6 +63,10 @@ export function handleSync(event: Sync): void {
   marketDayData.save();
 }
 
+/**
+ * Handle mint by increasing reserve token inflow and burn TX counter.
+ * @param event
+ */
 export function handleMint(event: Mint): void {
   let marketDayData = getMarketDayData(event);
 
@@ -71,6 +83,10 @@ export function handleMint(event: Mint): void {
   marketDayData.save();
 }
 
+/**
+ * Handle burn by increasing reserve token outflow and burn TX counter.
+ * @param event
+ */
 export function handleBurn(event: Burn): void {
   let marketDayData = getMarketDayData(event);
 
@@ -87,6 +103,10 @@ export function handleBurn(event: Burn): void {
   marketDayData.save();
 }
 
+/**
+ * Handle swap by increasing daily swap volume per token and swap TX counter.
+ * @param event
+ */
 export function handleSwap(event: Swap): void {
   // totals for volume updates
   let amount0Total = event.params.amount0Out.plus(event.params.amount0In);
@@ -108,9 +128,15 @@ export function handleSwap(event: Swap): void {
   marketDayData.save();
 }
 
+/**
+ * Get or create and init MarketDayData entity.
+ * @param event
+ * @returns
+ */
 function getMarketDayData(event: ethereum.Event): MarketDayData {
   let pairAddress = event.address.toHexString();
   let timestamp = event.block.timestamp.toI32();
+  // UTC day is 86400 seconds long
   let dayID = timestamp / 86400;
   let dayPairID = pairAddress.concat("-").concat(BigInt.fromI32(dayID).toString());
 
@@ -127,6 +153,7 @@ function getMarketDayData(event: ethereum.Event): MarketDayData {
     marketDayData.dailySwapTXs = BigInt.fromI32(0);
     marketDayData.dailyMintTXs = BigInt.fromI32(0);
     marketDayData.dailyBurnTXs = BigInt.fromI32(0);
+    marketDayData.dayId = BigInt.fromI32(dayID);
 
     let pair = Pair.load(pairAddress);
     marketDayData.inputTokenTotalBalances = [pair.reserve0, pair.reserve1];

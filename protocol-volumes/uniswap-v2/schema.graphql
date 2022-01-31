@@ -5,7 +5,7 @@ type MarketDayData @entity {
   " first trade of the day timestamp "
   timestamp: BigInt!
 
-  " market id "
+  " market id - pair address "
   market: String!
 
   " swap volume -> amount of input tokens swapped in or out  "
@@ -37,6 +37,9 @@ type MarketDayData @entity {
 
   " number of TXs this day burn "
   dailyBurnTXs: BigInt!
+
+  " dayId - timestamp/86400 "
+  dayId: BigInt!
 }
 
 ############# Uniswap specific entities
