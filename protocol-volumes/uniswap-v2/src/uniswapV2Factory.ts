@@ -1,5 +1,5 @@
 import { BigInt } from "@graphprotocol/graph-ts";
-import { Market, Pair as PairEntity } from "../generated/schema";
+import { Pair } from "../generated/schema";
 import { UniswapV2Pair } from "../generated/templates";
 import { PairCreated } from "../generated/UniswapV2Factory/UniswapV2Factory";
 
@@ -7,15 +7,9 @@ export function handlePairCreated(event: PairCreated): void {
   // Create a tokens and market entity
   let token0 = event.params.token0.toHexString();
   let token1 = event.params.token1.toHexString();
-  let lpToken = event.params.pair.toHexString();
-
-  let market = new Market(lpToken);
-  market.inputTokens = [token0, token1];
-  market.outputToken = lpToken;
-  market.save();
 
   // Create pair
-  let pair = new PairEntity(event.params.pair.toHexString());
+  let pair = new Pair(event.params.pair.toHexString());
   pair.factory = event.address.toHexString();
   pair.token0 = token0;
   pair.token1 = token1;
