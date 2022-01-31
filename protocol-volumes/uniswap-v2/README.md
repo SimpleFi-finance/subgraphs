@@ -1,48 +1,51 @@
-# Uniswap V2 Positions
+# Daily market data
 
-## Usecase
+SimpleFi's main subgraphs are focused on tracking historical and current user positions. But we also want to track market-level (amm pair, lending pair, farm) volume data in order to have even more complete analytics. For that purpose we deploy complementray 'protocol-data' subgraph for every main subgraph.
 
-This subgraph is used track invstments of liquidity providers in Uniswap V2 pools. In this subgraph we track all the positions ever taken by an account. How this position changes over time. What are the returns on this position over time in ETH currency
+These subgraphs are quite simpler. Focus is on collecting aggregate volume data on daily level. This is the main entity:
 
-## Mappings
+```
+type MarketDayData @entity {
+  " marketAddress + dayId "
+  id: ID!
 
-A position's lifecycle starts with `Mint` or `Transfer` event on a pool contrat with a new address as `to` argument.
+  " first trade of the day timestamp "
+  timestamp: BigInt!
 
-Once a new position has been added this position is updated on `Mint`, `Burn`, `Transfer` events based on amount argument of these events.
+  " market id - pair address "
+  market: String!
 
-If we find that `Burn` or `Transfer` has same amount as current saved `outputTokenBalance` then we close this position and once it is closed we create a new one on new `Mint` or `Transfer` event.
+  " swap volume -> amount of input tokens swapped in or out  "
+  inputTokensDailySwapVolume: [BigInt!]!
 
-In uniswap returns of an account's positions also change when other accounts do activity on the pool. Pool contract emits `Sync` event everything there is a change in reserves of assets in a pool. We can not have indexer update all positions on every `Sync` event therefore we store changes in pool variables on every `Sync` event. Our backend can then fetch list of all poolVariables between specific blockNumbers to calcualte changes in postions over time.
+  " total amount of reserves per input token "
+  inputTokenTotalBalances: [BigInt!]!
 
-**Note:** We are not handling `Swap` event. Every `swap` action emits `Sync` event before `Swap` event so changes in reserves on `swap` call has been taken care of by handling `Sync` event.
+  " reserve amount per input token this day "
+  inputTokenDailyInflow: [BigInt!]!
 
-Ordering of events in calls -
+  " reserve amount per input token this day "
+  inputTokenDailyOutflow: [BigInt!]!
 
-* Mint call - 
-    * Transfer with from = zero, to = feeTo - changes total supply
-    * Transfer with from = zero, to != feeTo - start MintTransaction - changes total supply
-    * Sync - updates reserves
-    * Mint with sender, amount0, amount1 transferred to pool - Complete MintTransaction
+  " total balance of LP tokens "
+  outputTokenTotalBalance: BigInt!
 
-* Burn call -
-    * Transfer with from = any, to = pair - start BurnTransaction
-    * Transfer with from = zero, to = feeTo - ignore
-    * Transfer with from = pair, to = zero - changes total supply
-    * Sync - updates reserves
-    * Burn with sender, amount0, amount1, to - complete BurnTransaction
+  " amount of LP tokens minted this day "
+  outputTokenDailyInflowVolume: BigInt!
 
-* Transfer call-
-    * Transfer with from = any, to = any - it effects two positions
+  " amount of LP tokens burned this day "
+  outputTokenDailyOutflowVolume: BigInt!
 
-So when we receive a transfer event we check -
-* if it is from zero address then it starts MintTransaction
-* if it is to pair address then it starts BurnTransaction
-* otherwise it is a transfer between two external accounts
+  " number of TXs this day swap "
+  dailySwapTXs: BigInt!
 
-and start a MintTransaction or BurnTransaction accordingly and then -
-* Mint event completes a MintTransaction
-* Burn event completes a BurnTransaction
+  " number of TXs this day mint "
+  dailyMintTXs: BigInt!
 
-Because we can not rely on ordering of event triggers in graph node we need to implement reverse order of events as well in which - 
-* Mint event starts a MintTransaction and then Transfer event completes it
-* Burn event starts a BurnTransaction and then Transfer event completes it
+  " number of TXs this day burn "
+  dailyBurnTXs: BigInt!
+
+  " dayId - timestamp/86400 "
+  dayId: BigInt!
+}
+```
