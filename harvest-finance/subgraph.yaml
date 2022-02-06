@@ -20,6 +20,9 @@ dataSources:
           file: ./abis/HarvestEthController.json
         - name: IERC20
           file: ./abis/IERC20.json
+      eventHandlers:
+        - event: SharePriceChangeLog(indexed address,indexed address,uint256,uint256,uint256)
+          handler: updateSharePrice
       callHandlers:
         - function: addVaultAndStrategy(address,address)
           handler: addVaultAndStrategy
@@ -54,7 +57,4 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
-      callHandlers:
-        - function: doHardWork()
-          handler: handleDoHardWork
       file: ./src/mapping.ts

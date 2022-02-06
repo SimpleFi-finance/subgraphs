@@ -8,11 +8,13 @@ import {
   Position,
   PositionSnapshot,
   Token,
-  Transaction
+  Transaction,
+  Vault
 } from "../generated/schema"
-import { IERC20 } from "../generated/templates/RewardToken/IERC20"
+import { IERC20 } from "../generated/templates/Vault/IERC20"
+import { Transfer } from "../generated/templates/Vault/Vault"
 import { PositionType, TokenStandard, TransactionType } from "./constants"
-
+import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
 
@@ -510,13 +512,103 @@ export function repayToMarket(
   return position
 }
 
-export function getOrCreateDepositEntity(txHash: string): Deposit {
-  let deposit = Deposit.load(txHash);
-  if(!deposit) {
-    deposit = new Deposit(txHash);
-    deposit.depositedInput = false;
-    deposit.depositedOutput = false;
+export function getOrCreateVault(address: Address): Vault {
+  let vault = Vault.load(address.toHexString());
+  if(!vault) {
+    vault = new Vault(address.toHexString());
   }
 
-  return deposit;
+  return vault;
+}
+
+export function deposit(event: Transfer): void {
+  let vault = getOrCreateVault(event.address);
+  let market = Market.load(vault.id) as Market;
+  let receiver = getOrCreateAccount(event.params.to);
+  let contract = VaultContract.bind(event.address);
+  let outputTokenBalanceResponse = contract.try_balanceOf(event.params.to);
+  if(outputTokenBalanceResponse.reverted) {
+    return;
+  }
+
+  let outputTokenBalance = outputTokenBalanceResponse.value;
+
+  let inputTokenAmount = event.params.value.times(vault.pricePerShare!).div(vault.underlyingUnit!);
+  let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!)
+
+  let inputTokenAmounts = [
+    new TokenBalance(market.inputTokens[0], event.params.to.toHexString(), inputTokenAmount)
+  ];
+    
+  // @todo
+  let rewardTokenAmounts: TokenBalance[] = [];
+  let rewardTokenBalances: TokenBalance[] = [];
+
+
+  let inputTokenBalances: TokenBalance[] = [
+    new TokenBalance(market.inputTokens[0], event.params.to.toHexString(), inputTokenBalance)
+  ];
+
+  let outputTokenAmount = event.params.value;
+
+  investInMarket(
+    event,
+    receiver,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
+
+  updateMarket(event, market, inputTokenBalances, market.outputTokenTotalSupply);
+}
+
+export function withdraw(event: Transfer): void {
+  let vault = getOrCreateVault(event.address);
+  let market = Market.load(vault.id) as Market;
+  let sender = getOrCreateAccount(event.params.from);
+  let contract = VaultContract.bind(event.address);
+  let outputTokenBalanceResponse = contract.try_balanceOf(event.params.from);
+  if(outputTokenBalanceResponse.reverted) {
+    return;
+  }
+
+  let outputTokenBalance = outputTokenBalanceResponse.value;
+
+  let inputTokenAmount = event.params.value.times(vault.pricePerShare!).div(vault.underlyingUnit!);
+  let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!)
+
+  let inputTokenAmounts = [
+    new TokenBalance(market.inputTokens[0], event.params.from.toHexString(), inputTokenAmount)
+  ];
+    
+  // @todo
+  let rewardTokenAmounts: TokenBalance[] = [];
+  let rewardTokenBalances: TokenBalance[] = [];
+
+
+  let inputTokenBalances: TokenBalance[] = [
+    new TokenBalance(market.inputTokens[0], event.params.from.toHexString(), inputTokenBalance)
+  ];
+
+  let outputTokenAmount = event.params.value;
+
+  redeemFromMarket(
+    event,
+    sender,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
+
+  updateMarket(event, market, inputTokenBalances, market.outputTokenTotalSupply);
 }

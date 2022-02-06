@@ -163,17 +163,17 @@ type PositionSnapshot @entity {
   transferredTo: [String!]! # TokenBalance string format
 }
 
-type ExampleEntity @entity {
-  id: ID!
-  count: BigInt!
-  vault: Bytes! # address
-  strategy: Bytes! # address
-}
-
 type Deposit @entity {
   id: ID!
   depositInputAmount: BigInt
   depositedInput: Boolean!
   depositOutputAmount: BigInt
   depositedOutput: Boolean!
+}
+
+type Vault @entity {
+  id: ID!
+  underlyingUnit: BigInt
+  underlyingToken: String
+  pricePerShare: BigInt
 }
