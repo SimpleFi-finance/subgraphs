@@ -2,7 +2,7 @@ import {AddVaultAndStrategyCall, DoHardWorkCall, SharePriceChangeLog} from "../g
 import { Market } from "../generated/schema";
 import { ADDRESS_ZERO, deposit, getOrCreateAccount, getOrCreateERC20Token, getOrCreateMarket, getOrCreateVault, investInMarket, redeemFromMarket, TokenBalance, updateMarket, withdraw } from "./common";
 import { FARM_TOKEN_ADDRESS, ProtocolName, ProtocolType } from "./constants";
-import { IERC20, Transfer } from "../generated/HarvestEthController/IERC20";
+import { Transfer } from "../generated/templates/Vault/Vault";
 import { Address, BigInt, Bytes, ethereum, log } from "@graphprotocol/graph-ts";
 
 import { Vault } from '../generated/templates'
@@ -75,7 +75,7 @@ export function updateSharePrice(event: SharePriceChangeLog): void {
   vault.save();
   
   let outputTokenBalance = market.outputTokenTotalSupply;
-  let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare).times(vault.underlyingUnit!);
+  let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!);
 
   let inputTokenBalances: TokenBalance[] = [
     new TokenBalance(vault.underlyingToken!, event.params.vault.toHexString(), inputTokenBalance)
