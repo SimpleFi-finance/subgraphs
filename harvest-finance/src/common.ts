@@ -526,6 +526,8 @@ export function deposit(event: Transfer): void {
   let market = Market.load(vault.id) as Market;
   let receiver = getOrCreateAccount(event.params.to);
   let contract = VaultContract.bind(event.address);
+
+  // @todo track balances in entity
   let outputTokenBalanceResponse = contract.try_balanceOf(event.params.to);
   if(outputTokenBalanceResponse.reverted) {
     return;
@@ -572,6 +574,8 @@ export function withdraw(event: Transfer): void {
   let market = Market.load(vault.id) as Market;
   let sender = getOrCreateAccount(event.params.from);
   let contract = VaultContract.bind(event.address);
+
+  // @todo: track balances in entity
   let outputTokenBalanceResponse = contract.try_balanceOf(event.params.from);
   if(outputTokenBalanceResponse.reverted) {
     return;
