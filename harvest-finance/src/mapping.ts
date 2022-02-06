@@ -1,8 +1,8 @@
 import {AddVaultAndStrategyCall, DoHardWorkCall} from "../generated/HarvestEthController/HarvestEthController";
 import { Market } from "../generated/schema";
 import { ADDRESS_ZERO, getOrCreateAccount, getOrCreateERC20Token, getOrCreateMarket, investInMarket, redeemFromMarket, TokenBalance, updateMarket } from "./common";
-import { ProtocolName, ProtocolType } from "./constants";
-import { IERC20, Transfer } from "../generated/templates/RewardToken/IERC20";
+import { FARM_TOKEN_ADDRESS, ProtocolName, ProtocolType } from "./constants";
+import { IERC20, Transfer } from "../generated/HarvestEthController/IERC20";
 import { Address, BigInt, Bytes, ethereum, log } from "@graphprotocol/graph-ts";
 
 import { Vault } from '../generated/templates'
@@ -16,20 +16,15 @@ export function addVaultAndStrategy(add: AddVaultAndStrategyCall): void {
   if(underlying.reverted) {
     return;
   }
-  let assetToken = IERC20.bind(underlying.value);
-  let farmToken = IERC20.bind(Address.fromString("0xa0246c9032bc3a600820415ae600c6388619a14d"));
 
   // output
   let fAssetTokenERC20 = getOrCreateERC20Token(add.block, add.inputs._vault);
-  fAssetTokenERC20.save();
 
   // input
-  let assetERC20 = getOrCreateERC20Token(add.block, assetToken._address);
-  assetERC20.save();
+  let assetERC20 = getOrCreateERC20Token(add.block, underlying.value);
 
   // reward
-  let farmERC20 = getOrCreateERC20Token(add.block, farmToken._address);
-  farmERC20.save();
+  let farmERC20 = getOrCreateERC20Token(add.block, FARM_TOKEN_ADDRESS);
   
   let market = getOrCreateMarket(
     add.block,
@@ -41,8 +36,6 @@ export function addVaultAndStrategy(add: AddVaultAndStrategyCall): void {
     [farmERC20], // FARM
   )
 
-  market.save();
-
   Vault.create(add.inputs._vault);
 }
 
@@ -52,12 +45,6 @@ export function handleTransfer(event: Transfer): void {
   let market = Market.load(vault) as Market;
   
   let contract = VaultContract.bind(event.address);
-  let addressERC20InputResponse = contract.try_underlying();
-  if(addressERC20InputResponse.reverted) {
-    return;
-  } 
-  let addressERC20Input = addressERC20InputResponse.value;
-
 
   let pricePerShareResponse = contract.try_getPricePerFullShare();
   if(pricePerShareResponse.reverted) {
@@ -81,7 +68,7 @@ export function handleTransfer(event: Transfer): void {
   let inputTokenBalance = outputTokenBalance.div(pricePerShare).times(underlyingUnit)
 
   let inputTokenAmounts: TokenBalance[] = [
-    new TokenBalance(addressERC20Input.toHexString(), event.params.to.toHexString(), inputTokenAmount)
+    new TokenBalance(market.inputTokens[0], event.params.to.toHexString(), inputTokenAmount)
   ];
   
   // nothing claimed on deposit
@@ -90,7 +77,7 @@ export function handleTransfer(event: Transfer): void {
 
 
   let inputTokenBalances: TokenBalance[] = [
-    new TokenBalance(addressERC20Input.toHexString(), event.params.to.toHexString(), inputTokenBalance)
+    new TokenBalance(market.inputTokens[0], event.params.to.toHexString(), inputTokenBalance)
   ];
 
   let outputTokenAmount = event.params.value;
@@ -110,6 +97,8 @@ export function handleTransfer(event: Transfer): void {
       null
     );
 
+    updateMarket(event, market, inputTokenBalances, market.outputTokenTotalSupply);
+
   } else if(event.params.to.toHexString() == ADDRESS_ZERO) {
     // burn fAsset / withdraw / redeemFromMarket
     let sender = getOrCreateAccount(event.params.from);
@@ -125,6 +114,8 @@ export function handleTransfer(event: Transfer): void {
       rewardTokenBalances,
       null
     )
+
+    updateMarket(event, market, inputTokenBalances, market.outputTokenTotalSupply);
   } else {
     // simple transfer
     let sender = getOrCreateAccount(event.params.from);

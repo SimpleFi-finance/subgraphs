@@ -1,3 +1,5 @@
+import { Address } from "@graphprotocol/graph-ts"
+
 export namespace Blockchain {
   export const ETHEREUM = "ETHEREUM"
   export const BSC = "BSC"
@@ -44,3 +46,5 @@ export namespace TransactionType {
   export const TRANSFER_IN = "TRANSFER_IN"
   export const TRANSFER_OUT = "TRANSFER_OUT"
 }
+
+export const FARM_TOKEN_ADDRESS = Address.fromString("0xa0246c9032bc3a600820415ae600c6388619a14d");
