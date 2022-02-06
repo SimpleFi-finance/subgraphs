@@ -18,6 +18,8 @@ dataSources:
       abis:
         - name: HarvestEthController
           file: ./abis/HarvestEthController.json
+        - name: Vault
+          file: ./abis/Vault.json
         - name: IERC20
           file: ./abis/IERC20.json
       eventHandlers:
