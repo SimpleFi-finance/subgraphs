@@ -177,3 +177,10 @@ type Vault @entity {
   underlyingToken: String
   pricePerShare: BigInt
 }
+
+type VaultBalance @entity {
+  id: ID!
+  owner: Bytes
+  balance: BigInt!
+  vault: Vault
+}

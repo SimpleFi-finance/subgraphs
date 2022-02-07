@@ -9,7 +9,8 @@ import {
   PositionSnapshot,
   Token,
   Transaction,
-  Vault
+  Vault,
+  VaultBalance
 } from "../generated/schema"
 import { IERC20 } from "../generated/templates/Vault/IERC20"
 import { Transfer } from "../generated/templates/Vault/Vault"
@@ -521,19 +522,28 @@ export function getOrCreateVault(address: Address): Vault {
   return vault;
 }
 
+export function getOrCreateVaultBalance(address: Address, vault: Vault): VaultBalance {
+  let id = vault.id + "-" + address.toHexString();
+  let balance = VaultBalance.load(id);
+  if(!balance) {
+    balance = new VaultBalance(id);
+    balance.balance = BigInt.fromI32(0);
+    balance.vault = vault.id;
+    balance.owner = address;
+  }
+
+  return balance;
+}
+
 export function deposit(event: Transfer): void {
   let vault = getOrCreateVault(event.address);
   let market = Market.load(vault.id) as Market;
   let receiver = getOrCreateAccount(event.params.to);
-  let contract = VaultContract.bind(event.address);
+  let balance = getOrCreateVaultBalance(event.params.to, vault);
+  balance.balance = balance.balance.plus(event.params.value);
+  balance.save();
 
-  // @todo track balances in entity
-  let outputTokenBalanceResponse = contract.try_balanceOf(event.params.to);
-  if(outputTokenBalanceResponse.reverted) {
-    return;
-  }
-
-  let outputTokenBalance = outputTokenBalanceResponse.value;
+  let outputTokenBalance = balance.balance;
 
   let inputTokenAmount = event.params.value.times(vault.pricePerShare!).div(vault.underlyingUnit!);
   let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!)
@@ -573,15 +583,11 @@ export function withdraw(event: Transfer): void {
   let vault = getOrCreateVault(event.address);
   let market = Market.load(vault.id) as Market;
   let sender = getOrCreateAccount(event.params.from);
-  let contract = VaultContract.bind(event.address);
+  let balance = getOrCreateVaultBalance(event.params.from, vault);
+  balance.balance = balance.balance.minus(event.params.value);
+  balance.save();
 
-  // @todo: track balances in entity
-  let outputTokenBalanceResponse = contract.try_balanceOf(event.params.from);
-  if(outputTokenBalanceResponse.reverted) {
-    return;
-  }
-
-  let outputTokenBalance = outputTokenBalanceResponse.value;
+  let outputTokenBalance = balance.balance;
 
   let inputTokenAmount = event.params.value.times(vault.pricePerShare!).div(vault.underlyingUnit!);
   let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!)
