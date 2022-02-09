@@ -1,10 +1,10 @@
 import { near, BigInt, log, json, JSONValueKind } from "@graphprotocol/graph-ts"
-import { handleReceipt } from "./nearCommon"
+import { handleNearReceipt } from "./nearCommon"
 
-export function handleRefFinanceReceipt(
+export function handleReceipt(
   receiptWithOutcome: near.ReceiptWithOutcome
 ): void {
-  handleReceipt(receiptWithOutcome);
+  handleNearReceipt(receiptWithOutcome);
 
   // Logic to see if transaction is done and then trigger protocol specific function handler
 }

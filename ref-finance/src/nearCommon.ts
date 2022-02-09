@@ -1,6 +1,6 @@
 import { near, BigInt, log, json, JSONValueKind } from "@graphprotocol/graph-ts"
 
-export function handleReceipt(
+export function handleNearReceipt(
   receiptWithOutcome: near.ReceiptWithOutcome
 ): void {
 
