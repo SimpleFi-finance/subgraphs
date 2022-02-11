@@ -3,6 +3,7 @@ import { Address, BigInt, ethereum, store } from "@graphprotocol/graph-ts";
 import {
   Deposit,
   UpdateLiquidityLimit,
+  UpdateLiquidityLimit1 as UpdateLiquidityLimitIndexed,
   Withdraw,
   Transfer as GaugeTokenTransfer,
 } from "../generated/templates/LiquidityGauge/LiquidityGauge";
@@ -64,6 +65,7 @@ export function handleDeposit(event: Deposit): void {
     .concat(user)
     .concat("-")
     .concat(event.address.toHexString());
+
   let eventEntity = GaugeUpdateLiquidityLimit.load(id) as GaugeUpdateLiquidityLimit;
   let gauge = Gauge.load(event.address.toHexString()) as Gauge;
 
@@ -112,6 +114,48 @@ export function handleWithdraw(event: Withdraw): void {
 }
 
 /**
+ * Catch the UpdateLiquidityLimit and call common handler.
+ * @param event
+ */
+export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
+  let user = event.params.user;
+  let original_balance = event.params.original_balance;
+  let original_supply = event.params.original_supply;
+  let working_balance = event.params.working_balance;
+  let working_supply = event.params.working_supply;
+
+  updateLiquidity(
+    event,
+    user.toHexString(),
+    original_balance,
+    original_supply,
+    working_balance,
+    working_supply
+  );
+}
+
+/**
+ * Catch the special version of UpdateLiquidityLimit event where `user` is indexed, and call common handler.
+ * @param event
+ */
+export function handleUpdateLiquidityLimitIndexed(event: UpdateLiquidityLimitIndexed): void {
+  let user = event.params.user;
+  let original_balance = event.params.original_balance;
+  let original_supply = event.params.original_supply;
+  let working_balance = event.params.working_balance;
+  let working_supply = event.params.working_supply;
+
+  updateLiquidity(
+    event,
+    user.toHexString(),
+    original_balance,
+    original_supply,
+    working_balance,
+    working_supply
+  );
+}
+
+/**
  * UpdateLiquidityLimit event is emitted when:
  * - LP tokens are deposited or withdrawn
  * - CRV is minted and sent to user
@@ -119,14 +163,28 @@ export function handleWithdraw(event: Withdraw): void {
  * Handler updates the state of market.
  * @param event
  */
-export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
+function updateLiquidity(
+  event: ethereum.Event,
+  user: string,
+  original_balance: BigInt,
+  original_supply: BigInt,
+  working_balance: BigInt,
+  working_supply: BigInt
+): void {
   // store event info
-  getOrCreateGaugeUpdateLiquidityLimit(event);
+  getOrCreateGaugeUpdateLiquidityLimit(
+    event,
+    user,
+    original_balance,
+    original_supply,
+    working_balance,
+    working_supply
+  );
 
   // check if this is deposit/withdraw or neither
   let gauge = Gauge.load(event.address.toHexString()) as Gauge;
-  let isWithdraw = gauge.totalSupply > event.params.original_supply;
-  let isDeposit = gauge.totalSupply < event.params.original_supply;
+  let isWithdraw = gauge.totalSupply > original_supply;
+  let isDeposit = gauge.totalSupply < original_supply;
 
   // if there's no change in supply, don't handle the event
   if (!isWithdraw && !isDeposit) {
@@ -148,8 +206,8 @@ export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
   gaugeSnapshot.save();
 
   // update gauge's LP token total and working supply
-  gauge.totalSupply = event.params.original_supply;
-  gauge.workingSupply = event.params.working_supply;
+  gauge.totalSupply = original_supply;
+  gauge.workingSupply = working_supply;
   gauge.save();
 
   // update market and create market snapshot
@@ -169,6 +227,9 @@ export function handleUpdateLiquidityLimit(event: UpdateLiquidityLimit): void {
  * @returns
  */
 export function handleGaugeTokenTransfer(event: GaugeTokenTransfer): void {
+  // load UpdateLiquidityLimit event which preceded deposit
+  let transactionHash = event.transaction.hash.toHexString();
+
   // if gauge contract generated event then it is gauge token transfer
   let gauge = Gauge.load(event.address.toHexString()) as Gauge;
 
@@ -382,10 +443,14 @@ function getOrCreateAccountLiquidity(account: Account, gauge: Gauge): AccountLiq
  * @returns
  */
 function getOrCreateGaugeUpdateLiquidityLimit(
-  event: UpdateLiquidityLimit
+  event: ethereum.Event,
+  user: string,
+  original_balance: BigInt,
+  original_supply: BigInt,
+  working_balance: BigInt,
+  working_supply: BigInt
 ): GaugeUpdateLiquidityLimit {
   let transactionHash = event.transaction.hash.toHexString();
-  let user = event.params.user.toHexString();
   let id = transactionHash
     .concat("-")
     .concat(user)
@@ -393,19 +458,19 @@ function getOrCreateGaugeUpdateLiquidityLimit(
     .concat(event.address.toHexString());
 
   let eventEntity = GaugeUpdateLiquidityLimit.load(id);
-
   if (eventEntity != null) {
     return eventEntity as GaugeUpdateLiquidityLimit;
   }
 
   eventEntity = new GaugeUpdateLiquidityLimit(id);
   eventEntity.gauge = event.address.toHexString();
-  eventEntity.user = event.params.user.toHexString();
-  eventEntity.original_balance = event.params.original_balance;
-  eventEntity.original_supply = event.params.original_supply;
-  eventEntity.working_balance = event.params.working_balance;
-  eventEntity.working_supply = event.params.working_supply;
+  eventEntity.user = user;
+  eventEntity.original_balance = original_balance;
+  eventEntity.original_supply = original_supply;
+  eventEntity.working_balance = working_balance;
+  eventEntity.working_supply = working_supply;
   eventEntity.save();
+
   return eventEntity as GaugeUpdateLiquidityLimit;
 }
 

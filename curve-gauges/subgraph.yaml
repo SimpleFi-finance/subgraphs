@@ -12,6 +12,7 @@ dataSources:
       abi: GaugeController
       address: "0x2f50d538606fa9edd2b11e2446beb18c9d5846bb"
       startBlock: 10647875
+
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
@@ -96,6 +97,8 @@ templates:
           handler: handleDeposit
         - event: UpdateLiquidityLimit(address,uint256,uint256,uint256,uint256)
           handler: handleUpdateLiquidityLimit
+        - event: UpdateLiquidityLimit(indexed address,uint256,uint256,uint256,uint256)
+          handler: handleUpdateLiquidityLimitIndexed
         - event: Withdraw(indexed address,uint256)
           handler: handleWithdraw
         - event: Transfer(indexed address,indexed address,uint256)
@@ -131,3 +134,7 @@ templates:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleRewardTokenTransfer
       file: ./src/gauge.ts
+
+graft:
+  base: QmY32f9tFKyfTWBe6A9AbVAqqcCXk2Bh5ZtFmVPRbttPQC
+  block: 14040000
