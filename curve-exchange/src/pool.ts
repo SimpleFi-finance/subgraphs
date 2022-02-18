@@ -1,18 +1,27 @@
 import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
+
 import {
-  AddLiquidity,
-  RemoveLiquidity,
-  RemoveLiquidityOne,
+  AddLiquidity as AddLiquidity2Coins,
+  AddLiquidity1 as AddLiquidity3Coins,
+  AddLiquidity2 as AddLiquidity4Coins,
+  RemoveLiquidity as RemoveLiquidity2Coins,
+  RemoveLiquidity as RemoveLiquidity3Coins,
+  RemoveLiquidity as RemoveLiquidity4Coins,
+  RemoveLiquidityImbalance as RemoveLiquidityImbalance2Coins,
+  RemoveLiquidityImbalance as RemoveLiquidityImbalance3Coins,
+  RemoveLiquidityImbalance as RemoveLiquidityImbalance4Coins,
+  RemoveLiquidityOne as RemoveLiquidityOne_v1,
+  RemoveLiquidityOne1 as RemoveLiquidityOne_v2,
   Remove_liquidity_one_coinCall,
-  RemoveLiquidityImbalance,
   TokenExchange,
-} from "../generated/templates/PoolLPToken/StableSwapLending3";
-import {
-  AddLiquidity as AddLiquidityTriCrypto,
-  RemoveLiquidity as RemoveLiquidityTriCrypto,
-  Remove_liquidity_one_coinCall as Remove_liquidity_one_coin_tricrypto_Call,
-  TokenExchange as TokenExchangeTriCrypto,
-} from "../generated/TRICRYPTOPool/StableSwapTriCrypto";
+} from "../generated/templates/CurvePool/CurvePool";
+
+// import {
+//   AddLiquidity as AddLiquidityTriCrypto,
+//   RemoveLiquidity as RemoveLiquidityTriCrypto,
+//   Remove_liquidity_one_coinCall as Remove_liquidity_one_coin_tricrypto_Call,
+//   TokenExchange as TokenExchangeTriCrypto,
+// } from "../generated/TRICRYPTOPool/StableSwapTriCrypto";
 import { ERC20, Transfer } from "../generated/templates/PoolLPToken/ERC20";
 import {
   LPTokenTransferToZero as LPTokenTransferToZeroEntity,
@@ -29,16 +38,15 @@ import {
   TokenBalance,
 } from "./common";
 import {
-  getOrCreateLendingPool,
+  getOrCreatePool,
   getOtCreateAccountLiquidity,
-  getPoolBalances,
   updatePool,
   getPoolFromLpToken,
   getLpTokenOfPool,
   getOrCreateRemoveLiquidityOneEvent,
 } from "./curveUtil";
 
-export function handleAddLiquidity(event: AddLiquidity): void {
+export function handleAddLiquidity2Coins(event: AddLiquidity2Coins): void {
   handleAddLiquidityCommon(
     event,
     event.address,
@@ -48,7 +56,7 @@ export function handleAddLiquidity(event: AddLiquidity): void {
   );
 }
 
-export function handleAddLiquidityTriCrypto(event: AddLiquidityTriCrypto): void {
+export function handleAddLiquidity3Coins(event: AddLiquidity3Coins): void {
   handleAddLiquidityCommon(
     event,
     event.address,
@@ -57,6 +65,26 @@ export function handleAddLiquidityTriCrypto(event: AddLiquidityTriCrypto): void 
     event.params.provider
   );
 }
+
+export function handleAddLiquidity4Coins(event: AddLiquidity4Coins): void {
+  handleAddLiquidityCommon(
+    event,
+    event.address,
+    event.params.token_supply,
+    event.params.token_amounts,
+    event.params.provider
+  );
+}
+
+// export function handleAddLiquidityTriCrypto(event: AddLiquidityTriCrypto): void {
+//   handleAddLiquidityCommon(
+//     event,
+//     event.address,
+//     event.params.token_supply,
+//     event.params.token_amounts,
+//     event.params.provider
+//   );
+// }
 
 /**
  * Function receives unpacked event params (in order to support different
@@ -75,7 +103,7 @@ function handleAddLiquidityCommon(
   provider: Address
 ): void {
   // create pool
-  let pool = getOrCreateLendingPool(event, address);
+  let pool = getOrCreatePool(event, address);
 
   // create LPToken entity from template when pool is createed
   if (pool.totalSupply == BigInt.fromI32(0)) {
@@ -87,7 +115,8 @@ function handleAddLiquidityCommon(
 
   // Update pool entity balances and totalSupply of LP tokens
   let oldTotalSupply = pool.totalSupply;
-  let newPoolBalances = getPoolBalances(pool);
+  // let newPoolBalances = getPoolBalances(pool);
+  let newPoolBalances = pool.balances;
 
   // If token supply in event is 0, then check directly from contract
   let currentTokenSupply = token_supply;
@@ -139,9 +168,9 @@ function handleAddLiquidityCommon(
   );
 }
 
-export function handleRemoveLiquidity(event: RemoveLiquidity): void {
+export function handleRemoveLiquidity2Coins(event: RemoveLiquidity2Coins): void {
   // create pool
-  let pool = getOrCreateLendingPool(event, event.address);
+  let pool = getOrCreatePool(event, event.address);
 
   // handle any pending LP token tranfers to zero address
   checkPendingTransferToZero(event, pool);
@@ -156,9 +185,9 @@ export function handleRemoveLiquidity(event: RemoveLiquidity): void {
   );
 }
 
-export function handleRemoveLiquidityTriCrypto(event: RemoveLiquidityTriCrypto): void {
+export function handleRemoveLiquidity3Coins(event: RemoveLiquidity3Coins): void {
   // create pool
-  let pool = getOrCreateLendingPool(event, event.address);
+  let pool = getOrCreatePool(event, event.address);
 
   // handle any pending LP token tranfers to zero address
   checkPendingTransferToZero(event, pool);
@@ -173,9 +202,9 @@ export function handleRemoveLiquidityTriCrypto(event: RemoveLiquidityTriCrypto):
   );
 }
 
-export function handleRemoveLiquidityImbalance(event: RemoveLiquidityImbalance): void {
+export function handleRemoveLiquidity4Coins(event: RemoveLiquidity4Coins): void {
   // create pool
-  let pool = getOrCreateLendingPool(event, event.address);
+  let pool = getOrCreatePool(event, event.address);
 
   // handle any pending LP token tranfers to zero address
   checkPendingTransferToZero(event, pool);
@@ -190,117 +219,22 @@ export function handleRemoveLiquidityImbalance(event: RemoveLiquidityImbalance):
   );
 }
 
-export function handleTokenExchange(event: TokenExchange): void {
-  handleTokenExchangeCommon(event, event.address);
-}
+// export function handleRemoveLiquidityTriCrypto(event: RemoveLiquidityTriCrypto): void {
+//   // create pool
+//   let pool = getOrCreatePool(event, event.address);
 
-export function handleTokenExchangeTriCrypto(event: TokenExchangeTriCrypto): void {
-  handleTokenExchangeCommon(event, event.address);
-}
+//   // handle any pending LP token tranfers to zero address
+//   checkPendingTransferToZero(event, pool);
 
-/**
- * Function receives unpacked event params (in order to support different
- * event signatures) and handles the TokenExchange event.
- * @param event
- * @param address
- */
-function handleTokenExchangeCommon(event: ethereum.Event, address: Address): void {
-  // create pool
-  let pool = getOrCreateLendingPool(event, address);
-
-  // handle any pending LP token tranfers to zero address
-  checkPendingTransferToZero(event, pool);
-
-  // update pool entity with new token balances
-  let newPoolBalances = getPoolBalances(pool);
-  updatePool(event, pool, newPoolBalances, pool.totalSupply);
-}
-
-export function handleTransfer(event: Transfer): void {
-  // don't handle zero-value tranfers or transfers from zero-address
-  if (event.params.value == BigInt.fromI32(0) || event.params.from.toHexString() == ADDRESS_ZERO) {
-    return;
-  }
-
-  let pool = getOrCreateLendingPool(event, getPoolFromLpToken(event.address));
-
-  // if receiver is zero-address create tranferToZero entity and return - position updates are done in add/remove liquidity handlers
-  if (event.params.to.toHexString() == ADDRESS_ZERO) {
-    let transferToZero = new LPTokenTransferToZeroEntity(event.transaction.hash.toHexString());
-    transferToZero.from = event.params.from;
-    transferToZero.to = event.params.to;
-    transferToZero.value = event.params.value;
-    transferToZero.save();
-
-    pool.lastTransferToZero = transferToZero.id;
-    pool.save();
-
-    return;
-  }
-
-  // update all relevant entities
-  transferLPToken(event, pool, event.params.from, event.params.to, event.params.value);
-}
-
-export function handleRemoveLiquidityOne(event: RemoveLiquidityOne): void {
-  // create pool
-  let pool = getOrCreateLendingPool(event, event.address);
-
-  // handle any pending LP token tranfers to zero address
-  checkPendingTransferToZero(event, pool);
-
-  // create RemoveLiquidityOne entity
-  let id = event.transaction.hash
-    .toHexString()
-    .concat("-")
-    .concat(pool.id);
-  let entity = getOrCreateRemoveLiquidityOneEvent(id, pool);
-  entity.eventApplied = true;
-  entity.account = getOrCreateAccount(event.params.provider).id;
-  entity.tokenAmount = event.params.token_amount;
-  entity.dy = event.params.coin_amount;
-  entity.logIndex = event.logIndex;
-  entity.save();
-
-  handleRLOEEntityUpdate(event, entity, pool);
-}
-
-export function handleRemoveLiquidityOneCall(call: Remove_liquidity_one_coinCall): void {
-  handleRemoveLiquidityOneCallCommon(call, call.inputs.i);
-}
-
-export function handleRemoveLiquidityOneTriCryptoCall(
-  call: Remove_liquidity_one_coin_tricrypto_Call
-): void {
-  handleRemoveLiquidityOneCallCommon(call, call.inputs.i);
-}
-
-/**
- * Function receives unpacked call params (in order to support different
- * event signatures) and handles the RemoveLiquidityOneCall event.
- * @param call
- * @param i
- */
-function handleRemoveLiquidityOneCallCommon(call: ethereum.Call, i: BigInt): void {
-  // load pool
-  let pool = PoolEntity.load(call.to.toHexString()) as PoolEntity;
-
-  // update RemoveLiquidityOne entity
-  let id = call.transaction.hash
-    .toHexString()
-    .concat("-")
-    .concat(pool.id);
-  let entity = getOrCreateRemoveLiquidityOneEvent(id, pool);
-  entity.i = i.toI32();
-  entity.callApplied = true;
-  entity.save();
-
-  let event = new ethereum.Event();
-  event.block = call.block;
-  event.transaction = call.transaction;
-  event.logIndex = entity.logIndex as BigInt;
-  handleRLOEEntityUpdate(event, entity, pool);
-}
+//   // update all relevant entities
+//   handleRemoveLiquidityCommon(
+//     event,
+//     pool,
+//     event.params.provider,
+//     event.params.token_amounts,
+//     event.params.token_supply
+//   );
+// }
 
 /**
  * Common function for entity update after liquidity removal
@@ -319,7 +253,9 @@ function handleRemoveLiquidityCommon(
 ): void {
   // Update balances and totalSupply
   let oldTotalSupply = pool.totalSupply;
-  let newBalances = getPoolBalances(pool);
+  // let newBalances = getPoolBalances(pool); TODO
+  let newBalances = pool.balances;
+
   pool = updatePool(event, pool, newBalances, lpTokenSupply);
   pool.lastTransferToZero = null;
   pool.save();
@@ -365,6 +301,193 @@ function handleRemoveLiquidityCommon(
     [],
     null
   );
+}
+
+export function handleRemoveLiquidityImbalance2Coins(event: RemoveLiquidityImbalance2Coins): void {
+  // create pool
+  let pool = getOrCreatePool(event, event.address);
+
+  // handle any pending LP token tranfers to zero address
+  checkPendingTransferToZero(event, pool);
+
+  // update all relevant entities
+  handleRemoveLiquidityCommon(
+    event,
+    pool,
+    event.params.provider,
+    event.params.token_amounts,
+    event.params.token_supply
+  );
+}
+
+export function handleRemoveLiquidityImbalance3Coins(event: RemoveLiquidityImbalance3Coins): void {
+  // create pool
+  let pool = getOrCreatePool(event, event.address);
+
+  // handle any pending LP token tranfers to zero address
+  checkPendingTransferToZero(event, pool);
+
+  // update all relevant entities
+  handleRemoveLiquidityCommon(
+    event,
+    pool,
+    event.params.provider,
+    event.params.token_amounts,
+    event.params.token_supply
+  );
+}
+
+export function handleRemoveLiquidityImbalance4Coins(event: RemoveLiquidityImbalance4Coins): void {
+  // create pool
+  let pool = getOrCreatePool(event, event.address);
+
+  // handle any pending LP token tranfers to zero address
+  checkPendingTransferToZero(event, pool);
+
+  // update all relevant entities
+  handleRemoveLiquidityCommon(
+    event,
+    pool,
+    event.params.provider,
+    event.params.token_amounts,
+    event.params.token_supply
+  );
+}
+
+export function handleTokenExchange(event: TokenExchange): void {
+  handleTokenExchangeCommon(event, event.address);
+}
+
+// export function handleTokenExchangeTriCrypto(event: TokenExchangeTriCrypto): void {
+//   handleTokenExchangeCommon(event, event.address);
+// }
+
+/**
+ * Function receives unpacked event params (in order to support different
+ * event signatures) and handles the TokenExchange event.
+ * @param event
+ * @param address
+ */
+function handleTokenExchangeCommon(event: ethereum.Event, address: Address): void {
+  // create pool
+  let pool = getOrCreatePool(event, address);
+
+  // handle any pending LP token tranfers to zero address
+  checkPendingTransferToZero(event, pool);
+
+  // update pool entity with new token balances
+  // let newPoolBalances = getPoolBalances(pool);
+  let newPoolBalances = pool.balances;
+  updatePool(event, pool, newPoolBalances, pool.totalSupply);
+}
+
+export function handleTransfer(event: Transfer): void {
+  // don't handle zero-value tranfers or transfers from zero-address
+  if (event.params.value == BigInt.fromI32(0) || event.params.from.toHexString() == ADDRESS_ZERO) {
+    return;
+  }
+
+  let pool = getOrCreatePool(event, getPoolFromLpToken(event.address));
+
+  // if receiver is zero-address create tranferToZero entity and return - position updates are done in add/remove liquidity handlers
+  if (event.params.to.toHexString() == ADDRESS_ZERO) {
+    let transferToZero = new LPTokenTransferToZeroEntity(event.transaction.hash.toHexString());
+    transferToZero.from = event.params.from;
+    transferToZero.to = event.params.to;
+    transferToZero.value = event.params.value;
+    transferToZero.save();
+
+    pool.lastTransferToZero = transferToZero.id;
+    pool.save();
+
+    return;
+  }
+
+  // update all relevant entities
+  transferLPToken(event, pool, event.params.from, event.params.to, event.params.value);
+}
+
+export function handleRemoveLiquidityOne_v1(event: RemoveLiquidityOne_v1): void {
+  // create pool
+  let pool = getOrCreatePool(event, event.address);
+
+  // handle any pending LP token tranfers to zero address
+  checkPendingTransferToZero(event, pool);
+
+  // create RemoveLiquidityOne entity
+  let id = event.transaction.hash
+    .toHexString()
+    .concat("-")
+    .concat(pool.id);
+  let entity = getOrCreateRemoveLiquidityOneEvent(id, pool);
+  entity.eventApplied = true;
+  entity.account = getOrCreateAccount(event.params.provider).id;
+  entity.tokenAmount = event.params.token_amount;
+  entity.dy = event.params.coin_amount;
+  entity.logIndex = event.logIndex;
+  entity.save();
+
+  handleRLOEEntityUpdate(event, entity, pool);
+}
+
+export function handleRemoveLiquidityOne_v2(event: RemoveLiquidityOne_v2): void {
+  // create pool
+  let pool = getOrCreatePool(event, event.address);
+
+  // handle any pending LP token tranfers to zero address
+  checkPendingTransferToZero(event, pool);
+
+  // create RemoveLiquidityOne entity
+  let id = event.transaction.hash
+    .toHexString()
+    .concat("-")
+    .concat(pool.id);
+  let entity = getOrCreateRemoveLiquidityOneEvent(id, pool);
+  entity.eventApplied = true;
+  entity.account = getOrCreateAccount(event.params.provider).id;
+  entity.tokenAmount = event.params.token_amount;
+  entity.dy = event.params.coin_amount;
+  entity.logIndex = event.logIndex;
+  entity.save();
+
+  handleRLOEEntityUpdate(event, entity, pool);
+}
+
+export function handleRemoveLiquidityOneCall(call: Remove_liquidity_one_coinCall): void {
+  handleRemoveLiquidityOneCallCommon(call, call.inputs.i);
+}
+
+// export function handleRemoveLiquidityOneTriCryptoCall(
+//   call: Remove_liquidity_one_coin_tricrypto_Call
+// ): void {
+//   handleRemoveLiquidityOneCallCommon(call, call.inputs.i);
+// }
+
+/**
+ * Function receives unpacked call params (in order to support different
+ * event signatures) and handles the RemoveLiquidityOneCall event.
+ * @param call
+ * @param i
+ */
+function handleRemoveLiquidityOneCallCommon(call: ethereum.Call, i: BigInt): void {
+  // load pool
+  let pool = PoolEntity.load(call.to.toHexString()) as PoolEntity;
+
+  // update RemoveLiquidityOne entity
+  let id = call.transaction.hash
+    .toHexString()
+    .concat("-")
+    .concat(pool.id);
+  let entity = getOrCreateRemoveLiquidityOneEvent(id, pool);
+  entity.i = i.toI32();
+  entity.callApplied = true;
+  entity.save();
+
+  let event = new ethereum.Event();
+  event.block = call.block;
+  event.transaction = call.transaction;
+  event.logIndex = entity.logIndex as BigInt;
+  handleRLOEEntityUpdate(event, entity, pool);
 }
 
 /**

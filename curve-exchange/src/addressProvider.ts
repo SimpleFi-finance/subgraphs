@@ -1,4 +1,4 @@
-import { Address, BigInt, log } from "@graphprotocol/graph-ts";
+import { BigInt } from "@graphprotocol/graph-ts";
 import { AddressModified } from "../generated/CurveExchangeAddressProvider/AddressProvider";
 
 import { PoolRegistry, AddressProvider } from "../generated/schema";
@@ -10,8 +10,10 @@ export function handleAddressModified(event: AddressModified): void {
 
   // create address porivder entity
   let addressProvider = AddressProvider.load(event.address.toHexString());
+
   if (addressProvider == null) {
     addressProvider = new AddressProvider(event.address.toHexString());
+    addressProvider.save();
   }
 
   // create registry entity
@@ -21,12 +23,11 @@ export function handleAddressModified(event: AddressModified): void {
       poolRegistry = new PoolRegistry(newAddress.toHexString());
       poolRegistry.save();
 
+      addressProvider.registry = poolRegistry.id;
+      addressProvider.save();
+
       // start indexing registry
       PoolRegistryTemplate.create(newAddress);
     }
-
-    addressProvider.registry = poolRegistry.id;
   }
-
-  addressProvider.save();
 }
