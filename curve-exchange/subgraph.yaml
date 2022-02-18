@@ -3,33 +3,47 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum/contract
-    name: CurveExchangeAddressRegistry
+    name: CurveExchangeAddressProvider
     network: mainnet
     source:
-      address: "0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"
+      address: "0x0000000022D53366457F9d5E68Ec105046FC4383"
       startBlock: 11153725
-      abi: AddressRegistry
+      abi: AddressProvider
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
       language: wasm/assemblyscript
       entities:
-        - Block
-        - Account
-        - Token
-        - Market
-        - Transaction
-        - Position
-        - PositionSnapshot
-        - Pool
-        - PoolSnapshot
+        - PoolRegistry
       abis:
-        - name: AddressRegistry
-          file: ./abis/AddressRegistry.json
+        - name: AddressProvider
+          file: ./abis/AddressProvider.json
       eventHandlers:
         - event: AddressModified(indexed uint256,address,uint256)
           handler: handleAddressModified
-      file: ./src/addressRegistry.ts
+      file: ./src/addressProvider.ts
+
+templates:
+  - kind: ethereum/contract
+    name: PoolRegistry
+    network: mainnet
+    source:
+      abi: PoolRegistry
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Market
+      abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+      eventHandlers:
+        - event: PoolAdded(indexed address,bytes)
+          handler: handlePoolAdded
+      file: ./src/poolRegistry.ts
 #   - kind: ethereum/contract
 #     name: TriPool
 #     network: mainnet

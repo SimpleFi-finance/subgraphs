@@ -9,7 +9,7 @@ import {
   Token,
   Transaction,
 } from "../generated/schema";
-import { ERC20 } from "../generated/templates/PoolLPToken/ERC20";
+import { ERC20 } from "../generated/templates/PoolRegistry/ERC20";
 import { PositionType, TokenStandard, TransactionType } from "./constants";
 
 export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
