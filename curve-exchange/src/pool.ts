@@ -39,7 +39,7 @@ import {
 } from "./common";
 import {
   getOrCreatePool,
-  getOtCreateAccountLiquidity,
+  getOtCreateAccountLiquidity as getOrCreateAccountLiquidity,
   updatePool,
   getPoolFromLpToken,
   getLpTokenOfPool,
@@ -90,67 +90,78 @@ export function handleAddLiquidity4Coins(event: AddLiquidity4Coins): void {
  * Function receives unpacked event params (in order to support different
  * event signatures) and handles the AddLiquidity event.
  * @param event
- * @param address
- * @param token_supply
- * @param token_amounts
+ * @param poolAddress
+ * @param newTotalSupply
+ * @param inputTokenAmountProvided
  * @param provider
  */
 function handleAddLiquidityCommon(
   event: ethereum.Event,
-  address: Address,
-  token_supply: BigInt,
-  token_amounts: BigInt[],
+  poolAddress: Address,
+  newTotalSupply: BigInt,
+  inputTokenAmountProvided: BigInt[],
   provider: Address
 ): void {
   // create pool
-  let pool = getOrCreatePool(event, address);
+  let pool = getOrCreatePool(event, poolAddress);
 
   // create LPToken entity from template when pool is createed
-  if (pool.totalSupply == BigInt.fromI32(0)) {
-    PoolLPToken.create(pool.lpToken as Address);
-  }
+  // if (pool.totalSupply == BigInt.fromI32(0)) {
+  //   PoolLPToken.create(pool.lpToken as Address);
+  // }
 
   // handle any pending LP token tranfers to zero address
   checkPendingTransferToZero(event, pool);
 
   // Update pool entity balances and totalSupply of LP tokens
   let oldTotalSupply = pool.totalSupply;
+
+  let market = MarketEntity.load(pool.id) as MarketEntity;
+
+  // add tokens provided to market's input token balance
+  let inputTokens = market.inputTokens as string[];
+  let inputTokenTotalBalances = market.inputTokenTotalBalances as string[];§
+  let newInputTokenBalances: BigInt[] = [];
+  for (let i = 0; i < pool.coinCount; i++) {
+    let oldBalance = TokenBalance.fromString(inputTokenTotalBalances[i]).balance;
+    let newBalance = oldBalance.plus(inputTokenAmountProvided[i]);
+    newInputTokenBalances.push(newBalance);
+  }
   // let newPoolBalances = getPoolBalances(pool);
-  let newPoolBalances = pool.balances;
+  // let newPoolBalances = pool.balances;
 
   // If token supply in event is 0, then check directly from contract
-  let currentTokenSupply = token_supply;
-  if (currentTokenSupply == BigInt.fromI32(0)) {
-    let contract = ERC20.bind(getLpTokenOfPool(Address.fromString(pool.id)));
-    let supply = contract.try_totalSupply();
-    if (!supply.reverted) {
-      currentTokenSupply = supply.value;
-    }
-  }
+  // let currentTokenSupply = newTotalSupply;
+  // if (currentTokenSupply == BigInt.fromI32(0)) {
+  //   let contract = ERC20.bind(getLpTokenOfPool(Address.fromString(pool.id)));
+  //   let supply = contract.try_totalSupply();
+  //   if (!supply.reverted) {
+  //     currentTokenSupply = supply.value;
+  //   }
+  // }
 
-  pool = updatePool(event, pool, newPoolBalances, currentTokenSupply);
+  pool = updatePool(event, pool, newInputTokenBalances, newTotalSupply);
 
   // Update AccountLiquidity to track LPToken balance of account
   let account = getOrCreateAccount(provider);
-  let lpTokenAmount = token_supply.minus(oldTotalSupply);
+  let lpTokensMinted = newTotalSupply.minus(oldTotalSupply);
 
-  let accountLiquidity = getOtCreateAccountLiquidity(account, pool);
-  accountLiquidity.balance = accountLiquidity.balance.plus(lpTokenAmount);
+  let accountLiquidity = getOrCreateAccountLiquidity(account, pool);
+  accountLiquidity.balance = accountLiquidity.balance.plus(lpTokensMinted);
   accountLiquidity.save();
 
   // Collect data for position update
-  let market = MarketEntity.load(pool.id) as MarketEntity;
-  let accountLpTokenBalance = accountLiquidity.balance;
-  let providedTokenAmounts = token_amounts;
-  let inputTokenAmounts: TokenBalance[] = [];
-  let inputTokenBalances: TokenBalance[] = [];
+  let lpTokensBalance = accountLiquidity.balance;
+  let providedTokenAmounts = inputTokenAmountProvided;
+  let inputTokensProvided: TokenBalance[] = [];
+  let inputTokensBalance: TokenBalance[] = [];
   let coins = pool.coins;
   for (let i = 0; i < pool.coinCount; i++) {
-    inputTokenAmounts.push(new TokenBalance(coins[i], account.id, providedTokenAmounts[i]));
+    inputTokensProvided.push(new TokenBalance(coins[i], account.id, providedTokenAmounts[i]));
 
     // number of pool input tokens that can be redeemed by account's LP tokens
-    let inputBalance = newPoolBalances[i].times(accountLpTokenBalance).div(pool.totalSupply);
-    inputTokenBalances.push(new TokenBalance(coins[i], account.id, inputBalance));
+    let inputBalance = newInputTokenBalances[i].times(lpTokensBalance).div(pool.totalSupply);
+    inputTokensBalance.push(new TokenBalance(coins[i], account.id, inputBalance));
   }
 
   // use common function to update position and store transaction
@@ -158,11 +169,11 @@ function handleAddLiquidityCommon(
     event,
     account,
     market,
-    lpTokenAmount,
-    inputTokenAmounts,
+    lpTokensMinted,
+    inputTokensProvided,
     [],
-    accountLpTokenBalance,
-    inputTokenBalances,
+    lpTokensBalance,
+    inputTokensBalance,
     [],
     null
   );
@@ -264,7 +275,7 @@ function handleRemoveLiquidityCommon(
   let account = getOrCreateAccount(provider);
   let lpTokenAmount = oldTotalSupply.minus(lpTokenSupply);
 
-  let accountLiquidity = getOtCreateAccountLiquidity(account, pool);
+  let accountLiquidity = getOrCreateAccountLiquidity(account, pool);
   accountLiquidity.balance = accountLiquidity.balance.minus(lpTokenAmount);
   accountLiquidity.save();
 
@@ -509,7 +520,7 @@ function transferLPToken(
   let fromAccount = getOrCreateAccount(from);
   let fromLpTokensTransferred = value;
 
-  let fromAccountLiquidity = getOtCreateAccountLiquidity(fromAccount, pool);
+  let fromAccountLiquidity = getOrCreateAccountLiquidity(fromAccount, pool);
   fromAccountLiquidity.balance = fromAccountLiquidity.balance.minus(fromLpTokensTransferred);
   fromAccountLiquidity.save();
 
@@ -543,7 +554,7 @@ function transferLPToken(
   let toAccount = getOrCreateAccount(to);
   let toLpTokensReceived = value;
 
-  let toAccountLiquidity = getOtCreateAccountLiquidity(toAccount, pool);
+  let toAccountLiquidity = getOrCreateAccountLiquidity(toAccount, pool);
   toAccountLiquidity.balance = toAccountLiquidity.balance.plus(toLpTokensReceived);
   toAccountLiquidity.save();
 
