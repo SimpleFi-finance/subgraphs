@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
 import {
   Account as AccountEntity,
   AccountLiquidity as AccountLiquidityEntity,
@@ -330,9 +330,19 @@ export function getOrCreatePoolViaFactory(
 
   // n_coins
   let contract = FactoryContract.bind(factoryAddress);
-  let n_coins = contract.get_n_coins(curvePoolAddress);
-  let numOfCoins = n_coins.value0;
-  let numOfUnderlyingCoins = n_coins.value1;
+  let n_coins = contract.try_get_n_coins(curvePoolAddress);
+
+  let numOfCoins: BigInt;
+  let numOfUnderlyingCoins: BigInt;
+
+  if (!n_coins.reverted) {
+    numOfCoins = n_coins.value.value0;
+    numOfUnderlyingCoins = n_coins.value.value1;
+  } else {
+    // if there's no contract call available assume it's 1 coin + 1 LP (3 underlying) coin
+    numOfCoins = BigInt.fromI32(2);
+    numOfUnderlyingCoins = BigInt.fromI32(4);
+  }
   pool.coinCount = numOfCoins.toI32();
 
   // coins

@@ -56,9 +56,12 @@ templates:
       language: wasm/assemblyscript
       entities:
         - MetaPoolFactory
+        - Market
       abis:
         - name: MetaPoolFactory
           file: ./abis/MetaPoolFactory.json
+        - name: ERC20
+          file: ./abis/IERC20.json
       callHandlers:
         - function: deploy_metapool(address,string,string,address,uint256,uint256)
           handler: handleMetaPoolDeployed
