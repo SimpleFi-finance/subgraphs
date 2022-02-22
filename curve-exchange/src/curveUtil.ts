@@ -213,7 +213,7 @@ export function updatePool(
 //   };
 // }
 
-export function getOtCreateAccountLiquidity(
+export function getOrCreateAccountLiquidity(
   account: AccountEntity,
   pool: PoolEntity
 ): AccountLiquidityEntity {
@@ -339,7 +339,7 @@ export function getOrCreatePoolViaFactory(
     numOfCoins = n_coins.value.value0;
     numOfUnderlyingCoins = n_coins.value.value1;
   } else {
-    // if there's no contract call available assume it's 1 coin + 1 LP (3 underlying) coin
+    // if there's no contract call available assume it's 1 coin + 1 LP (3   underlying) coin
     numOfCoins = BigInt.fromI32(2);
     numOfUnderlyingCoins = BigInt.fromI32(4);
   }

@@ -39,7 +39,7 @@ import {
 } from "./common";
 import {
   getOrCreatePool,
-  getOtCreateAccountLiquidity as getOrCreateAccountLiquidity,
+  getOrCreateAccountLiquidity,
   updatePool,
   getPoolFromLpToken,
   getLpTokenOfPool,
