@@ -1,30 +1,24 @@
-import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 import {
   Account as AccountEntity,
   AccountLiquidity as AccountLiquidityEntity,
-  LPToken as LPTokenEntity,
   Market as MarketEntity,
   Pool as PoolEntity,
   PoolSnapshot as PoolSnapshotEntity,
-  Token as TokenEntity,
   RemoveLiqudityOneEvent as RemoveLiqudityOneEventEntity,
   Token,
   AddressProvider,
 } from "../generated/schema";
 
 import { PoolRegistry } from "../generated/templates/PoolRegistry/PoolRegistry";
+import { MetaPoolFactory as FactoryContract } from "../generated/templates/MetaPoolFactory/MetaPoolFactory";
+import { ERC20 as ERC20Contract } from "../generated/templates/PoolLPToken/ERC20";
 
 // import { StableSwapLending3 } from "../generated/templates/PoolLPToken/StableSwapLending3";
 // import { StableSwapLending2_v1 } from "../generated/templates/PoolLPToken/StableSwapLending2_v1";
 // import { StableSwapPlain3 } from "../generated/templates/PoolLPToken/StableSwapPlain3";
 
-import {
-  ADDRESS_ZERO,
-  getOrCreateERC20Token,
-  getOrCreateMarket,
-  TokenBalance,
-  updateMarket,
-} from "./common";
+import { getOrCreateERC20Token, getOrCreateMarket, TokenBalance, updateMarket } from "./common";
 import {
   ProtocolName,
   ProtocolType,
@@ -322,6 +316,86 @@ export function getPoolFromLpToken(lpToken: Address): Address {
   return Address.fromString(poolAddress);
 }
 
+export function getOrCreatePoolViaFactory(
+  event: ethereum.Event,
+  curvePoolAddress: Address,
+  factoryAddress: Address
+): PoolEntity {
+  let pool = PoolEntity.load(curvePoolAddress.toHexString());
+  if (pool != null) {
+    return pool as PoolEntity;
+  }
+
+  pool = new PoolEntity(curvePoolAddress.toHexString());
+
+  // n_coins
+  let contract = FactoryContract.bind(factoryAddress);
+  let n_coins = contract.get_n_coins(curvePoolAddress);
+  let numOfCoins = n_coins.value0;
+  let numOfUnderlyingCoins = n_coins.value1;
+  pool.coinCount = numOfCoins.toI32();
+
+  // coins
+  let coins = contract.get_coins(curvePoolAddress);
+  let poolCoins: Token[] = [];
+  for (let i = 0; i < numOfCoins.toI32(); i++) {
+    let coin = coins[i];
+    let token = getOrCreateERC20Token(event, coin);
+    poolCoins.push(token);
+  }
+  pool.coins = poolCoins.map<string>((t) => t.id);
+
+  // underlying coins
+  let underlyingCoins = contract.get_underlying_coins(curvePoolAddress);
+  let poolUnderlyingCoins: Token[] = [];
+  for (let i = 0; i < numOfUnderlyingCoins.toI32(); i++) {
+    let underlyingCoin = underlyingCoins[i];
+    let token = getOrCreateERC20Token(event, underlyingCoin);
+    poolUnderlyingCoins.push(token);
+  }
+  pool.underlyingCoins = poolUnderlyingCoins.map<string>((t) => t.id);
+
+  // get coin balances
+  let coinBalances = contract.get_balances(curvePoolAddress);
+  let balances: BigInt[] = [];
+  for (let i = 0; i < numOfCoins.toI32(); i++) {
+    balances.push(coinBalances[i]);
+  }
+  pool.balances = balances;
+  pool.initialBalances = balances;
+
+  // init to zero
+  pool.totalSupply = BigInt.fromI32(0);
+
+  // get LP token
+  let lpToken = getOrCreateERC20Token(event, curvePoolAddress);
+  pool.lpToken = curvePoolAddress;
+
+  // other
+  pool.blockNumber = event.block.number;
+  pool.timestamp = event.block.timestamp;
+  pool.lastTransferToZero = null;
+  pool.source = "MetaPool Factory";
+
+  pool.save();
+
+  // Create Market entity
+  let market = getOrCreateMarket(
+    event,
+    curvePoolAddress,
+    ProtocolName.CURVE_POOL,
+    ProtocolType.EXCHANGE,
+    poolCoins,
+    lpToken,
+    []
+  );
+
+  lpToken.mintedByMarket = market.id;
+  lpToken.save();
+
+  return pool as PoolEntity;
+}
+
 export function getOrCreatePool(event: ethereum.Event, curvePoolAddress: Address): PoolEntity {
   let pool = PoolEntity.load(curvePoolAddress.toHexString());
   if (pool != null) {
@@ -368,19 +442,22 @@ export function getOrCreatePool(event: ethereum.Event, curvePoolAddress: Address
     balances.push(coinBalances[i]);
   }
   pool.balances = balances;
-
-  // init to zero
-  pool.totalSupply = BigInt.fromI32(0);
+  pool.initialBalances = balances;
 
   // get LP token
   let lpTokenAddress = contract.get_lp_token(curvePoolAddress);
   let lpToken = getOrCreateERC20Token(event, lpTokenAddress);
   pool.lpToken = lpTokenAddress;
 
+  // get total supply using contract call
+  let lpContract = ERC20Contract.bind(lpTokenAddress);
+  pool.totalSupply = lpContract.totalSupply();
+
   // other
   pool.blockNumber = event.block.number;
   pool.timestamp = event.block.timestamp;
   pool.lastTransferToZero = null;
+  pool.source = "Registry";
 
   pool.save();
 

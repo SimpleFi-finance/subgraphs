@@ -120,7 +120,7 @@ function handleAddLiquidityCommon(
 
   // add tokens provided to market's input token balance
   let inputTokens = market.inputTokens as string[];
-  let inputTokenTotalBalances = market.inputTokenTotalBalances as string[];§
+  let inputTokenTotalBalances = market.inputTokenTotalBalances as string[];
   let newInputTokenBalances: BigInt[] = [];
   for (let i = 0; i < pool.coinCount; i++) {
     let oldBalance = TokenBalance.fromString(inputTokenTotalBalances[i]).balance;

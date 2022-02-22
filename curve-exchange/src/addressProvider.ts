@@ -1,8 +1,11 @@
 import { BigInt } from "@graphprotocol/graph-ts";
 import { AddressModified } from "../generated/CurveExchangeAddressProvider/AddressProvider";
 
-import { PoolRegistry, AddressProvider } from "../generated/schema";
-import { PoolRegistry as PoolRegistryTemplate } from "../generated/templates";
+import { PoolRegistry, AddressProvider, MetaPoolFactory } from "../generated/schema";
+import {
+  PoolRegistry as PoolRegistryTemplate,
+  MetaPoolFactory as MetaPoolFactoryTemplate,
+} from "../generated/templates";
 
 export function handleAddressModified(event: AddressModified): void {
   let id = event.params.id;
@@ -23,11 +26,24 @@ export function handleAddressModified(event: AddressModified): void {
       poolRegistry = new PoolRegistry(newAddress.toHexString());
       poolRegistry.save();
 
-      addressProvider.registry = poolRegistry.id;
-      addressProvider.save();
+      // don't use this address as that registry is not functioning
+      if (poolRegistry.id != "0xe2470c5e330a34d706f93d50658ba52d18512f7a") {
+        addressProvider.registry = poolRegistry.id;
+        addressProvider.save();
+      }
 
       // start indexing registry
       PoolRegistryTemplate.create(newAddress);
+    }
+  } else if (id == BigInt.fromI32(3)) {
+    // 3 == metapool factory
+    let metapoolFactory = MetaPoolFactory.load(newAddress.toHexString());
+    if (metapoolFactory == null) {
+      metapoolFactory = new MetaPoolFactory(newAddress.toHexString());
+      metapoolFactory.save();
+
+      // start indexing registry
+      MetaPoolFactoryTemplate.create(newAddress);
     }
   }
 }

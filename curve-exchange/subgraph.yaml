@@ -46,6 +46,25 @@ templates:
       file: ./src/poolRegistry.ts
 
   - kind: ethereum/contract
+    name: MetaPoolFactory
+    network: mainnet
+    source:
+      abi: MetaPoolFactory
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - MetaPoolFactory
+      abis:
+        - name: MetaPoolFactory
+          file: ./abis/MetaPoolFactory.json
+      callHandlers:
+        - function: deploy_metapool(address,string,string,address,uint256,uint256)
+          handler: handleMetaPoolDeployed
+      file: ./src/metaPoolFactory.ts
+
+  - kind: ethereum/contract
     name: CurvePool
     network: mainnet
     source:

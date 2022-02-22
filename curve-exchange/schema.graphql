@@ -177,14 +177,20 @@ type PoolRegistry @entity {
   id: ID!
 }
 
+type MetaPoolFactory @entity {
+  id: ID!
+}
+
 type Pool @entity {
   id: ID! # {poolAddress}
   coinCount: Int!
   coins: [Token!]!
   underlyingCoins: [Token!]!
   balances: [BigInt!]!
+  initialBalances: [BigInt!]!
   totalSupply: BigInt!
   lpToken: Bytes!
+  source: String!
   blockNumber: BigInt!
   timestamp: BigInt!
   lastTransferToZero: LPTokenTransferToZero
