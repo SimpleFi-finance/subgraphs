@@ -4,24 +4,22 @@ import {
   AddLiquidity as AddLiquidity2Coins,
   AddLiquidity1 as AddLiquidity3Coins,
   AddLiquidity2 as AddLiquidity4Coins,
+  AddLiquidity3 as AddLiquidityTriCrypto,
   RemoveLiquidity as RemoveLiquidity2Coins,
-  RemoveLiquidity as RemoveLiquidity3Coins,
-  RemoveLiquidity as RemoveLiquidity4Coins,
+  RemoveLiquidity1 as RemoveLiquidity3Coins,
+  RemoveLiquidity2 as RemoveLiquidity4Coins,
+  RemoveLiquidity3 as RemoveLiquidityTriCrypto,
   RemoveLiquidityImbalance as RemoveLiquidityImbalance2Coins,
-  RemoveLiquidityImbalance as RemoveLiquidityImbalance3Coins,
-  RemoveLiquidityImbalance as RemoveLiquidityImbalance4Coins,
+  RemoveLiquidityImbalance1 as RemoveLiquidityImbalance3Coins,
+  RemoveLiquidityImbalance2 as RemoveLiquidityImbalance4Coins,
   RemoveLiquidityOne as RemoveLiquidityOne_v1,
   RemoveLiquidityOne1 as RemoveLiquidityOne_v2,
   Remove_liquidity_one_coinCall,
+  Remove_liquidity_one_coin1Call as Remove_liquidity_one_coinCall_TriCrypto,
   TokenExchange,
+  TokenExchange1 as TokenExchangeTriCrypto,
 } from "../generated/templates/CurvePool/CurvePool";
 
-// import {
-//   AddLiquidity as AddLiquidityTriCrypto,
-//   RemoveLiquidity as RemoveLiquidityTriCrypto,
-//   Remove_liquidity_one_coinCall as Remove_liquidity_one_coin_tricrypto_Call,
-//   TokenExchange as TokenExchangeTriCrypto,
-// } from "../generated/TRICRYPTOPool/StableSwapTriCrypto";
 import { ERC20, Transfer } from "../generated/templates/PoolLPToken/ERC20";
 import {
   LPTokenTransferToZero as LPTokenTransferToZeroEntity,
@@ -76,15 +74,15 @@ export function handleAddLiquidity4Coins(event: AddLiquidity4Coins): void {
   );
 }
 
-// export function handleAddLiquidityTriCrypto(event: AddLiquidityTriCrypto): void {
-//   handleAddLiquidityCommon(
-//     event,
-//     event.address,
-//     event.params.token_supply,
-//     event.params.token_amounts,
-//     event.params.provider
-//   );
-// }
+export function handleAddLiquidityTriCrypto(event: AddLiquidityTriCrypto): void {
+  handleAddLiquidityCommon(
+    event,
+    event.address,
+    event.params.token_supply,
+    event.params.token_amounts,
+    event.params.provider
+  );
+}
 
 /**
  * Function receives unpacked event params (in order to support different
@@ -230,22 +228,22 @@ export function handleRemoveLiquidity4Coins(event: RemoveLiquidity4Coins): void 
   );
 }
 
-// export function handleRemoveLiquidityTriCrypto(event: RemoveLiquidityTriCrypto): void {
-//   // create pool
-//   let pool = getOrCreatePool(event, event.address);
+export function handleRemoveLiquidityTriCrypto(event: RemoveLiquidityTriCrypto): void {
+  // create pool
+  let pool = getOrCreatePool(event, event.address);
 
-//   // handle any pending LP token tranfers to zero address
-//   checkPendingTransferToZero(event, pool);
+  // handle any pending LP token tranfers to zero address
+  checkPendingTransferToZero(event, pool);
 
-//   // update all relevant entities
-//   handleRemoveLiquidityCommon(
-//     event,
-//     pool,
-//     event.params.provider,
-//     event.params.token_amounts,
-//     event.params.token_supply
-//   );
-// }
+  // update all relevant entities
+  handleRemoveLiquidityCommon(
+    event,
+    pool,
+    event.params.provider,
+    event.params.token_amounts,
+    event.params.token_supply
+  );
+}
 
 /**
  * Common function for entity update after liquidity removal
@@ -369,9 +367,9 @@ export function handleTokenExchange(event: TokenExchange): void {
   handleTokenExchangeCommon(event, event.address);
 }
 
-// export function handleTokenExchangeTriCrypto(event: TokenExchangeTriCrypto): void {
-//   handleTokenExchangeCommon(event, event.address);
-// }
+export function handleTokenExchangeTriCrypto(event: TokenExchangeTriCrypto): void {
+  handleTokenExchangeCommon(event, event.address);
+}
 
 /**
  * Function receives unpacked event params (in order to support different
@@ -468,11 +466,11 @@ export function handleRemoveLiquidityOneCall(call: Remove_liquidity_one_coinCall
   handleRemoveLiquidityOneCallCommon(call, call.inputs.i);
 }
 
-// export function handleRemoveLiquidityOneTriCryptoCall(
-//   call: Remove_liquidity_one_coin_tricrypto_Call
-// ): void {
-//   handleRemoveLiquidityOneCallCommon(call, call.inputs.i);
-// }
+export function handleRemoveLiquidityOneTriCryptoCall(
+  call: Remove_liquidity_one_coinCall_TriCrypto
+): void {
+  handleRemoveLiquidityOneCallCommon(call, call.inputs.i);
+}
 
 /**
  * Function receives unpacked call params (in order to support different
