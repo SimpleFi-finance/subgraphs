@@ -18,16 +18,17 @@ import {
   Remove_liquidity_one_coin1Call as Remove_liquidity_one_coinCall_TriCrypto,
   TokenExchange,
   TokenExchange1 as TokenExchangeTriCrypto,
+  TokenExchangeUnderlying,
 } from "../generated/templates/CurvePool/CurvePool";
 
-import { ERC20, Transfer } from "../generated/templates/PoolLPToken/ERC20";
+import { Transfer } from "../generated/templates/PoolLPToken/ERC20";
 import {
   LPTokenTransferToZero as LPTokenTransferToZeroEntity,
   Market as MarketEntity,
   Pool as PoolEntity,
   RemoveLiqudityOneEvent as RemoveLiqudityOneEventEntity,
 } from "../generated/schema";
-import { PoolLPToken } from "../generated/templates";
+
 import {
   ADDRESS_ZERO,
   getOrCreateAccount,
@@ -40,7 +41,6 @@ import {
   getOrCreateAccountLiquidity,
   updatePool,
   getPoolFromLpToken,
-  getLpTokenOfPool,
   getOrCreateRemoveLiquidityOneEvent,
 } from "./curveUtil";
 
@@ -117,7 +117,6 @@ function handleAddLiquidityCommon(
   let market = MarketEntity.load(pool.id) as MarketEntity;
 
   // add tokens provided to market's input token balance
-  let inputTokens = market.inputTokens as string[];
   let inputTokenTotalBalances = market.inputTokenTotalBalances as string[];
   let newInputTokenBalances: BigInt[] = [];
   for (let i = 0; i < pool.coinCount; i++) {
@@ -250,51 +249,58 @@ export function handleRemoveLiquidityTriCrypto(event: RemoveLiquidityTriCrypto):
  * @param event
  * @param pool
  * @param provider
- * @param tokenAmounts
- * @param lpTokenSupply
+ * @param tokenAmountsWithdrawn
+ * @param newTotalSupply
  */
 function handleRemoveLiquidityCommon(
   event: ethereum.Event,
   pool: PoolEntity,
   provider: Address,
-  tokenAmounts: BigInt[],
-  lpTokenSupply: BigInt
+  tokenAmountsWithdrawn: BigInt[],
+  newTotalSupply: BigInt
 ): void {
-  // Update balances and totalSupply
+  //// update market state
   let oldTotalSupply = pool.totalSupply;
-  // let newBalances = getPoolBalances(pool); TODO
-  let newBalances = pool.balances;
 
-  pool = updatePool(event, pool, newBalances, lpTokenSupply);
+  let market = MarketEntity.load(pool.id) as MarketEntity;
+
+  // substract withdrawn tokens from market's input token balance
+  let inputTokenTotalBalances = market.inputTokenTotalBalances as string[];
+  let newInputTokenBalances: BigInt[] = [];
+  for (let i = 0; i < pool.coinCount; i++) {
+    let oldBalance = TokenBalance.fromString(inputTokenTotalBalances[i]).balance;
+    let newBalance = oldBalance.minus(tokenAmountsWithdrawn[i]);
+    newInputTokenBalances.push(newBalance);
+  }
+
+  pool = updatePool(event, pool, newInputTokenBalances, newTotalSupply);
   pool.lastTransferToZero = null;
   pool.save();
 
-  // Update AccountLiquidity to track LPToken balance of account
+  //// update AccountLiquidity
   let account = getOrCreateAccount(provider);
-  let lpTokenAmount = oldTotalSupply.minus(lpTokenSupply);
+  let lpTokenAmount = oldTotalSupply.minus(newTotalSupply);
 
   let accountLiquidity = getOrCreateAccountLiquidity(account, pool);
   accountLiquidity.balance = accountLiquidity.balance.minus(lpTokenAmount);
   accountLiquidity.save();
 
-  // Collect data for position update
-  let market = MarketEntity.load(pool.id) as MarketEntity;
+  //// update user position
   let accountLpTokenBalance = accountLiquidity.balance;
-  let inputTokenAmounts: TokenBalance[] = [];
+  let inputTokensWithdrawn: TokenBalance[] = [];
   let inputTokenBalances: TokenBalance[] = [];
   let coins = pool.coins;
   for (let i = 0; i < pool.coinCount; i++) {
-    let token = coins[i];
-    let inputAmount = tokenAmounts[i];
+    inputTokensWithdrawn.push(new TokenBalance(coins[i], account.id, tokenAmountsWithdrawn[i]));
+
     let inputBalance: BigInt;
     //in case there is no liquidity
     if (pool.totalSupply == BigInt.fromI32(0)) {
       inputBalance = BigInt.fromI32(0);
     } else {
-      inputBalance = newBalances[i].times(accountLiquidity.balance).div(pool.totalSupply);
+      inputBalance = newInputTokenBalances[i].times(accountLiquidity.balance).div(pool.totalSupply);
     }
-    inputTokenAmounts.push(new TokenBalance(token, account.id, inputAmount));
-    inputTokenBalances.push(new TokenBalance(token, account.id, inputBalance));
+    inputTokenBalances.push(new TokenBalance(coins[i], account.id, inputBalance));
   }
 
   // use common function to update position and store transaction
@@ -303,7 +309,7 @@ function handleRemoveLiquidityCommon(
     account,
     market,
     lpTokenAmount,
-    inputTokenAmounts,
+    inputTokensWithdrawn,
     [],
     accountLpTokenBalance,
     inputTokenBalances,
@@ -371,6 +377,16 @@ export function handleTokenExchangeTriCrypto(event: TokenExchangeTriCrypto): voi
   handleTokenExchangeCommon(event, event.address);
 }
 
+export function handleTokenExchangeUnderlying(event: TokenExchangeUnderlying): void {
+  let buyer = event.params.buyer;
+  let j = event.params.bought_id;
+  let dy = event.params.tokens_bought;
+  let i = event.params.sold_id;
+  let dx = event.params.tokens_sold;
+
+  // inputTokenBalance[i] += dx;
+}
+
 /**
  * Function receives unpacked event params (in order to support different
  * event signatures) and handles the TokenExchange event.
@@ -386,6 +402,7 @@ function handleTokenExchangeCommon(event: ethereum.Event, address: Address): voi
 
   // update pool entity with new token balances
   // let newPoolBalances = getPoolBalances(pool);
+  // TODO
   let newPoolBalances = pool.balances;
   updatePool(event, pool, newPoolBalances, pool.totalSupply);
 }
