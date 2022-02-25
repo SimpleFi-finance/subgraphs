@@ -522,12 +522,39 @@
     "gas": 2250
   },
   {
+    "name": "coins",
+    "outputs": [{ "type": "address", "name": "" }],
+    "inputs": [{ "type": "int128", "name": "arg0" }],
+    "constant": true,
+    "payable": false,
+    "type": "function",
+    "gas": 2190
+  },
+  {
+    "name": "underlying_coins",
+    "outputs": [{ "type": "address", "name": "out" }],
+    "inputs": [{ "type": "int128", "name": "arg0" }],
+    "constant": true,
+    "payable": false,
+    "type": "function",
+    "gas": 2220
+  },
+  {
     "name": "balances",
     "outputs": [{ "type": "uint256", "name": "" }],
     "inputs": [{ "type": "uint256", "name": "arg0" }],
     "stateMutability": "view",
     "type": "function",
     "gas": 2280
+  },
+  {
+    "name": "balances",
+    "outputs": [{ "type": "uint256", "name": "" }],
+    "inputs": [{ "type": "int128", "name": "arg0" }],
+    "constant": true,
+    "payable": false,
+    "type": "function",
+    "gas": 2250
   },
   {
     "name": "fee",
