@@ -222,37 +222,33 @@ export function getOrCreateAccountLiquidity(
   return liquidity as AccountLiquidityEntity;
 }
 
-// export function getPoolBalances(pool: PoolEntity): BigInt[] {
-//   let balances: BigInt[] = [];
-//   let b: ethereum.CallResult<BigInt>;
+export function getPoolBalances(pool: PoolEntity): BigInt[] {
+  let balances: BigInt[] = [];
+  let balance: ethereum.CallResult<BigInt>;
 
-//   let p: PoolStaticInfo = addressToPool.get(pool.id) as PoolStaticInfo;
+  let contract = CurvePool.bind(Address.fromString(pool.id));
 
-//   // old contracts use int128 as input to balances, new contracts use uint256
-//   if (p.is_v1) {
-//     let contract_v1 = StableSwapLending2_v1.bind(Address.fromString(pool.id));
+  if (pool.coinCount > 0) {
+    balance = contract.try_balances(BigInt.fromI32(0));
+    // check if contract call is of type v1 or v2
+    if (!balance.reverted) {
+      balances.push(balance.value);
+      for (let i = 1; i < pool.coinCount; i++) {
+        balances.push(contract.balances(BigInt.fromI32(i)));
+      }
+    } else {
+      balance = contract.try_balances1(BigInt.fromI32(0));
+      if (!balance.reverted) {
+        balances.push(balance.value);
+        for (let i = 1; i < pool.coinCount; i++) {
+          balances.push(contract.balances1(BigInt.fromI32(i)));
+        }
+      }
+    }
+  }
 
-//     for (let i = 0; i < pool.coinCount; i++) {
-//       let ib = BigInt.fromI32(i);
-//       b = contract_v1.try_balances(ib);
-//       if (!b.reverted) {
-//         balances.push(b.value);
-//       }
-//     }
-//   } else {
-//     let contract = StableSwapPlain3.bind(Address.fromString(pool.id));
-
-//     for (let i = 0; i < pool.coinCount; i++) {
-//       let ib = BigInt.fromI32(i);
-//       b = contract.try_balances(ib);
-//       if (!b.reverted) {
-//         balances.push(b.value);
-//       }
-//     }
-//   }
-
-//   return balances;
-// }
+  return balances;
+}
 
 /**
  * Create RemoveLiquidityOne entity with pool ID

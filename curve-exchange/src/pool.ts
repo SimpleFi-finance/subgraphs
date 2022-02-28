@@ -42,6 +42,7 @@ import {
   updatePool,
   getPoolFromLpToken,
   getOrCreateRemoveLiquidityOneEvent,
+  getPoolBalances,
 } from "./curveUtil";
 
 export function handleAddLiquidity2Coins(event: AddLiquidity2Coins): void {
@@ -124,8 +125,6 @@ function handleAddLiquidityCommon(
     let newBalance = oldBalance.plus(inputTokenAmountProvided[i]);
     newInputTokenBalances.push(newBalance);
   }
-  // let newPoolBalances = getPoolBalances(pool);
-  // let newPoolBalances = pool.balances;
 
   // If token supply in event is 0, then check directly from contract
   // let currentTokenSupply = newTotalSupply;
@@ -378,32 +377,24 @@ export function handleTokenExchangeTriCrypto(event: TokenExchangeTriCrypto): voi
 }
 
 export function handleTokenExchangeUnderlying(event: TokenExchangeUnderlying): void {
-  let buyer = event.params.buyer;
-  let j = event.params.bought_id;
-  let dy = event.params.tokens_bought;
-  let i = event.params.sold_id;
-  let dx = event.params.tokens_sold;
-
-  // inputTokenBalance[i] += dx;
+  handleTokenExchangeCommon(event, event.address);
 }
 
 /**
  * Function receives unpacked event params (in order to support different
  * event signatures) and handles the TokenExchange event.
  * @param event
- * @param address
+ * @param poolAddress
  */
-function handleTokenExchangeCommon(event: ethereum.Event, address: Address): void {
+function handleTokenExchangeCommon(event: ethereum.Event, poolAddress: Address): void {
   // create pool
-  let pool = getOrCreatePool(event, address);
+  let pool = getOrCreatePool(event, poolAddress);
 
   // handle any pending LP token tranfers to zero address
   checkPendingTransferToZero(event, pool);
 
   // update pool entity with new token balances
-  // let newPoolBalances = getPoolBalances(pool);
-  // TODO
-  let newPoolBalances = pool.balances;
+  let newPoolBalances = getPoolBalances(pool);
   updatePool(event, pool, newPoolBalances, pool.totalSupply);
 }
 
