@@ -47,6 +47,7 @@ class PoolInfo {
 }
 
 const ADDRESS_PROVIDER = "0x0000000022d53366457f9d5e68ec105046fc4383";
+const OLD_FACTORY_ADDRESS = "0x0959158b6040d32d04c301a72cbfd6b39e21c9ae";
 const METAPOOL_FACTORY = "metapool-factory";
 const HARD_CODED = "hard-coded";
 const REGISTRY = "registry";
@@ -118,7 +119,8 @@ export function getOrCreatePool(event: ethereum.Event, address: Address): PoolEn
 export function getOrCreatePoolViaFactory(
   event: ethereum.Event,
   curvePoolAddress: Address,
-  factoryAddress: Address
+  factoryAddress: Address,
+  isMeta: boolean
 ): PoolEntity {
   let pool = PoolEntity.load(curvePoolAddress.toHexString());
   if (pool != null) {
@@ -127,25 +129,31 @@ export function getOrCreatePoolViaFactory(
 
   pool = new PoolEntity(curvePoolAddress.toHexString());
 
-  // n_coins
-  let contract = FactoryContract.bind(factoryAddress);
-  let n_coins = contract.try_get_n_coins(curvePoolAddress);
-
+  //// n_coins
+  let factoryContract = FactoryContract.bind(factoryAddress);
   let numOfCoins: BigInt;
   let numOfUnderlyingCoins: BigInt;
 
-  if (!n_coins.reverted) {
-    numOfCoins = n_coins.value.value0;
-    numOfUnderlyingCoins = n_coins.value.value1;
+  // old factory returns 2 values - number of coins, number of underlying coins
+  if (factoryAddress.toHexString() == OLD_FACTORY_ADDRESS) {
+    let n_coins = factoryContract.try_get_n_coins1(curvePoolAddress);
+    if (!n_coins.reverted) {
+      numOfCoins = n_coins.value.value0;
+      numOfUnderlyingCoins = n_coins.value.value1;
+    }
+  }
+
+  // new factory return only number of coins. 'get_meta_n_coins' is used for underlying coins
+  numOfCoins = factoryContract.get_n_coins(curvePoolAddress);
+  if (isMeta) {
+    numOfUnderlyingCoins = factoryContract.get_meta_n_coins(curvePoolAddress).value1;
   } else {
-    // if there's no contract call available assume it's 1 coin + 1 LP (3 underlying) coin
-    numOfCoins = BigInt.fromI32(2);
-    numOfUnderlyingCoins = BigInt.fromI32(4);
+    numOfUnderlyingCoins = BigInt.fromI32(0);
   }
   pool.coinCount = numOfCoins.toI32();
 
-  // coins
-  let coins = contract.get_coins(curvePoolAddress);
+  //// coins
+  let coins = factoryContract.get_coins(curvePoolAddress);
   let poolCoins: Token[] = [];
   for (let i = 0; i < numOfCoins.toI32(); i++) {
     let coin = coins[i];
@@ -154,18 +162,23 @@ export function getOrCreatePoolViaFactory(
   }
   pool.coins = poolCoins.map<string>((t) => t.id);
 
-  // underlying coins
-  let underlyingCoins = contract.get_underlying_coins(curvePoolAddress);
-  let poolUnderlyingCoins: Token[] = [];
-  for (let i = 0; i < numOfUnderlyingCoins.toI32(); i++) {
-    let underlyingCoin = underlyingCoins[i];
-    let token = getOrCreateERC20Token(event, underlyingCoin);
-    poolUnderlyingCoins.push(token);
+  //// underlying coins
+  if (isMeta) {
+    let underlyingCoins = factoryContract.get_underlying_coins(curvePoolAddress);
+    let poolUnderlyingCoins: Token[] = [];
+    for (let i = 0; i < numOfUnderlyingCoins.toI32(); i++) {
+      let underlyingCoin = underlyingCoins[i];
+      let token = getOrCreateERC20Token(event, underlyingCoin);
+      poolUnderlyingCoins.push(token);
+    }
+    pool.underlyingCoins = poolUnderlyingCoins.map<string>((t) => t.id);
+  } else {
+    pool.underlyingCoins = [];
   }
-  pool.underlyingCoins = poolUnderlyingCoins.map<string>((t) => t.id);
 
-  // get coin balances
-  let coinBalances = contract.get_balances(curvePoolAddress);
+  //// get coin balances
+  //TODO init to zero
+  let coinBalances = factoryContract.get_balances(curvePoolAddress);
   let balances: BigInt[] = [];
   for (let i = 0; i < numOfCoins.toI32(); i++) {
     balances.push(coinBalances[i]);
@@ -173,10 +186,10 @@ export function getOrCreatePoolViaFactory(
   pool.balances = balances;
   pool.initialBalances = balances;
 
-  // init to zero
+  //// total LP supply
   pool.totalSupply = BigInt.fromI32(0);
 
-  // get LP token
+  //// get LP token
   let lpToken = getOrCreateERC20Token(event, curvePoolAddress);
   pool.lpToken = curvePoolAddress;
 
@@ -225,12 +238,11 @@ export function getOrCreatePoolViaRegistry(
   let addressProvider = AddressProvider.load(ADDRESS_PROVIDER);
   let registryAddress = Address.fromString(addressProvider.registry as string);
 
+  // n_coins
   let contract = PoolRegistry.bind(registryAddress);
   let n_coins = contract.get_n_coins(curvePoolAddress);
   let numOfCoins = n_coins[0];
   let numOfUnderlyingCoins = n_coins[1];
-
-  // n_coins
   pool.coinCount = numOfCoins[0];
 
   // coins

@@ -89,6 +89,17 @@
     "gas": 2699
   },
   {
+    "name": "get_n_coins",
+    "outputs": [
+      { "type": "uint256", "name": "" },
+      { "type": "uint256", "name": "" }
+    ],
+    "inputs": [{ "type": "address", "name": "_pool" }],
+    "stateMutability": "view",
+    "type": "function",
+    "gas": 2795
+  },
+  {
     "stateMutability": "view",
     "type": "function",
     "name": "get_meta_n_coins",
