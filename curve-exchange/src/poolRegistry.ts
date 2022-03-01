@@ -3,7 +3,7 @@ import { getOrCreatePoolViaRegistry } from "./curveUtil";
 
 export function handlePoolAdded(event: PoolAdded): void {
   let curvePoolAddress = event.params.pool;
-  let pool = getOrCreatePoolViaRegistry(event, curvePoolAddress);
+  let pool = getOrCreatePoolViaRegistry(event, curvePoolAddress, event.address);
 
   if (!pool.isInRegistry) {
     pool.isInRegistry = true;

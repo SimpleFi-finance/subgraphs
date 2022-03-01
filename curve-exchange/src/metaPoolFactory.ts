@@ -13,7 +13,7 @@ export function handleMetaPoolDeployed(call: Deploy_metapoolCall): void {
   fakeEvent.block = call.block;
   fakeEvent.transaction = call.transaction;
 
-  getOrCreatePoolViaFactory(fakeEvent, newCurvePoolAddress, factoryAddress, true);
+  getOrCreatePoolViaFactory(fakeEvent, newCurvePoolAddress, factoryAddress);
 
   let x = new PoolDeployed(call.transaction.hash.toHexString());
   x.source = "handleMetaPoolDeployed";
@@ -27,7 +27,7 @@ export function handlePlainPoolDeployed(call: Deploy_plain_poolCall): void {
   fakeEvent.block = call.block;
   fakeEvent.transaction = call.transaction;
 
-  getOrCreatePoolViaFactory(fakeEvent, newCurvePoolAddress, factoryAddress, false);
+  getOrCreatePoolViaFactory(fakeEvent, newCurvePoolAddress, factoryAddress);
 
   let x = new PoolDeployed(call.transaction.hash.toHexString());
   x.source = "handlePlainPoolDeployed";

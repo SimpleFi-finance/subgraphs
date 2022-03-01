@@ -185,7 +185,6 @@ type Pool @entity {
   id: ID! # {poolAddress}
   coinCount: Int!
   coins: [Token!]!
-  underlyingCoins: [Token!]!
   balances: [BigInt!]!
   initialBalances: [BigInt!]!
   totalSupply: BigInt!
@@ -195,6 +194,9 @@ type Pool @entity {
   timestamp: BigInt!
   lastBlockBalanceUpdated: BigInt!
   isInRegistry: Boolean!
+  registry: String
+  factory: String
+  isOldAbiVersion: Boolean
   lastTransferToZero: LPTokenTransferToZero
   history: [PoolSnapshot!]! @derivedFrom(field: "pool")
 }

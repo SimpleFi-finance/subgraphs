@@ -389,7 +389,7 @@ function handleTokenExchangeCommon(event: ethereum.Event, poolAddress: Address):
   checkPendingTransferToZero(event, pool);
 
   // update pool entity with new token balances
-  let newPoolBalances = getPoolBalances(pool);
+  let newPoolBalances = getPoolBalances(pool, event.block.number);
   updatePool(event, pool, newPoolBalances, pool.totalSupply);
 }
 
