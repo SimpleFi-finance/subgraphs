@@ -203,6 +203,9 @@ export function getOrCreatePoolViaFactory(
   lpToken.mintedByMarket = market.id;
   lpToken.save();
 
+  // start indexing new pool
+  CurvePoolTemplate.create(Address.fromString(pool.id));
+
   // start indexing LP token to track transfers
   PoolLPToken.create(pool.lpToken as Address);
 

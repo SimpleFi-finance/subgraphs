@@ -11,7 +11,4 @@ export function handleMetaPoolDeployed(call: Deploy_metapoolCall): void {
   fakeEvent.transaction = call.transaction;
 
   let pool = getOrCreatePoolViaFactory(fakeEvent, newCurvePoolAddress, factoryAddress);
-
-  // start indexing new pool
-  CurvePool.create(Address.fromString(pool.id));
 }
