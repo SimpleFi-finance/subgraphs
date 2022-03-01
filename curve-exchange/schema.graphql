@@ -244,3 +244,10 @@ type LPTokenTransferToZero @entity {
 }
 
 # END - Curve protocol entities
+
+#### Debug entities
+
+type PoolDeployed @entity {
+  id: ID!
+  source: String!
+}

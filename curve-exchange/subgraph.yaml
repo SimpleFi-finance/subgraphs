@@ -782,6 +782,8 @@ templates:
       callHandlers:
         - function: deploy_metapool(address,string,string,address,uint256,uint256)
           handler: handleMetaPoolDeployed
+        - function: deploy_plain_pool(string,string,address[4],uint256,uint256,uint256,uint256)
+          handler: handlePlainPoolDeployed
       file: ./src/metaPoolFactory.ts
 
   - kind: ethereum/contract
