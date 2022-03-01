@@ -193,6 +193,8 @@ type Pool @entity {
   source: String!
   blockNumber: BigInt!
   timestamp: BigInt!
+  lastBlockBalanceUpdated: BigInt!
+  isInRegistry: Boolean!
   lastTransferToZero: LPTokenTransferToZero
   history: [PoolSnapshot!]! @derivedFrom(field: "pool")
 }

@@ -104,11 +104,6 @@ function handleAddLiquidityCommon(
   // create pool
   let pool = getOrCreatePool(event, poolAddress);
 
-  // create LPToken entity from template when pool is createed
-  // if (pool.totalSupply == BigInt.fromI32(0)) {
-  //   PoolLPToken.create(pool.lpToken as Address);
-  // }
-
   // handle any pending LP token tranfers to zero address
   checkPendingTransferToZero(event, pool);
 
