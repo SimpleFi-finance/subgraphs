@@ -1,13 +1,10 @@
-import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 import {
   Account as AccountEntity,
   AccountLiquidity as AccountLiquidityEntity,
-  Market as MarketEntity,
   Pool as PoolEntity,
-  PoolSnapshot as PoolSnapshotEntity,
   RemoveLiqudityOneEvent as RemoveLiqudityOneEventEntity,
   Token,
-  AddressProvider,
 } from "../generated/schema";
 
 import { PoolRegistry } from "../generated/templates/PoolRegistry/PoolRegistry";
@@ -16,13 +13,7 @@ import { ERC20 as ERC20Contract } from "../generated/templates/PoolLPToken/ERC20
 
 import { PoolLPToken } from "../generated/templates";
 
-import {
-  ADDRESS_ZERO,
-  getOrCreateERC20Token,
-  getOrCreateMarket,
-  TokenBalance,
-  updateMarket,
-} from "./common";
+import { getOrCreateERC20Token, getOrCreateMarket } from "./common";
 
 import {
   ProtocolName,
@@ -313,52 +304,6 @@ export function getOrCreatePoolViaRegistry(
   PoolLPToken.create(pool.lpToken as Address);
 
   return pool as PoolEntity;
-}
-
-// function createPoolSnapshot(event: ethereum.Event, pool: PoolEntity): PoolSnapshotEntity {
-//   let transactionHash = event.transaction.hash.toHexString();
-//   let id = transactionHash.concat("-").concat(event.logIndex.toHexString());
-//   let poolSnapshot = PoolSnapshotEntity.load(id);
-//   if (poolSnapshot != null) {
-//     return poolSnapshot as PoolSnapshotEntity;
-//   }
-
-//   poolSnapshot = new PoolSnapshotEntity(id);
-//   poolSnapshot.pool = pool.id;
-//   poolSnapshot.balances = pool.balances;
-//   poolSnapshot.totalSupply = pool.totalSupply;
-//   poolSnapshot.blockNumber = event.block.number;
-//   poolSnapshot.timestamp = event.block.timestamp;
-//   poolSnapshot.transactionHash = transactionHash;
-//   poolSnapshot.transactionIndexInBlock = event.transaction.index;
-//   poolSnapshot.logIndex = event.logIndex;
-//   poolSnapshot.save();
-
-//   return poolSnapshot as PoolSnapshotEntity;
-// }
-
-export function updatePool(
-  event: ethereum.Event,
-  pool: PoolEntity,
-  balances: BigInt[],
-  totalSupply: BigInt
-): PoolEntity {
-  // createPoolSnapshot(event, pool);
-
-  pool.balances = balances;
-  pool.totalSupply = totalSupply;
-  pool.save();
-
-  let market = MarketEntity.load(pool.id) as MarketEntity;
-
-  let coins = pool.coins;
-  let inputTokenBalances: TokenBalance[] = [];
-  for (let i = 0; i < pool.coinCount; i++) {
-    inputTokenBalances.push(new TokenBalance(coins[i], pool.id, balances[i]));
-  }
-  updateMarket(event, market, inputTokenBalances, pool.totalSupply);
-
-  return pool;
 }
 
 export function getOrCreateAccountLiquidity(

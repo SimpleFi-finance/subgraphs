@@ -21,7 +21,7 @@ import {
   TokenExchangeUnderlying,
 } from "../generated/templates/CurvePool/CurvePool";
 
-import { Transfer } from "../generated/templates/PoolLPToken/ERC20";
+import { ERC20, Transfer } from "../generated/templates/PoolLPToken/ERC20";
 import {
   LPTokenTransferToZero as LPTokenTransferToZeroEntity,
   Market as MarketEntity,
@@ -35,11 +35,11 @@ import {
   investInMarket,
   redeemFromMarket,
   TokenBalance,
+  updateMarket,
 } from "./common";
 import {
   getOrCreatePool,
   getOrCreateAccountLiquidity,
-  updatePool,
   getPoolFromLpToken,
   getOrCreateRemoveLiquidityOneEvent,
   getPoolBalances,
@@ -122,16 +122,27 @@ function handleAddLiquidityCommon(
   }
 
   // If token supply in event is 0, then check directly from contract
-  // let currentTokenSupply = newTotalSupply;
-  // if (currentTokenSupply == BigInt.fromI32(0)) {
-  //   let contract = ERC20.bind(getLpTokenOfPool(Address.fromString(pool.id)));
-  //   let supply = contract.try_totalSupply();
-  //   if (!supply.reverted) {
-  //     currentTokenSupply = supply.value;
-  //   }
-  // }
+  let currentTokenSupply = newTotalSupply;
+  if (currentTokenSupply == BigInt.fromI32(0)) {
+    let contract = ERC20.bind(pool.lpToken as Address);
+    let supply = contract.try_totalSupply();
+    if (!supply.reverted) {
+      currentTokenSupply = supply.value;
+    }
+  }
 
-  pool = updatePool(event, pool, newInputTokenBalances, newTotalSupply);
+  pool.balances = newInputTokenBalances;
+  pool.totalSupply = currentTokenSupply;
+  pool.save();
+
+  let coins = pool.coins;
+  let inputTokenBalances: TokenBalance[] = [];
+  for (let i = 0; i < pool.coinCount; i++) {
+    inputTokenBalances.push(new TokenBalance(coins[i], pool.id, newInputTokenBalances[i]));
+  }
+  updateMarket(event, market, inputTokenBalances, currentTokenSupply);
+
+  ///// update user position
 
   // Update AccountLiquidity to track LPToken balance of account
   let account = getOrCreateAccount(provider);
@@ -146,7 +157,6 @@ function handleAddLiquidityCommon(
   let providedTokenAmounts = inputTokenAmountProvided;
   let inputTokensProvided: TokenBalance[] = [];
   let inputTokensBalance: TokenBalance[] = [];
-  let coins = pool.coins;
   for (let i = 0; i < pool.coinCount; i++) {
     inputTokensProvided.push(new TokenBalance(coins[i], account.id, providedTokenAmounts[i]));
 
@@ -267,7 +277,17 @@ function handleRemoveLiquidityCommon(
     newInputTokenBalances.push(newBalance);
   }
 
-  pool = updatePool(event, pool, newInputTokenBalances, newTotalSupply);
+  pool.balances = newInputTokenBalances;
+  pool.totalSupply = newTotalSupply;
+  pool.save();
+
+  let coins = pool.coins;
+  let inputTokenMarketBalances: TokenBalance[] = [];
+  for (let i = 0; i < pool.coinCount; i++) {
+    inputTokenMarketBalances.push(new TokenBalance(coins[i], pool.id, newInputTokenBalances[i]));
+  }
+  updateMarket(event, market, inputTokenMarketBalances, newTotalSupply);
+
   pool.lastTransferToZero = null;
   pool.save();
 
@@ -283,7 +303,6 @@ function handleRemoveLiquidityCommon(
   let accountLpTokenBalance = accountLiquidity.balance;
   let inputTokensWithdrawn: TokenBalance[] = [];
   let inputTokenBalances: TokenBalance[] = [];
-  let coins = pool.coins;
   for (let i = 0; i < pool.coinCount; i++) {
     inputTokensWithdrawn.push(new TokenBalance(coins[i], account.id, tokenAmountsWithdrawn[i]));
 
@@ -390,7 +409,18 @@ function handleTokenExchangeCommon(event: ethereum.Event, poolAddress: Address):
 
   // update pool entity with new token balances
   let newPoolBalances = getPoolBalances(pool, event.block.number);
-  updatePool(event, pool, newPoolBalances, pool.totalSupply);
+
+  pool.balances = newPoolBalances;
+  pool.save();
+
+  let coins = pool.coins;
+  let inputTokenMarketBalances: TokenBalance[] = [];
+  for (let i = 0; i < pool.coinCount; i++) {
+    inputTokenMarketBalances.push(new TokenBalance(coins[i], pool.id, newPoolBalances[i]));
+  }
+
+  let market = MarketEntity.load(pool.id) as MarketEntity;
+  updateMarket(event, market, inputTokenMarketBalances, pool.totalSupply);
 }
 
 export function handleTransfer(event: Transfer): void {
