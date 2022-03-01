@@ -218,6 +218,7 @@ type AccountLiquidity @entity {
   pool: Pool!
   account: Account!
   balance: BigInt!
+  isPositionPossiblyIncomplete: Boolean!
 }
 
 type RemoveLiqudityOneEvent @entity {

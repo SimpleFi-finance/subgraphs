@@ -315,10 +315,19 @@ export function getOrCreateAccountLiquidity(
   if (liquidity != null) {
     return liquidity as AccountLiquidityEntity;
   }
+
+  // init account balance tracker
   liquidity = new AccountLiquidityEntity(id);
   liquidity.pool = pool.id;
   liquidity.account = account.id;
   liquidity.balance = BigInt.fromI32(0);
+
+  if (pool.source == REGISTRY) {
+    liquidity.isPositionPossiblyIncomplete = true;
+  } else {
+    liquidity.isPositionPossiblyIncomplete = false;
+  }
+
   liquidity.save();
   return liquidity as AccountLiquidityEntity;
 }
