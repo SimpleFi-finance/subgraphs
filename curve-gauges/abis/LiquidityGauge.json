@@ -66,6 +66,38 @@
     "type": "event"
   },
   {
+    "name": "UpdateLiquidityLimit",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "original_balance",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "original_supply",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "working_balance",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "working_supply",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false,
+    "type": "event"
+  },
+  {
     "name": "CommitOwnership",
     "inputs": [
       {
