@@ -1,0 +1,74 @@
+type MarketDayData @entity {
+  " marketAddress + dayId "
+  id: ID!
+
+  " first trade of the day timestamp "
+  timestamp: BigInt!
+
+  " market id - pair address "
+  market: String!
+
+  " swap volume -> amount of input tokens swapped in or out  "
+  inputTokensDailySwapVolume: [BigInt!]!
+
+  " total amount of reserves per input token "
+  inputTokenTotalBalances: [BigInt!]!
+
+  " reserve amount per input token this day "
+  inputTokenDailyInflow: [BigInt!]!
+
+  " reserve amount per input token this day "
+  inputTokenDailyOutflow: [BigInt!]!
+
+  " total balance of LP tokens "
+  outputTokenTotalBalance: BigInt!
+
+  " amount of LP tokens minted this day "
+  outputTokenDailyInflowVolume: BigInt!
+
+  " amount of LP tokens burned this day "
+  outputTokenDailyOutflowVolume: BigInt!
+
+  " number of TXs this day swap "
+  dailySwapTXs: BigInt!
+
+  " number of TXs this day mint "
+  dailyMintTXs: BigInt!
+
+  " number of TXs this day burn "
+  dailyBurnTXs: BigInt!
+
+  " dayId - timestamp/86400 "
+  dayId: BigInt!
+}
+
+############# Uniswap specific entities
+
+type Pair @entity {
+  " pair contract address "
+  id: ID!
+
+  " dex factory address "
+  factory: String!
+
+  " token0 address "
+  token0: String!
+
+  " token1 address "
+  token1: String!
+
+  " balance of token0 "
+  reserve0: BigInt!
+
+  " balance of token1 "
+  reserve1: BigInt!
+
+  " balance of LP tokens "
+  totalSupply: BigInt!
+
+  " pair creation block "
+  blockNumber: BigInt!
+
+  " pair creation timestamp "
+  timestamp: BigInt!
+}
