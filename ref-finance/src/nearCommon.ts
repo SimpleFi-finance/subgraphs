@@ -7,10 +7,6 @@ export function handleNearReceipt(
   const receipt = receiptWithOutcome.receipt;
   const outcome = receiptWithOutcome.outcome;
   const block = receiptWithOutcome.block;
-
-  if (block.header.height > 45753139) {
-    return;
-  }
   
   log.info("****************** Receipt ID {} Start ***********************", [receipt.id.toBase58()]);
 
