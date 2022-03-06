@@ -2,7 +2,9 @@ import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 import {
   Account as AccountEntity,
   AccountLiquidity as AccountLiquidityEntity,
+  Market,
   Pool as PoolEntity,
+  PositionFix,
   RemoveLiqudityOneEvent as RemoveLiqudityOneEventEntity,
   Token,
 } from "../generated/schema";
@@ -13,7 +15,13 @@ import { ERC20 as ERC20Contract } from "../generated/templates/PoolLPToken/ERC20
 
 import { PoolLPToken } from "../generated/templates";
 
-import { getOrCreateERC20Token, getOrCreateMarket } from "./common";
+import {
+  getOrCreateAccount,
+  getOrCreateERC20Token,
+  getOrCreateMarket,
+  investInMarket,
+  TokenBalance,
+} from "./common";
 
 import {
   ProtocolName,
@@ -425,4 +433,80 @@ export function getPoolFromLpToken(lpToken: Address): Address {
   }
 
   return Address.fromString(poolAddress);
+}
+
+/**
+ *
+ * @param accountLiquidity
+ */
+export function fixPositionDataIfIncomplete(
+  accountLiquidity: AccountLiquidityEntity,
+  expectedUserLpTokenBalance: BigInt,
+  event: ethereum.Event
+): void {
+  if (accountLiquidity.isPositionPossiblyIncomplete == false) {
+    return;
+  }
+
+  let pool = PoolEntity.load(accountLiquidity.pool);
+  let lpTokenContract = ERC20Contract.bind(pool.lpToken as Address);
+  let actualUserLpTokenBalance = lpTokenContract.balanceOf(
+    Address.fromString(accountLiquidity.account)
+  );
+
+  if (actualUserLpTokenBalance == expectedUserLpTokenBalance) {
+    accountLiquidity.isPositionPossiblyIncomplete = false;
+    accountLiquidity.save();
+    return;
+  }
+
+  let untrackedDifference = actualUserLpTokenBalance.minus(expectedUserLpTokenBalance);
+
+  // add missing balance to user position
+  accountLiquidity.balance = accountLiquidity.balance.plus(untrackedDifference);
+  accountLiquidity.isPositionPossiblyIncomplete = false;
+  accountLiquidity.save();
+
+  //// fix position by creating "fake" investment
+
+  // Collect data for position update
+  let market = Market.load(pool.id) as Market;
+  let account = getOrCreateAccount(Address.fromString(accountLiquidity.account));
+  let marketInputTokenTotalBalances = market.inputTokenTotalBalances as string[];
+  let coins = pool.coins;
+  let userLpTokenBalance = accountLiquidity.balance;
+  let userInputTokensProvided: TokenBalance[] = [];
+  let userInputTokensBalance: TokenBalance[] = [];
+  for (let i = 0; i < pool.coinCount; i++) {
+    let marketBalance = TokenBalance.fromString(marketInputTokenTotalBalances[i]).balance;
+
+    // number of pool input tokens that should have been provided to get `untrackedDifference` amount of LP tokens
+    let userInputTokenProvided = marketBalance.times(untrackedDifference).div(pool.totalSupply);
+    userInputTokensProvided.push(new TokenBalance(coins[i], account.id, userInputTokenProvided));
+
+    // number of pool input tokens that can be redeemed by account's LP tokens
+    let userInputTokenBalance = marketBalance.times(userLpTokenBalance).div(pool.totalSupply);
+    userInputTokensBalance.push(new TokenBalance(coins[i], account.id, userInputTokenBalance));
+  }
+
+  // use common function to update position and store transaction
+  investInMarket(
+    event,
+    account,
+    market,
+    untrackedDifference,
+    userInputTokensProvided,
+    [],
+    userLpTokenBalance,
+    userInputTokensBalance,
+    [],
+    null
+  );
+
+  // create entity to track every position fix
+  let fix = new PositionFix(event.transaction.hash.toHexString() + "-" + account.id);
+  fix.blockNumber = event.block.number;
+  fix.user = account.id;
+  fix.amount = untrackedDifference;
+  fix.save();
 }

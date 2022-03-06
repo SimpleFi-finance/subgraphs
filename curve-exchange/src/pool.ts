@@ -43,6 +43,7 @@ import {
   getPoolFromLpToken,
   getOrCreateRemoveLiquidityOneEvent,
   getPoolBalances,
+  fixPositionDataIfIncomplete,
 } from "./curveUtil";
 
 export function handleAddLiquidity2Coins(event: AddLiquidity2Coins): void {
@@ -101,7 +102,7 @@ function handleAddLiquidityCommon(
   inputTokenAmountProvided: BigInt[],
   provider: Address
 ): void {
-  // create pool
+  // fetch pool
   let pool = getOrCreatePool(event, poolAddress);
 
   // handle any pending LP token tranfers to zero address
@@ -110,9 +111,8 @@ function handleAddLiquidityCommon(
   // Update pool entity balances and totalSupply of LP tokens
   let oldTotalSupply = pool.totalSupply;
 
-  let market = MarketEntity.load(pool.id) as MarketEntity;
-
   // add tokens provided to market's input token balance
+  let market = MarketEntity.load(pool.id) as MarketEntity;
   let inputTokenTotalBalances = market.inputTokenTotalBalances as string[];
   let newInputTokenBalances: BigInt[] = [];
   for (let i = 0; i < pool.coinCount; i++) {
@@ -131,10 +131,12 @@ function handleAddLiquidityCommon(
     }
   }
 
+  // update pool state
   pool.balances = newInputTokenBalances;
   pool.totalSupply = currentTokenSupply;
   pool.save();
 
+  // update market state
   let coins = pool.coins;
   let inputTokenBalances: TokenBalance[] = [];
   for (let i = 0; i < pool.coinCount; i++) {
@@ -149,7 +151,13 @@ function handleAddLiquidityCommon(
   let lpTokensMinted = newTotalSupply.minus(oldTotalSupply);
 
   let accountLiquidity = getOrCreateAccountLiquidity(account, pool);
-  accountLiquidity.balance = accountLiquidity.balance.plus(lpTokensMinted);
+  let newBalance = accountLiquidity.balance.plus(lpTokensMinted);
+
+  if (accountLiquidity.isPositionPossiblyIncomplete) {
+    fixPositionDataIfIncomplete(accountLiquidity, newBalance, event);
+  }
+
+  accountLiquidity.balance = newBalance;
   accountLiquidity.save();
 
   // Collect data for position update
@@ -296,6 +304,12 @@ function handleRemoveLiquidityCommon(
   let lpTokenAmount = oldTotalSupply.minus(newTotalSupply);
 
   let accountLiquidity = getOrCreateAccountLiquidity(account, pool);
+  let newBalance = accountLiquidity.balance.minus(lpTokenAmount);
+
+  if (accountLiquidity.isPositionPossiblyIncomplete) {
+    fixPositionDataIfIncomplete(accountLiquidity, newBalance, event);
+  }
+
   accountLiquidity.balance = accountLiquidity.balance.minus(lpTokenAmount);
   accountLiquidity.save();
 

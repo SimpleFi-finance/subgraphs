@@ -254,3 +254,10 @@ type PoolDeployed @entity {
   id: ID!
   source: String!
 }
+
+type PositionFix @entity {
+  id: ID!
+  blockNumber: BigInt!
+  user: String!
+  amount: BigInt!
+}

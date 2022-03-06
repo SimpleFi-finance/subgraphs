@@ -16,8 +16,12 @@ dataSources:
       entities:
         - PoolRegistry
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: AddressProvider
           file: ./abis/AddressProvider.json
+        - name: MetaPoolFactory
+          file: ./abis/MetaPoolFactory.json
       eventHandlers:
         - event: AddressModified(indexed uint256,address,uint256)
           handler: handleAddressModified
@@ -46,6 +50,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -85,6 +91,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -124,6 +132,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -163,6 +173,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -202,6 +214,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -241,6 +255,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -283,6 +299,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -325,6 +343,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -367,6 +387,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -409,6 +431,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -453,6 +477,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -497,6 +523,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -541,6 +569,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -585,6 +615,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -629,6 +661,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -673,6 +707,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -717,6 +753,8 @@ dataSources:
         - Pool
         - PoolSnapshot
       abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
         - name: CurvePool
           file: ./abis/CurvePool.json
         - name: ERC20
@@ -779,6 +817,8 @@ templates:
           file: ./abis/MetaPoolFactory.json
         - name: ERC20
           file: ./abis/IERC20.json
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
       callHandlers:
         - function: deploy_metapool(address,string,string,address,uint256,uint256)
           handler: handleMetaPoolDeployed
@@ -810,6 +850,8 @@ templates:
           file: ./abis/CurvePool.json
         - name: ERC20
           file: ./abis/IERC20.json
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
       eventHandlers:
         #### 2 coins
         - event: AddLiquidity(indexed address,uint256[2],uint256[2],uint256,uint256)
@@ -882,10 +924,22 @@ templates:
       abis:
         - name: ERC20
           file: ./abis/IERC20.json
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
       file: ./src/pool.ts
+
+graft:
+  base: QmS8e6ZSssLTg3KLsisxg3vg8zcy8kEtbxZQgi88Dn3gsd # Subgraph ID of base subgraph
+  block: 11219500 # Block number
+#########################################
+
+#END
+
+#########################################
+
 #   - kind: ethereum/contract
 #     name: AaveLendingPool
 #     network: mainnet
