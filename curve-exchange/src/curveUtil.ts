@@ -191,8 +191,12 @@ export function getOrCreatePoolViaFactory(
   //// balances
   //TODO init to zero
   let balances = factoryContract.get_balances(curvePoolAddress);
-  pool.balances = balances;
-  pool.initialBalances = balances;
+  let poolBalances: BigInt[] = [];
+  for (let i = 0; i < pool.coinCount; i++) {
+    poolBalances.push(balances[i]);
+  }
+  pool.balances = poolBalances;
+  pool.initialBalances = poolBalances;
   pool.lastBlockBalanceUpdated = event.block.number;
 
   //// total LP supply
@@ -268,8 +272,12 @@ export function getOrCreatePoolViaRegistry(
 
   //// get coin balances
   let balances = registryContract.get_balances(curvePoolAddress);
-  pool.balances = balances;
-  pool.initialBalances = balances;
+  let poolBalances: BigInt[] = [];
+  for (let i = 0; i < pool.coinCount; i++) {
+    poolBalances.push(balances[i]);
+  }
+  pool.balances = poolBalances;
+  pool.initialBalances = poolBalances;
   pool.lastBlockBalanceUpdated = event.block.number;
 
   //// get LP token
@@ -347,17 +355,23 @@ export function getPoolBalances(pool: PoolEntity, block: BigInt): BigInt[] {
   }
 
   let poolAddress = Address.fromString(pool.id);
-  let balances: BigInt[] = [];
+  let poolBalances: BigInt[] = [];
 
   // if pool is created from metapool factory, query factory for balances with single call
   if (pool.source == METAPOOL_FACTORY) {
     let factoryContract = FactoryContract.bind(Address.fromString(pool.factory as string));
-    balances = factoryContract.get_balances(poolAddress);
+    let balances = factoryContract.get_balances(poolAddress);
+    for (let i = 0; i < pool.coinCount; i++) {
+      poolBalances.push(balances[i]);
+    }
   }
   // if pool is part of registry, query factory for balances with single call
   else if (pool.isInRegistry) {
     let registryContract = PoolRegistry.bind(Address.fromString(pool.registry as string));
-    balances = registryContract.get_balances(poolAddress);
+    let balances = registryContract.get_balances(poolAddress);
+    for (let i = 0; i < pool.coinCount; i++) {
+      poolBalances.push(balances[i]);
+    }
   }
   // else query the pool contract directly, per every coin
   else {
@@ -366,11 +380,11 @@ export function getPoolBalances(pool: PoolEntity, block: BigInt): BigInt[] {
 
     if (!pool.isOldAbiVersion) {
       for (let i = 0; i < pool.coinCount; i++) {
-        balances.push(poolContract.balances(BigInt.fromI32(i)));
+        poolBalances.push(poolContract.balances(BigInt.fromI32(i)));
       }
     } else {
       for (let i = 0; i < pool.coinCount; i++) {
-        balances.push(poolContract.balances1(BigInt.fromI32(i)));
+        poolBalances.push(poolContract.balances1(BigInt.fromI32(i)));
       }
     }
   }
@@ -378,7 +392,7 @@ export function getPoolBalances(pool: PoolEntity, block: BigInt): BigInt[] {
   pool.lastBlockBalanceUpdated = block;
   pool.save();
 
-  return balances;
+  return poolBalances;
 }
 
 /**
