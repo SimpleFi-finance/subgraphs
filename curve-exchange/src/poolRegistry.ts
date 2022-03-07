@@ -7,6 +7,7 @@ export function handlePoolAdded(event: PoolAdded): void {
 
   if (!pool.isInRegistry) {
     pool.isInRegistry = true;
+    pool.registry = event.address.toHexString();
     pool.save();
   }
 }

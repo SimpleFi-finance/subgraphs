@@ -932,8 +932,8 @@ templates:
       file: ./src/pool.ts
 
 graft:
-  base: QmS8e6ZSssLTg3KLsisxg3vg8zcy8kEtbxZQgi88Dn3gsd # Subgraph ID of base subgraph
-  block: 11219500 # Block number
+  base: QmSzizdrFq2WCvdLLonHn53Py9WHH3WWVLSrT38ZQNewaj # Subgraph ID of base subgraph
+  block: 11187200 # Block number
 #########################################
 
 #END
