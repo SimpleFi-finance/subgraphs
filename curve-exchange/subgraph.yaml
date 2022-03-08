@@ -2,10 +2,6 @@ specVersion: 0.0.2
 schema:
   file: ./schema.graphql
 
-graft:
-  base: QmXLsKMpU2Aad3iVifcNqYVSofTPXX4zmNYntYDW3HRW8s
-  block: 11154700
-
 ################# TEMPLATES
 templates:
   - kind: ethereum/contract
