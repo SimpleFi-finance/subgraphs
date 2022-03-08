@@ -198,23 +198,10 @@ type Pool @entity {
   factory: String
   isOldAbiVersion: Boolean
   lastTransferToZero: LPTokenTransferToZero
-  history: [PoolSnapshot!]! @derivedFrom(field: "pool")
-}
-
-type PoolSnapshot @entity {
-  id: ID! # {trasactionHash}{logIndex}
-  pool: Pool!
-  balances: [BigInt!]!
-  totalSupply: BigInt!
-  blockNumber: BigInt!
-  timestamp: BigInt!
-  transactionHash: String!
-  transactionIndexInBlock: BigInt!
-  logIndex: BigInt!
 }
 
 type AccountLiquidity @entity {
-  id: ID! # {accoutnAddress}{poolAddress}
+  id: ID! # {accountAddress}-{poolAddress}
   pool: Pool!
   account: Account!
   balance: BigInt!

@@ -566,7 +566,11 @@ function transferLPToken(
   let fromLpTokensTransferred = value;
 
   let fromAccountLiquidity = getOrCreateAccountLiquidity(fromAccount, pool);
-  fromAccountLiquidity.balance = fromAccountLiquidity.balance.minus(fromLpTokensTransferred);
+  let newFromBalance = fromAccountLiquidity.balance.minus(fromLpTokensTransferred);
+  if (fromAccountLiquidity.isPositionPossiblyIncomplete) {
+    fixPositionDataIfIncomplete(fromAccountLiquidity, newFromBalance, event);
+  }
+  fromAccountLiquidity.balance = newFromBalance;
   fromAccountLiquidity.save();
 
   // Collect data for position update
@@ -598,9 +602,12 @@ function transferLPToken(
   // Add transferred LP tokens to receiver's account
   let toAccount = getOrCreateAccount(to);
   let toLpTokensReceived = value;
-
   let toAccountLiquidity = getOrCreateAccountLiquidity(toAccount, pool);
-  toAccountLiquidity.balance = toAccountLiquidity.balance.plus(toLpTokensReceived);
+  let newToBalance = toAccountLiquidity.balance.plus(toLpTokensReceived);
+  if (toAccountLiquidity.isPositionPossiblyIncomplete) {
+    fixPositionDataIfIncomplete(toAccountLiquidity, newToBalance, event);
+  }
+  toAccountLiquidity.balance = newToBalance;
   toAccountLiquidity.save();
 
   // Collect data for position update

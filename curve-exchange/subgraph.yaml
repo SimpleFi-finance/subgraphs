@@ -3,8 +3,8 @@ schema:
   file: ./schema.graphql
 
 graft:
-  base: QmSzizdrFq2WCvdLLonHn53Py9WHH3WWVLSrT38ZQNewaj # Subgraph ID of base subgraph
-  block: 11187200 # Block number
+  base: QmXLsKMpU2Aad3iVifcNqYVSofTPXX4zmNYntYDW3HRW8s
+  block: 11154700
 
 ################# TEMPLATES
 templates:
@@ -73,7 +73,6 @@ templates:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: CurvePool
           file: ./abis/CurvePool.json
@@ -149,7 +148,6 @@ templates:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: ERC20
           file: ./abis/IERC20.json
@@ -207,7 +205,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -248,7 +245,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -289,7 +285,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -330,7 +325,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -371,7 +365,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -412,7 +405,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -456,7 +448,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -500,7 +491,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -544,7 +534,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -588,7 +577,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -634,7 +622,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -680,7 +667,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -726,7 +712,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -772,7 +757,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -818,7 +802,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -864,7 +847,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -910,7 +892,6 @@ dataSources:
         - Position
         - PositionSnapshot
         - Pool
-        - PoolSnapshot
       abis:
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
@@ -961,8 +942,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain3
 #           file: ./abis/StableSwapPlain3.json
 #         - name: StableSwapLending3
@@ -1007,8 +987,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapLending2_v1
 #           file: ./abis/StableSwapLending2_v1.json
 #         - name: ERC20
@@ -1046,8 +1025,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain3
 #           file: ./abis/StableSwapPlain3.json
 #         - name: StableSwapLending3
@@ -1092,8 +1070,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain3
 #           file: ./abis/StableSwapPlain3.json
 #         - name: StableSwapLending2
@@ -1140,8 +1117,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain3
 #           file: ./abis/StableSwapPlain3.json
 #         - name: StableSwapLending2
@@ -1188,8 +1164,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain3
 #           file: ./abis/StableSwapPlain3.json
 #         - name: StableSwapLending2
@@ -1236,8 +1211,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain2
 #           file: ./abis/StableSwapPlain2.json
 #         - name: StableSwapPlain3
@@ -1282,8 +1256,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain3
 #           file: ./abis/StableSwapPlain3.json
 #         - name: StableSwapLending2
@@ -1330,8 +1303,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain3
 #           file: ./abis/StableSwapPlain3.json
 #         - name: StableSwapLending2
@@ -1378,8 +1350,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain3
 #           file: ./abis/StableSwapPlain3.json
 #         - name: StableSwapLending2
@@ -1426,8 +1397,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain3
 #           file: ./abis/StableSwapPlain3.json
 #         - name: StableSwapLending2
@@ -1474,8 +1444,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain3
 #           file: ./abis/StableSwapPlain3.json
 #         - name: StableSwapLending2
@@ -1522,8 +1491,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain3
 #           file: ./abis/StableSwapPlain3.json
 #         - name: StableSwapLending2
@@ -1570,8 +1538,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain3
 #           file: ./abis/StableSwapPlain3.json
 #         - name: StableSwapLending2
@@ -1618,8 +1585,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain3
 #           file: ./abis/StableSwapPlain3.json
 #         - name: StableSwapLending2
@@ -1666,8 +1632,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain2
 #           file: ./abis/StableSwapPlain2.json
 #         - name: StableSwapPlain3
@@ -1712,8 +1677,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain2
 #           file: ./abis/StableSwapPlain2.json
 #         - name: StableSwapPlain3
@@ -1758,8 +1722,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain2
 #           file: ./abis/StableSwapPlain2.json
 #         - name: StableSwapPlain3
@@ -1804,8 +1767,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain2
 #           file: ./abis/StableSwapPlain2.json
 #         - name: StableSwapPlain3
@@ -1850,8 +1812,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapPlain2
 #           file: ./abis/StableSwapPlain2.json
 #         - name: StableSwapPlain3
@@ -1896,8 +1857,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapTriCrypto
 #           file: ./abis/StableSwapTriCrypto.json
 #         - name: StableSwapPlain3
@@ -1942,8 +1902,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapTriCrypto
 #           file: ./abis/StableSwapTriCrypto.json
 #         - name: StableSwapPlain3
@@ -1988,8 +1947,7 @@ dataSources:
 #         - Position
 #         - PositionSnapshot
 #         - Pool
-#         - PoolSnapshot
-#       abis:
+# #       abis:
 #         - name: StableSwapLending2_v1
 #           file: ./abis/StableSwapLending2_v1.json
 #         - name: StableSwapLending4_v1
