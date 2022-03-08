@@ -40,9 +40,12 @@ export namespace CurvePoolType {
 }
 
 const OLD_FACTORY_ADDRESS = "0x0959158b6040d32d04c301a72cbfd6b39e21c9ae";
-const METAPOOL_FACTORY = "metapool-factory";
-const HARD_CODED = "hard-coded";
-const REGISTRY = "registry";
+
+export namespace CurvePoolSource {
+  export const METAPOOL_FACTORY = "metapool-factory";
+  export const HARD_CODED = "hard-coded";
+  export const REGISTRY = "registry";
+}
 
 /**
  * Fetch existing pool entity, or create a new one in case where pool "source" is the hard-coded subgraph data source
@@ -116,7 +119,7 @@ export function getOrCreatePool(event: ethereum.Event, poolAddress: Address): Po
 
   pool.blockNumber = event.block.number;
   pool.timestamp = event.block.timestamp;
-  pool.source = HARD_CODED;
+  pool.source = CurvePoolSource.HARD_CODED;
   pool.isInRegistry = false;
 
   pool.save();
@@ -211,7 +214,7 @@ export function getOrCreatePoolViaFactory(
   pool.timestamp = event.block.timestamp;
   pool.lastTransferToZero = null;
   pool.isInRegistry = false;
-  pool.source = METAPOOL_FACTORY;
+  pool.source = CurvePoolSource.METAPOOL_FACTORY;
 
   pool.save();
 
@@ -293,7 +296,7 @@ export function getOrCreatePoolViaRegistry(
   pool.blockNumber = event.block.number;
   pool.timestamp = event.block.timestamp;
   pool.lastTransferToZero = null;
-  pool.source = REGISTRY;
+  pool.source = CurvePoolSource.REGISTRY;
   pool.isInRegistry = true;
   pool.registry = registryAddress.toHexString();
 
@@ -322,6 +325,12 @@ export function getOrCreatePoolViaRegistry(
   return pool as PoolEntity;
 }
 
+/**
+ *
+ * @param account
+ * @param pool
+ * @returns
+ */
 export function getOrCreateAccountLiquidity(
   account: AccountEntity,
   pool: PoolEntity
@@ -338,7 +347,7 @@ export function getOrCreateAccountLiquidity(
   liquidity.account = account.id;
   liquidity.balance = BigInt.fromI32(0);
 
-  if (pool.source == REGISTRY) {
+  if (pool.source == CurvePoolSource.REGISTRY) {
     liquidity.isPositionPossiblyIncomplete = true;
   } else {
     liquidity.isPositionPossiblyIncomplete = false;
@@ -348,6 +357,12 @@ export function getOrCreateAccountLiquidity(
   return liquidity as AccountLiquidityEntity;
 }
 
+/**
+ * Get pool balances of input tokens using contract call. Contract to be queried depends on the source of the Curve pool.
+ * @param pool
+ * @param block
+ * @returns
+ */
 export function getPoolBalances(pool: PoolEntity, block: BigInt): BigInt[] {
   // no action needed if balances are up-to-date
   if (block == pool.lastBlockBalanceUpdated) {
@@ -358,7 +373,7 @@ export function getPoolBalances(pool: PoolEntity, block: BigInt): BigInt[] {
   let poolBalances: BigInt[] = [];
 
   // if pool is created from metapool factory, query factory for balances with single call
-  if (pool.source == METAPOOL_FACTORY) {
+  if (pool.source == CurvePoolSource.METAPOOL_FACTORY) {
     let factoryContract = FactoryContract.bind(Address.fromString(pool.factory as string));
     let balances = factoryContract.get_balances(poolAddress);
     for (let i = 0; i < pool.coinCount; i++) {
@@ -375,7 +390,6 @@ export function getPoolBalances(pool: PoolEntity, block: BigInt): BigInt[] {
   }
   // else query the pool contract directly, per every coin
   else {
-    let balance: ethereum.CallResult<BigInt>;
     let poolContract = CurvePool.bind(poolAddress);
 
     if (!pool.isOldAbiVersion) {

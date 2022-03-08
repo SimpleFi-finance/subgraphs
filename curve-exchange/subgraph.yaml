@@ -1,6 +1,165 @@
 specVersion: 0.0.2
 schema:
   file: ./schema.graphql
+
+graft:
+  base: QmSzizdrFq2WCvdLLonHn53Py9WHH3WWVLSrT38ZQNewaj # Subgraph ID of base subgraph
+  block: 11187200 # Block number
+
+################# TEMPLATES
+templates:
+  - kind: ethereum/contract
+    name: PoolRegistry
+    network: mainnet
+    source:
+      abi: PoolRegistry
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Market
+      abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+      eventHandlers:
+        - event: PoolAdded(indexed address,bytes)
+          handler: handlePoolAdded
+      file: ./src/poolRegistry.ts
+
+  - kind: ethereum/contract
+    name: MetaPoolFactory
+    network: mainnet
+    source:
+      abi: MetaPoolFactory
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - MetaPoolFactory
+        - Market
+      abis:
+        - name: MetaPoolFactory
+          file: ./abis/MetaPoolFactory.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
+      callHandlers:
+        - function: deploy_metapool(address,string,string,address,uint256,uint256)
+          handler: handleMetaPoolDeployed
+        - function: deploy_plain_pool(string,string,address[4],uint256,uint256,uint256,uint256)
+          handler: handlePlainPoolDeployed
+      file: ./src/metaPoolFactory.ts
+
+  - kind: ethereum/contract
+    name: CurvePool
+    network: mainnet
+    source:
+      abi: CurvePool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Position
+        - PositionSnapshot
+        - Pool
+        - PoolSnapshot
+      abis:
+        - name: CurvePool
+          file: ./abis/CurvePool.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
+      eventHandlers:
+        #### 2 coins
+        - event: AddLiquidity(indexed address,uint256[2],uint256[2],uint256,uint256)
+          handler: handleAddLiquidity2Coins
+        - event: RemoveLiquidity(indexed address,uint256[2],uint256[2],uint256)
+          handler: handleRemoveLiquidity2Coins
+        - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
+          handler: handleRemoveLiquidityImbalance2Coins
+
+          #### 3 coins
+        - event: AddLiquidity(indexed address,uint256[3],uint256[3],uint256,uint256)
+          handler: handleAddLiquidity3Coins
+        - event: RemoveLiquidity(indexed address,uint256[3],uint256[3],uint256)
+          handler: handleRemoveLiquidity3Coins
+        - event: RemoveLiquidityImbalance(indexed address,uint256[3],uint256[3],uint256,uint256)
+          handler: handleRemoveLiquidityImbalance3Coins
+
+          #### 4 coins
+        - event: AddLiquidity(indexed address,uint256[4],uint256[4],uint256,uint256)
+          handler: handleAddLiquidity4Coins
+        - event: RemoveLiquidity(indexed address,uint256[4],uint256[4],uint256)
+          handler: handleRemoveLiquidity4Coins
+        - event: RemoveLiquidityImbalance(indexed address,uint256[4],uint256[4],uint256,uint256)
+          handler: handleRemoveLiquidityImbalance4Coins
+
+          #### TriCrypto
+        - event: AddLiquidity(indexed address,uint256[3],uint256,uint256)
+          handler: handleAddLiquidityTriCrypto
+        - event: RemoveLiquidity(indexed address,uint256[3],uint256)
+          handler: handleRemoveLiquidityTriCrypto
+        - event: TokenExchange(indexed address,uint256,uint256,uint256,uint256)
+          handler: handleTokenExchangeTriCrypto
+
+          #### other common
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256)
+          handler: handleRemoveLiquidityOne_v1
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne_v2
+        - event: TokenExchange(indexed address,int128,uint256,int128,uint256)
+          handler: handleTokenExchange
+        - event: TokenExchangeUnderlying(indexed address,int128,uint256,int128,uint256)
+          handler: handleTokenExchangeUnderlying
+      callHandlers:
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
+        - function: remove_liquidity_one_coin(uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOneTriCryptoCall
+      file: ./src/pool.ts
+
+  - kind: ethereum/contract
+    name: PoolLPToken
+    network: mainnet
+    source:
+      abi: ERC20
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Pool
+        - PoolSnapshot
+      abis:
+        - name: ERC20
+          file: ./abis/IERC20.json
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/pool.ts
+
 dataSources:
   - kind: ethereum/contract
     name: CurveExchangeAddressProvider
@@ -776,164 +935,6 @@ dataSources:
         - function: remove_liquidity_one_coin(uint256,int128,uint256)
           handler: handleRemoveLiquidityOneCall
       file: ./src/pool.ts
-
-################# TEMPLATES
-templates:
-  - kind: ethereum/contract
-    name: PoolRegistry
-    network: mainnet
-    source:
-      abi: PoolRegistry
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.4
-      language: wasm/assemblyscript
-      entities:
-        - Market
-      abis:
-        - name: PoolRegistry
-          file: ./abis/CurveRegistry.json
-        - name: ERC20
-          file: ./abis/IERC20.json
-      eventHandlers:
-        - event: PoolAdded(indexed address,bytes)
-          handler: handlePoolAdded
-      file: ./src/poolRegistry.ts
-
-  - kind: ethereum/contract
-    name: MetaPoolFactory
-    network: mainnet
-    source:
-      abi: MetaPoolFactory
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.4
-      language: wasm/assemblyscript
-      entities:
-        - MetaPoolFactory
-        - Market
-      abis:
-        - name: MetaPoolFactory
-          file: ./abis/MetaPoolFactory.json
-        - name: ERC20
-          file: ./abis/IERC20.json
-        - name: PoolRegistry
-          file: ./abis/CurveRegistry.json
-      callHandlers:
-        - function: deploy_metapool(address,string,string,address,uint256,uint256)
-          handler: handleMetaPoolDeployed
-        - function: deploy_plain_pool(string,string,address[4],uint256,uint256,uint256,uint256)
-          handler: handlePlainPoolDeployed
-      file: ./src/metaPoolFactory.ts
-
-  - kind: ethereum/contract
-    name: CurvePool
-    network: mainnet
-    source:
-      abi: CurvePool
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.4
-      language: wasm/assemblyscript
-      entities:
-        - Block
-        - Account
-        - Token
-        - Market
-        - Transaction
-        - Position
-        - PositionSnapshot
-        - Pool
-        - PoolSnapshot
-      abis:
-        - name: CurvePool
-          file: ./abis/CurvePool.json
-        - name: ERC20
-          file: ./abis/IERC20.json
-        - name: PoolRegistry
-          file: ./abis/CurveRegistry.json
-      eventHandlers:
-        #### 2 coins
-        - event: AddLiquidity(indexed address,uint256[2],uint256[2],uint256,uint256)
-          handler: handleAddLiquidity2Coins
-        - event: RemoveLiquidity(indexed address,uint256[2],uint256[2],uint256)
-          handler: handleRemoveLiquidity2Coins
-        - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
-          handler: handleRemoveLiquidityImbalance2Coins
-
-          #### 3 coins
-        - event: AddLiquidity(indexed address,uint256[3],uint256[3],uint256,uint256)
-          handler: handleAddLiquidity3Coins
-        - event: RemoveLiquidity(indexed address,uint256[3],uint256[3],uint256)
-          handler: handleRemoveLiquidity3Coins
-        - event: RemoveLiquidityImbalance(indexed address,uint256[3],uint256[3],uint256,uint256)
-          handler: handleRemoveLiquidityImbalance3Coins
-
-          #### 4 coins
-        - event: AddLiquidity(indexed address,uint256[4],uint256[4],uint256,uint256)
-          handler: handleAddLiquidity4Coins
-        - event: RemoveLiquidity(indexed address,uint256[4],uint256[4],uint256)
-          handler: handleRemoveLiquidity4Coins
-        - event: RemoveLiquidityImbalance(indexed address,uint256[4],uint256[4],uint256,uint256)
-          handler: handleRemoveLiquidityImbalance4Coins
-
-          #### TriCrypto
-        - event: AddLiquidity(indexed address,uint256[3],uint256,uint256)
-          handler: handleAddLiquidityTriCrypto
-        - event: RemoveLiquidity(indexed address,uint256[3],uint256)
-          handler: handleRemoveLiquidityTriCrypto
-        - event: TokenExchange(indexed address,uint256,uint256,uint256,uint256)
-          handler: handleTokenExchangeTriCrypto
-
-          #### other common
-        - event: RemoveLiquidityOne(indexed address,uint256,uint256)
-          handler: handleRemoveLiquidityOne_v1
-        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
-          handler: handleRemoveLiquidityOne_v2
-        - event: TokenExchange(indexed address,int128,uint256,int128,uint256)
-          handler: handleTokenExchange
-        - event: TokenExchangeUnderlying(indexed address,int128,uint256,int128,uint256)
-          handler: handleTokenExchangeUnderlying
-      callHandlers:
-        - function: remove_liquidity_one_coin(uint256,int128,uint256)
-          handler: handleRemoveLiquidityOneCall
-        - function: remove_liquidity_one_coin(uint256,uint256,uint256)
-          handler: handleRemoveLiquidityOneTriCryptoCall
-      file: ./src/pool.ts
-
-  - kind: ethereum/contract
-    name: PoolLPToken
-    network: mainnet
-    source:
-      abi: ERC20
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.4
-      language: wasm/assemblyscript
-      entities:
-        - Block
-        - Account
-        - Token
-        - Market
-        - Transaction
-        - Transfer
-        - Position
-        - PositionSnapshot
-        - Pool
-        - PoolSnapshot
-      abis:
-        - name: ERC20
-          file: ./abis/IERC20.json
-        - name: PoolRegistry
-          file: ./abis/CurveRegistry.json
-      eventHandlers:
-        - event: Transfer(indexed address,indexed address,uint256)
-          handler: handleTransfer
-      file: ./src/pool.ts
-
-graft:
-  base: QmSzizdrFq2WCvdLLonHn53Py9WHH3WWVLSrT38ZQNewaj # Subgraph ID of base subgraph
-  block: 11187200 # Block number
 #########################################
 
 #END
