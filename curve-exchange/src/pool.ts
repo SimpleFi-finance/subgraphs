@@ -23,6 +23,7 @@ import {
 
 import { ERC20, Transfer } from "../generated/templates/PoolLPToken/ERC20";
 import {
+  LPToken,
   LPTokenTransferToZero as LPTokenTransferToZeroEntity,
   Market as MarketEntity,
   Pool as PoolEntity,
@@ -40,10 +41,10 @@ import {
 import {
   getOrCreatePool,
   getOrCreateAccountLiquidity,
-  getPoolFromLpToken,
   getOrCreateRemoveLiquidityOneEvent,
   getPoolBalances,
   fixPositionDataIfIncomplete,
+  getOrCreateLpToken,
 } from "./curveUtil";
 
 export function handleAddLiquidity2Coins(event: AddLiquidity2Coins): void {
@@ -437,15 +438,21 @@ function handleTokenExchangeCommon(event: ethereum.Event, poolAddress: Address):
   updateMarket(event, market, inputTokenMarketBalances, pool.totalSupply);
 }
 
+/**
+ * Catch transfer of pool LP token.
+ * @param event
+ * @returns
+ */
 export function handleTransfer(event: Transfer): void {
   // don't handle zero-value tranfers or transfers from zero-address
   if (event.params.value == BigInt.fromI32(0) || event.params.from.toHexString() == ADDRESS_ZERO) {
     return;
   }
 
-  let pool = getOrCreatePool(event, getPoolFromLpToken(event.address));
+  let lpToken = LPToken.load(event.address.toHexString());
+  let pool = getOrCreatePool(event, Address.fromString(lpToken.pool));
 
-  // if receiver is zero-address create tranferToZero entity and return - position updates are done in add/remove liquidity handlers
+  // if receiver is zero-address create tranferToZero entity and return
   if (event.params.to.toHexString() == ADDRESS_ZERO) {
     let transferToZero = new LPTokenTransferToZeroEntity(event.transaction.hash.toHexString());
     transferToZero.from = event.params.from;

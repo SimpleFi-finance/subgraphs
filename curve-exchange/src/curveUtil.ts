@@ -2,6 +2,7 @@ import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 import {
   Account as AccountEntity,
   AccountLiquidity as AccountLiquidityEntity,
+  LPToken,
   Market,
   Pool as PoolEntity,
   PositionFix,
@@ -140,6 +141,12 @@ export function getOrCreatePool(event: ethereum.Event, poolAddress: Address): Po
   lpToken.mintedByMarket = market.id;
   lpToken.save();
 
+  // create LP token entitiy in order to have token-pool mapping
+  let lpTokenEntity = new LPToken(lpToken.id);
+  lpTokenEntity.token = lpToken.id;
+  lpTokenEntity.pool = pool.id;
+  lpTokenEntity.save();
+
   // start indexing LP token to track transfers
   PoolLPToken.create(pool.lpToken as Address);
 
@@ -232,6 +239,12 @@ export function getOrCreatePoolViaFactory(
   lpToken.mintedByMarket = market.id;
   lpToken.save();
 
+  // create LP token entitiy in order to have token-pool mapping
+  let lpTokenEntity = new LPToken(lpToken.id);
+  lpTokenEntity.token = lpToken.id;
+  lpTokenEntity.pool = pool.id;
+  lpTokenEntity.save();
+
   // start indexing new pool
   CurvePoolTemplate.create(Address.fromString(pool.id));
 
@@ -316,6 +329,12 @@ export function getOrCreatePoolViaRegistry(
   lpToken.mintedByMarket = market.id;
   lpToken.save();
 
+  // create LP token entitiy in order to have token-pool mapping
+  let lpTokenEntity = new LPToken(lpTokenAddress.toHexString());
+  lpTokenEntity.token = lpTokenAddress.toHexString();
+  lpTokenEntity.pool = pool.id;
+  lpTokenEntity.save();
+
   // start indexing new pool
   CurvePoolTemplate.create(Address.fromString(pool.id));
 
@@ -326,7 +345,7 @@ export function getOrCreatePoolViaRegistry(
 }
 
 /**
- *
+ * Create tracker for number of LP token owned by user.
  * @param account
  * @param pool
  * @returns
@@ -449,21 +468,6 @@ export function getLpTokenOfPool(pool: Address): Address {
 }
 
 /**
- * Get pool address from list of pre-defined pool to LpToken mapping
- * @param pool
- * @returns
- */
-export function getPoolFromLpToken(lpToken: Address): Address {
-  let poolAddress = lpTokenToPool.get(lpToken.toHexString()) as string;
-
-  if (poolAddress == null) {
-    return null;
-  }
-
-  return Address.fromString(poolAddress);
-}
-
-/**
  *
  * @param accountLiquidity
  */
@@ -537,4 +541,24 @@ export function fixPositionDataIfIncomplete(
   fix.user = account.id;
   fix.amount = untrackedDifference;
   fix.save();
+}
+
+/**
+ * Create LPToken entity and save reference to pool it belongs to.
+ * @param lpTokenAddress
+ * @param poolAddress
+ * @returns
+ */
+export function getOrCreateLpToken(lpTokenAddress: string, poolAddress: string): LPToken {
+  let lpToken = LPToken.load(lpTokenAddress);
+  if (lpToken != null) {
+    return lpToken as LPToken;
+  }
+
+  lpToken = new LPToken(lpTokenAddress);
+  lpToken.token = lpTokenAddress;
+  lpToken.pool = poolAddress;
+  lpToken.save();
+
+  return lpToken as LPToken;
 }
