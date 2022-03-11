@@ -8,8 +8,11 @@ type MarketDayData @entity {
   " market id - pair address "
   market: String!
 
-  " swap volume -> amount of input tokens swapped in or out  "
-  inputTokensDailySwapVolume: [BigInt!]!
+  "amount of input tokens swapped in "
+  inputTokensDailySwapInVolume: [BigInt!]!
+
+  " amount of input tokens swapped out  "
+  inputTokensDailySwapOutVolume: [BigInt!]!
 
   " total amount of reserves per input token "
   inputTokenTotalBalances: [BigInt!]!

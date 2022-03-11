@@ -108,20 +108,21 @@ export function handleBurn(event: Burn): void {
  * @param event
  */
 export function handleSwap(event: Swap): void {
-  // totals for volume updates
-  let amount0Total = event.params.amount0Out.plus(event.params.amount0In);
-  let amount1Total = event.params.amount1Out.plus(event.params.amount1In);
-
   // update daily swap volume per token
   let marketDayData = getMarketDayData(event);
 
-  let swapVolumes = marketDayData.inputTokensDailySwapVolume;
-  let prevToken0SwapVolume = swapVolumes[0];
-  let prevToken1SwapVolume = swapVolumes[1];
+  // update swap in volumes
+  let swapInVolumes = marketDayData.inputTokensDailySwapInVolume;
+  marketDayData.inputTokensDailySwapInVolume = [
+    swapInVolumes[0].plus(event.params.amount0In),
+    swapInVolumes[1].plus(event.params.amount1In),
+  ];
 
-  marketDayData.inputTokensDailySwapVolume = [
-    prevToken0SwapVolume.plus(amount0Total),
-    prevToken1SwapVolume.plus(amount1Total),
+  // update swap out volumes
+  let swapOutVolumes = marketDayData.inputTokensDailySwapOutVolume;
+  marketDayData.inputTokensDailySwapOutVolume = [
+    swapOutVolumes[0].plus(event.params.amount0Out),
+    swapOutVolumes[1].plus(event.params.amount1Out),
   ];
 
   marketDayData.dailySwapTXs = marketDayData.dailySwapTXs.plus(BigInt.fromI32(1));
@@ -145,7 +146,8 @@ function getMarketDayData(event: ethereum.Event): MarketDayData {
     marketDayData = new MarketDayData(dayPairID);
     marketDayData.timestamp = event.block.timestamp;
     marketDayData.market = pairAddress;
-    marketDayData.inputTokensDailySwapVolume = [BigInt.fromI32(0), BigInt.fromI32(0)];
+    marketDayData.inputTokensDailySwapInVolume = [BigInt.fromI32(0), BigInt.fromI32(0)];
+    marketDayData.inputTokensDailySwapOutVolume = [BigInt.fromI32(0), BigInt.fromI32(0)];
     marketDayData.inputTokenDailyInflow = [BigInt.fromI32(0), BigInt.fromI32(0)];
     marketDayData.inputTokenDailyOutflow = [BigInt.fromI32(0), BigInt.fromI32(0)];
     marketDayData.outputTokenDailyInflowVolume = BigInt.fromI32(0);
