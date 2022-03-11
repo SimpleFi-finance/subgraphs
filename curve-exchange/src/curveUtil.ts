@@ -468,13 +468,16 @@ export function getLpTokenOfPool(pool: Address): Address {
 }
 
 /**
- *
+ * When we catch user's first interaction with pool, compare actual LP balance with what we have stored.
+ * If there is a mismatch it means user provided liquidity before pool was added to registry.
+ * In that case fix position by creating fake investment at current block, to match the actual LP balance.
  * @param accountLiquidity
  */
 export function fixPositionDataIfIncomplete(
   accountLiquidity: AccountLiquidityEntity,
   expectedUserLpTokenBalance: BigInt,
-  event: ethereum.Event
+  event: ethereum.Event,
+  isDeposit: boolean
 ): void {
   if (accountLiquidity.isPositionPossiblyIncomplete == false) {
     return;
@@ -486,13 +489,29 @@ export function fixPositionDataIfIncomplete(
     Address.fromString(accountLiquidity.account)
   );
 
+  // all good, balance is as expected
   if (actualUserLpTokenBalance == expectedUserLpTokenBalance) {
     accountLiquidity.isPositionPossiblyIncomplete = false;
     accountLiquidity.save();
     return;
   }
 
+  // if user provided liqudity, but balance at the end of block is 0, most probably it is
+  // being handled by smart contract strategy so no need for fixing
+  if (isDeposit && actualUserLpTokenBalance == BigInt.fromI32(0)) {
+    accountLiquidity.isPositionPossiblyIncomplete = false;
+    accountLiquidity.save();
+    return;
+  }
+
   let untrackedDifference = actualUserLpTokenBalance.minus(expectedUserLpTokenBalance);
+
+  // shouldn't be negative
+  if (untrackedDifference < BigInt.fromI32(0)) {
+    accountLiquidity.isPositionPossiblyIncomplete = false;
+    accountLiquidity.save();
+    return;
+  }
 
   // add missing balance to user position
   accountLiquidity.balance = accountLiquidity.balance.plus(untrackedDifference);

@@ -44,7 +44,6 @@ import {
   getOrCreateRemoveLiquidityOneEvent,
   getPoolBalances,
   fixPositionDataIfIncomplete,
-  getOrCreateLpToken,
 } from "./curveUtil";
 
 ///// add liquidity
@@ -157,7 +156,7 @@ function handleAddLiquidityCommon(
   let newBalance = accountLiquidity.balance.plus(lpTokensMinted);
 
   if (accountLiquidity.isPositionPossiblyIncomplete) {
-    fixPositionDataIfIncomplete(accountLiquidity, newBalance, event);
+    fixPositionDataIfIncomplete(accountLiquidity, newBalance, event, true);
   }
 
   accountLiquidity.balance = newBalance;
@@ -362,7 +361,7 @@ function handleRemoveLiquidityCommon(
   let accountLiquidity = getOrCreateAccountLiquidity(account, pool);
   let newBalance = accountLiquidity.balance.minus(lpTokenAmount);
   if (accountLiquidity.isPositionPossiblyIncomplete) {
-    fixPositionDataIfIncomplete(accountLiquidity, newBalance, event);
+    fixPositionDataIfIncomplete(accountLiquidity, newBalance, event, false);
   }
   accountLiquidity.balance = accountLiquidity.balance.minus(lpTokenAmount);
   accountLiquidity.save();
@@ -622,9 +621,6 @@ function transferLPToken(
 
   let fromAccountLiquidity = getOrCreateAccountLiquidity(fromAccount, pool);
   let newFromBalance = fromAccountLiquidity.balance.minus(fromLpTokensTransferred);
-  if (fromAccountLiquidity.isPositionPossiblyIncomplete) {
-    fixPositionDataIfIncomplete(fromAccountLiquidity, newFromBalance, event);
-  }
   fromAccountLiquidity.balance = newFromBalance;
   fromAccountLiquidity.save();
 
@@ -659,9 +655,6 @@ function transferLPToken(
   let toLpTokensReceived = value;
   let toAccountLiquidity = getOrCreateAccountLiquidity(toAccount, pool);
   let newToBalance = toAccountLiquidity.balance.plus(toLpTokensReceived);
-  if (toAccountLiquidity.isPositionPossiblyIncomplete) {
-    fixPositionDataIfIncomplete(toAccountLiquidity, newToBalance, event);
-  }
   toAccountLiquidity.balance = newToBalance;
   toAccountLiquidity.save();
 
