@@ -43,7 +43,6 @@ import {
   getOrCreateAccountLiquidity,
   getOrCreateRemoveLiquidityOneEvent,
   getPoolBalances,
-  fixPositionDataIfIncomplete,
 } from "./curveUtil";
 
 ///// add liquidity
@@ -153,13 +152,7 @@ function handleAddLiquidityCommon(
   let lpTokensMinted = newTotalSupply.minus(oldTotalSupply);
 
   let accountLiquidity = getOrCreateAccountLiquidity(account, pool);
-  let newBalance = accountLiquidity.balance.plus(lpTokensMinted);
-
-  if (accountLiquidity.isPositionPossiblyIncomplete) {
-    fixPositionDataIfIncomplete(accountLiquidity, newBalance, event, true);
-  }
-
-  accountLiquidity.balance = newBalance;
+  accountLiquidity.balance = accountLiquidity.balance.plus(lpTokensMinted);
   accountLiquidity.save();
 
   // Collect data for position update
@@ -359,10 +352,6 @@ function handleRemoveLiquidityCommon(
   let lpTokenAmount = oldTotalSupply.minus(newTotalSupply);
 
   let accountLiquidity = getOrCreateAccountLiquidity(account, pool);
-  let newBalance = accountLiquidity.balance.minus(lpTokenAmount);
-  if (accountLiquidity.isPositionPossiblyIncomplete) {
-    fixPositionDataIfIncomplete(accountLiquidity, newBalance, event, false);
-  }
   accountLiquidity.balance = accountLiquidity.balance.minus(lpTokenAmount);
   accountLiquidity.save();
 
