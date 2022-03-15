@@ -32,6 +32,12 @@ type MarketDayData @entity {
   " amount of LP tokens burned this day "
   outputTokenDailyOutflowVolume: BigInt!
 
+  " fee percentage, applied to swap-in amount, taken by protocol "
+  protocolFee: BigInt!
+
+  " amount of fees generated this day, per token "
+  feesGenerated: [BigInt!]!
+
   " number of TXs this day swap "
   dailySwapTXs: BigInt!
 

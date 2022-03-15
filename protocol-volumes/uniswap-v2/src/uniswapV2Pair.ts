@@ -1,4 +1,4 @@
-import { BigInt, ethereum } from "@graphprotocol/graph-ts";
+import { BigInt, dataSource, ethereum } from "@graphprotocol/graph-ts";
 import { MarketDayData, Pair } from "../generated/schema";
 import {
   Burn,
@@ -125,7 +125,16 @@ export function handleSwap(event: Swap): void {
     swapOutVolumes[1].plus(event.params.amount1Out),
   ];
 
+  // update TX counter
   marketDayData.dailySwapTXs = marketDayData.dailySwapTXs.plus(BigInt.fromI32(1));
+
+  // update fees collected
+  let swapFeeToken0 = event.params.amount0In.times(marketDayData.protocolFee);
+  let swapFeeToken1 = event.params.amount1In.times(marketDayData.protocolFee);
+  let prevFees: BigInt[] = marketDayData.feesGenerated;
+  let swapFeesDailyCumulatedToken0 = prevFees[0].plus(swapFeeToken0);
+  let swapFeesDailyCumulatedToken1 = prevFees[1].plus(swapFeeToken1);
+  marketDayData.feesGenerated = [swapFeesDailyCumulatedToken0, swapFeesDailyCumulatedToken1];
   marketDayData.save();
 }
 
@@ -152,6 +161,8 @@ function getMarketDayData(event: ethereum.Event): MarketDayData {
     marketDayData.inputTokenDailyOutflow = [BigInt.fromI32(0), BigInt.fromI32(0)];
     marketDayData.outputTokenDailyInflowVolume = BigInt.fromI32(0);
     marketDayData.outputTokenDailyOutflowVolume = BigInt.fromI32(0);
+    marketDayData.protocolFee = dataSource.context().getBigInt("protocolFee");
+    marketDayData.feesGenerated = [BigInt.fromI32(0), BigInt.fromI32(0)];
     marketDayData.dailySwapTXs = BigInt.fromI32(0);
     marketDayData.dailyMintTXs = BigInt.fromI32(0);
     marketDayData.dailyBurnTXs = BigInt.fromI32(0);
