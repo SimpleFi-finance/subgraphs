@@ -152,6 +152,12 @@ export const TRICRYPTO_LP_TOKEN = "0xca3d75ac011bf5ad07a98d02f18225f9bd9a6bdf";
 export const TRICRYPTO_2_POOL = "0xd51a44d3fae010294c616388b506acda1bfaae46";
 export const TRICRYPTO_2_LP_TOKEN = "0xc4ad29ba4b3c580e6d59105fff484999997675ff";
 
+////////////////////////////////
+
+// Pool address to Pool info mapping
+
+///////////////////////////////
+
 export let addressToPool = new TypedMap<string, PoolStaticInfo>();
 addressToPool.set(
   TRIPOOL_POOL,
@@ -222,6 +228,12 @@ addressToPool.set(
   new PoolStaticInfo(TRICRYPTO_2_POOL, TRICRYPTO_2_LP_TOKEN, 3, "PLAIN", false, [])
 );
 
+////////////////////////////////
+
+// Token to Pool mapping
+
+///////////////////////////////
+
 export let lpTokenToPool = new TypedMap<string, string>();
 lpTokenToPool.set(TRIPOOL_LP_TOKEN, TRIPOOL_POOL);
 lpTokenToPool.set(AAVE_LP_TOKEN, AAVE_POOL);
@@ -261,3 +273,57 @@ lpTokenToPool.set(LINK_LP_TOKEN, LINK_POOL);
 lpTokenToPool.set(LINKUSD_LP_TOKEN, LINKUSD_POOL);
 lpTokenToPool.set(TRICRYPTO_LP_TOKEN, TRICRYPTO_POOL);
 lpTokenToPool.set(TRICRYPTO_2_LP_TOKEN, TRICRYPTO_2_POOL);
+
+/////////////////////////////////
+
+//// POLYGON
+
+/////////////////////////////////
+
+export const APOOL_POLYGON = "0x445fe580ef8d70ff569ab36e80c647af338db351";
+export const APOOL_POLYGON_LP_TOKEN = "0xe7a24ef0c5e95ffb0f6684b813a78f2a3ad7d171";
+export const ATRICRYPTO_POLYGON = "0x751b1e21756bdbc307cbcc5085c042a0e9aaef36";
+export const ATRICRYPTO_POLYGON_LP_TOKEN = "0x8096ac61db23291252574d49f036f0f9ed8ab390";
+export const RENBTC_POLYGON = "0xc2d95eef97ec6c17551d45e77b590dc1f9117c67";
+export const RENBTC_POLYGON_LP_TOKEN = "0xf8a57c1d3b9629b77b6726a042ca48990a84fb49";
+export const ATRICRYPTO_2_POLYGON = "0x92577943c7ac4accb35288ab2cc84d75fec330af";
+export const ATRICRYPTO_2_POLYGON_LP_TOKEN = "0xbece5d20a8a104c54183cc316c8286e3f00ffc71";
+export const ATRICRYPTO_3_POLYGON = "0x92215849c439e1f8612b6646060b4e3e5ef822cc";
+export const ATRICRYPTO_3_POLYGON_LP_TOKEN = "0xdad97f7713ae9437fa9249920ec8507e5fbb23d3";
+export const EURTUSD_POLYGON = "0xb446bf7b8d6d4276d0c75ec0e3ee8dd7fe15783a";
+export const EURTUSD_POLYGON_LP_TOKEN = "0x600743b1d8a96438bd46836fd34977a00293f6aa";
+export const EURSUSD_POLYGON = "0x9b3d675fdbe6a0935e8b7d1941bc6f78253549b7";
+export const EURSUSD_POLYGON_LP_TOKEN = "0x7bd9757fbac089d60daff1fa6bfe3bc99b0f5735";
+
+addressToPool.set(
+  APOOL_POLYGON,
+  new PoolStaticInfo(APOOL_POLYGON, APOOL_POLYGON_LP_TOKEN, 3, "LENDING", false, [])
+);
+addressToPool.set(
+  RENBTC_POLYGON,
+  new PoolStaticInfo(RENBTC_POLYGON, RENBTC_POLYGON_LP_TOKEN, 2, "PLAIN", false, [])
+);
+addressToPool.set(
+  ATRICRYPTO_POLYGON,
+  new PoolStaticInfo(ATRICRYPTO_POLYGON, ATRICRYPTO_POLYGON_LP_TOKEN, 3, "PLAIN", false, [])
+);
+addressToPool.set(
+  ATRICRYPTO_2_POLYGON,
+  new PoolStaticInfo(ATRICRYPTO_2_POLYGON, ATRICRYPTO_2_POLYGON_LP_TOKEN, 3, "PLAIN", false, [])
+);
+addressToPool.set(
+  ATRICRYPTO_3_POLYGON,
+  new PoolStaticInfo(ATRICRYPTO_3_POLYGON, ATRICRYPTO_3_POLYGON_LP_TOKEN, 3, "PLAIN", false, [])
+);
+addressToPool.set(
+  EURTUSD_POLYGON,
+  new PoolStaticInfo(EURTUSD_POLYGON, EURTUSD_POLYGON_LP_TOKEN, 2, "PLAIN", false, [])
+);
+
+// POLYGON
+lpTokenToPool.set(APOOL_POLYGON_LP_TOKEN, APOOL_POLYGON);
+lpTokenToPool.set(RENBTC_POLYGON_LP_TOKEN, RENBTC_POLYGON);
+lpTokenToPool.set(ATRICRYPTO_POLYGON_LP_TOKEN, ATRICRYPTO_POLYGON);
+lpTokenToPool.set(ATRICRYPTO_2_POLYGON_LP_TOKEN, ATRICRYPTO_2_POLYGON);
+lpTokenToPool.set(ATRICRYPTO_3_POLYGON_LP_TOKEN, ATRICRYPTO_3_POLYGON);
+lpTokenToPool.set(EURTUSD_POLYGON_LP_TOKEN, EURTUSD_POLYGON);

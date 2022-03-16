@@ -4,10 +4,14 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/curve-exchange",
+    "prepare-curve-mainnet": "cp subgraph.mainnet.yaml subgraph.yaml && npm run codegen",
+    "prepare-curve-polygon": "cp subgraph.polygon.yaml subgraph.yaml && npm run codegen",
+    "deploy-curve-mainnet": "npm run clean && npm run prepare-curve-polygon && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/curve",
+    "deploy-curve-polygon": "npm run clean && npm run prepare-curve-polygon && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/curve-polygon",
     "create-local": "graph create --node http://localhost:8020/ simplefi-finance/curve-exchange",
     "remove-local": "graph remove --node http://localhost:8020/ simplefi-finance/curve-exchange",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 simplefi-finance/curve-exchange"
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 simplefi-finance/curve-exchange",
+    "clean": "rm -rf ./build && rm -rf ./generated && rm subgraph.yaml"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.20.0",
