@@ -76,44 +76,44 @@ export class PoolStaticInfo {
 
 /////////////////////////////////
 
-//// ARBITRUM
+//// OPTIMISM
 
 /////////////////////////////////
 export let addressToPool = new TypedMap<string, PoolStaticInfo>();
 export let lpTokenToPool = new TypedMap<string, string>();
 
 // 2pool
-export const A2POOL_ARBITRUM = "0x7f90122bf0700f9e7e1f688fe926940e8839f353";
-export const A2POOL_ARBITRUM_LP_TOKEN = "0x7f90122bf0700f9e7e1f688fe926940e8839f353";
+export const A2POOL_OPTIMISM = "0x7f90122bf0700f9e7e1f688fe926940e8839f353";
+export const A2POOL_OPTIMISM_LP_TOKEN = "0x7f90122bf0700f9e7e1f688fe926940e8839f353";
 addressToPool.set(
-  A2POOL_ARBITRUM,
-  new PoolStaticInfo(A2POOL_ARBITRUM, A2POOL_ARBITRUM_LP_TOKEN, 2, "PLAIN", false, [])
+  A2POOL_OPTIMISM,
+  new PoolStaticInfo(A2POOL_OPTIMISM, A2POOL_OPTIMISM_LP_TOKEN, 2, "PLAIN", false, [])
 );
-lpTokenToPool.set(A2POOL_ARBITRUM_LP_TOKEN, A2POOL_ARBITRUM);
+lpTokenToPool.set(A2POOL_OPTIMISM_LP_TOKEN, A2POOL_OPTIMISM);
 
 // 3pool
-export const TRICRPYTO_ARBITRUM = "0x960ea3e3c7fb317332d990873d354e18d7645590";
-export const TRICRPYTO_ARBITRUM_LP_TOKEN = "0x8e0b8c8bb9db49a46697f3a5bb8a308e744821d2";
+export const TRICRPYTO_OPTIMISM = "0x960ea3e3c7fb317332d990873d354e18d7645590";
+export const TRICRPYTO_OPTIMISM_LP_TOKEN = "0x8e0b8c8bb9db49a46697f3a5bb8a308e744821d2";
 addressToPool.set(
-  TRICRPYTO_ARBITRUM,
-  new PoolStaticInfo(TRICRPYTO_ARBITRUM, TRICRPYTO_ARBITRUM_LP_TOKEN, 3, "PLAIN", false, [])
+  TRICRPYTO_OPTIMISM,
+  new PoolStaticInfo(TRICRPYTO_OPTIMISM, TRICRPYTO_OPTIMISM_LP_TOKEN, 3, "PLAIN", false, [])
 );
-lpTokenToPool.set(TRICRPYTO_ARBITRUM_LP_TOKEN, TRICRPYTO_ARBITRUM);
+lpTokenToPool.set(TRICRPYTO_OPTIMISM_LP_TOKEN, TRICRPYTO_OPTIMISM);
 
 // renBTC
-export const REN_ARBITRUM = "0x3e01dd8a5e1fb3481f0f589056b428fc308af0fb";
-export const REN_ARBITRUM_LP_TOKEN = "0x3e01dd8a5e1fb3481f0f589056b428fc308af0fb";
+export const REN_OPTIMISM = "0x3e01dd8a5e1fb3481f0f589056b428fc308af0fb";
+export const REN_OPTIMISM_LP_TOKEN = "0x3e01dd8a5e1fb3481f0f589056b428fc308af0fb";
 addressToPool.set(
-  REN_ARBITRUM,
-  new PoolStaticInfo(REN_ARBITRUM, REN_ARBITRUM_LP_TOKEN, 2, "PLAIN", false, [])
+  REN_OPTIMISM,
+  new PoolStaticInfo(REN_OPTIMISM, REN_OPTIMISM_LP_TOKEN, 2, "PLAIN", false, [])
 );
-lpTokenToPool.set(REN_ARBITRUM_LP_TOKEN, REN_ARBITRUM);
+lpTokenToPool.set(REN_OPTIMISM_LP_TOKEN, REN_OPTIMISM);
 
 // eur-susd
-export const EURSUSD_ARBITRUM = "0xa827a652ead76c6b0b3d19dba05452e06e25c27e";
-export const EURSUSD_ARBITRUM_LP_TOKEN = "0x3dfe1324a0ee9d86337d06aeb829deb4528db9ca";
+export const EURSUSD_OPTIMISM = "0xa827a652ead76c6b0b3d19dba05452e06e25c27e";
+export const EURSUSD_OPTIMISM_LP_TOKEN = "0x3dfe1324a0ee9d86337d06aeb829deb4528db9ca";
 addressToPool.set(
-  EURSUSD_ARBITRUM,
-  new PoolStaticInfo(EURSUSD_ARBITRUM, EURSUSD_ARBITRUM_LP_TOKEN, 2, "PLAIN", false, [])
+  EURSUSD_OPTIMISM,
+  new PoolStaticInfo(EURSUSD_OPTIMISM, EURSUSD_OPTIMISM_LP_TOKEN, 2, "PLAIN", false, [])
 );
-lpTokenToPool.set(EURSUSD_ARBITRUM_LP_TOKEN, EURSUSD_ARBITRUM);
+lpTokenToPool.set(EURSUSD_OPTIMISM_LP_TOKEN, EURSUSD_OPTIMISM);
