@@ -49,6 +49,9 @@ templates:
           handler: handleMetaPoolDeployedEvent
         - event: PlainPoolDeployed(address[4],uint256,uint256,address)
           handler: handlePlainPoolDeployedEvent
+      callHandlers:
+        - function: add_existing_metapools(address[10])
+          handler: handleAddExistingMetapoolCall
       file: ./src/metaPoolFactory.ts
 
   - kind: ethereum/contract
