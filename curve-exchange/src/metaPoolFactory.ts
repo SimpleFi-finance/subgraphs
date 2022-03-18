@@ -1,43 +1,11 @@
-import { BigInt, ethereum } from "@graphprotocol/graph-ts";
-import { MetaPoolFactory, PoolDeployed } from "../generated/schema";
+import { BigInt } from "@graphprotocol/graph-ts";
+import { MetaPoolFactory } from "../generated/schema";
 import {
   MetaPoolFactory as MetaPoolFactoryContract,
   PlainPoolDeployed,
 } from "../generated/templates/MetaPoolFactory/MetaPoolFactory";
-import {
-  Deploy_metapoolCall,
-  Deploy_plain_poolCall,
-  MetaPoolDeployed,
-} from "../generated/templates/MetaPoolFactory/MetaPoolFactory";
+import { MetaPoolDeployed } from "../generated/templates/MetaPoolFactory/MetaPoolFactory";
 import { getOrCreatePoolViaFactory } from "./curveUtil";
-
-export function handleMetaPoolDeployed(call: Deploy_metapoolCall): void {
-  let newCurvePoolAddress = call.outputValues[0].value.toAddress();
-  let factoryAddress = call.to;
-  let fakeEvent = new ethereum.Event();
-  fakeEvent.block = call.block;
-  fakeEvent.transaction = call.transaction;
-
-  getOrCreatePoolViaFactory(fakeEvent, newCurvePoolAddress, factoryAddress);
-
-  let x = new PoolDeployed(call.transaction.hash.toHexString());
-  x.source = "handleMetaPoolDeployed";
-  x.save();
-}
-
-export function handlePlainPoolDeployed(call: Deploy_plain_poolCall): void {
-  let newCurvePoolAddress = call.outputValues[0].value.toAddress();
-  let factoryAddress = call.to;
-  let fakeEvent = new ethereum.Event();
-  fakeEvent.block = call.block;
-  fakeEvent.transaction = call.transaction;
-
-  getOrCreatePoolViaFactory(fakeEvent, newCurvePoolAddress, factoryAddress);
-
-  let x = new PoolDeployed(call.transaction.hash.toHexString());
-  x.source = "handlePlainPoolDeployed";
-  x.save();
-}
 
 export function handleMetaPoolDeployedEvent(event: MetaPoolDeployed): void {
   let factory = MetaPoolFactory.load(event.address.toHexString());

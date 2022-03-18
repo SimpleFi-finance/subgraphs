@@ -44,11 +44,11 @@ templates:
           file: ./abis/IERC20.json
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
-      callHandlers:
-        - function: deploy_metapool(address,string,string,address,uint256,uint256)
-          handler: handleMetaPoolDeployed
-        - function: deploy_plain_pool(string,string,address[4],uint256,uint256,uint256,uint256)
-          handler: handlePlainPoolDeployed
+      eventHandlers:
+        - event: MetaPoolDeployed(address,address,uint256,uint256,address)
+          handler: handleMetaPoolDeployedEvent
+        - event: PlainPoolDeployed(address[4],uint256,uint256,address)
+          handler: handlePlainPoolDeployedEvent
       file: ./src/metaPoolFactory.ts
 
   - kind: ethereum/contract
