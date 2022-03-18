@@ -76,7 +76,7 @@ export class PoolStaticInfo {
 
 /////////////////////////////////
 
-//// OPTIMISM
+//// AVALANCHE
 
 /////////////////////////////////
 export let addressToPool = new TypedMap<string, PoolStaticInfo>();

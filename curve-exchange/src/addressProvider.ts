@@ -43,6 +43,7 @@ export function handleAddressModified(event: AddressModified): void {
     let metapoolFactory = MetaPoolFactory.load(newAddress.toHexString());
     if (metapoolFactory == null) {
       metapoolFactory = new MetaPoolFactory(newAddress.toHexString());
+      metapoolFactory.poolCount = BigInt.fromI32(0);
       metapoolFactory.save();
 
       // start indexing metapool factory

@@ -179,6 +179,7 @@ type PoolRegistry @entity {
 
 type MetaPoolFactory @entity {
   id: ID!
+  poolCount: BigInt!
 }
 
 type Pool @entity {
