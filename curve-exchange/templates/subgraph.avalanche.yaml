@@ -184,22 +184,6 @@ dataSources:
 
   ############################ Hardcoded pools
   - kind: ethereum/contract
-    name: aPool
-    network: avalanche
-    source:
-      address: "0x445FE580eF8d70FF569aB36e80c647af338db351"
-      startBlock: 13479484
-      abi: CurvePool
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.4
-      language: wasm/assemblyscript
-      entities: *common_entities
-      abis: *common_abis
-      eventHandlers: *all_events
-      file: ./src/pool.ts
-
-  - kind: ethereum/contract
     name: ATriCrypto
     network: avalanche
     source:
