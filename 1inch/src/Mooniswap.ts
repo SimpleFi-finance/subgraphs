@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum, store } from "@graphprotocol/graph-ts"
+import { Address, BigInt, ethereum, store, log } from "@graphprotocol/graph-ts"
 
 import {
   Account as AccountEntity,
@@ -6,18 +6,24 @@ import {
   Burn as BurnEntity,
   Market as MarketEntity,
   Mint as MintEntity,
-  Pair as PairEntity
+  Pair as PairEntity,
+  Debug as DebugEntity,
 } from "../generated/schema"
 
 import {
-  Sync,
   Deposited,
   Withdrawn,
   Transfer,
+  Sync,
+  Mooniswap,
 } from "../generated/templates/Mooniswap/Mooniswap"
+
+import { ERC20 } from "../generated/MooniswapFactory/ERC20"
 
 import {
   ADDRESS_ZERO,
+  ADDRESS_ETH,
+  ETH_BALANCE_CONTRACT,
   getOrCreateAccount,
   investInMarket,
   redeemFromMarket,
@@ -215,11 +221,49 @@ export function handleTransfer(event: Transfer): void {
     return
   }
 
-  let pairAddressHex = event.address.toHexString()
   let fromHex = event.params.from.toHexString()
   let toHex = event.params.to.toHexString()
 
-  let pair = PairEntity.load(pairAddressHex) as PairEntity
+  let pair = PairEntity.load(event.address.toHexString()) as PairEntity
+
+  // ignore initial transfers for first adds
+  if (
+    fromHex == ADDRESS_ZERO &&
+    toHex == pair.id &&
+    event.params.value.equals(BigInt.fromI32(1000)) && 
+    pair.totalSupply_2.toString() == "0"
+  ) {
+    // First deposit will lock a BASE_SUPPLY to prevent total supply to ever be 0
+    pair.totalSupply_2 = pair.totalSupply_2.plus(BASE_SUPPLY)
+    pair.save()
+    return
+  }
+
+  // Mint
+  if (fromHex == ADDRESS_ZERO) {
+    let pairContract = Mooniswap.bind(event.address)
+    let test = pairContract.try_totalSupply()
+    if (!test.reverted) {
+      pair.totalSupply = test.value
+    }
+
+    pair.totalSupply_2 = pair.totalSupply_2.plus(event.params.value as BigInt)
+    pair.save()
+  } else if (toHex == ADDRESS_ZERO) {
+    // Burn
+    let pairContract = Mooniswap.bind(event.address)
+    let test = pairContract.try_totalSupply()
+    if (!test.reverted) {
+      pair.totalSupply = test.value
+    }
+
+    pair.totalSupply_2 = pair.totalSupply_2.minus(event.params.value as BigInt)
+    pair.save()
+  }
+
+  if (pair.totalSupply.toString()!= pair.totalSupply_2.toString()) {
+    log.error('tttotalSupply mismatch ({}) ({}) - Hash ({})', [pair.totalSupply.toString(), pair.totalSupply_2.toString(), event.transaction.hash.toHexString()])
+  }
 
   // update account balances
   if (fromHex != ADDRESS_ZERO) {
@@ -228,17 +272,16 @@ export function handleTransfer(event: Transfer): void {
     accountLiquidityFrom.save()
   }
 
-  if (fromHex != pairAddressHex) {
+  if (fromHex != pair.id) {
     let accountLiquidityTo = getOrCreateLiquidity(pair, event.params.to)
     accountLiquidityTo.balance = accountLiquidityTo.balance.plus(event.params.value)
     accountLiquidityTo.save()
   }
 
   // everything else
-  if (fromHex != ADDRESS_ZERO && fromHex != pairAddressHex && toHex != pairAddressHex) {
+  if (fromHex != ADDRESS_ZERO && fromHex != pair.id && toHex != pair.id) {
     transferLPToken(event, pair, event.params.from, event.params.to, event.params.value)
   }
-
 }
 
 export function handleMint(event: Deposited): void {
@@ -246,8 +289,8 @@ export function handleMint(event: Deposited): void {
   let mint = getOrCreateMint(event, pair)
 
   // First deposit will lock a BASE_SUPPLY to prevent total supply to ever be 0
-  if (pair.totalSupply.toString() == "0") {
-    pair.totalSupply = pair.totalSupply.plus(BASE_SUPPLY)
+  if (pair.totalSupply_2.toString() == "0") {
+    pair.totalSupply_2 = pair.totalSupply_2.plus(BASE_SUPPLY)
   }
 
   mint.amount0 = event.params.token0Amount
@@ -257,10 +300,53 @@ export function handleMint(event: Deposited): void {
   mint.liquityAmount = event.params.share
   mint.save()
 
-  pair.reserve0 = pair.reserve0.plus(event.params.token0Amount)
-  pair.reserve1 = pair.reserve1.plus(event.params.token1Amount)
-  pair.totalSupply = pair.totalSupply.plus(event.params.share as BigInt)
+  // TESTING
+  // let pairContract = Mooniswap.bind(event.address)
+  // let test = pairContract.try_totalSupply()
+  // if (!test.reverted) {
+  //   pair.totalSupply = test.value
+  // }
+  let reserves = fetchReserves(pair)
+  pair.reserve0 = reserves[0]
+  pair.reserve1 = reserves[1]
+
+  pair.reserve0_2 = pair.reserve0_2.plus(event.params.token0Amount)
+  pair.reserve1_2 = pair.reserve1_2.plus(event.params.token1Amount)
+  // pair.totalSupply_2 = pair.totalSupply_2.plus(event.params.share as BigInt)
+
   pair.save()
+
+  let error = false
+  if (pair.reserve0.toString() != pair.reserve0_2.toString()) {
+    log.error('MINT reserve0 mismatch ({}) ({}) - Hash ({})', [pair.reserve0.toString(), pair.reserve0_2.toString(), event.transaction.hash.toHexString()])
+    error = true
+  }
+
+  if (pair.reserve1.toString() != pair.reserve1_2.toString()) {
+    log.error('MINT reserve1 mismatch ({}) ({}) - Hash ({})', [pair.reserve1.toString(), pair.reserve1_2.toString(), event.transaction.hash.toHexString()])
+    error = true
+  }
+
+  // if (pair.totalSupply.toString()!= pair.totalSupply_2.toString()) {
+  //   log.error('MINT totalSupply mismatch ({}) ({}) - Hash ({})', [pair.totalSupply.toString(), pair.totalSupply_2.toString(), event.transaction.hash.toHexString()])
+  //   error = true
+  // }
+
+  if (error) {
+    let debug = DebugEntity.load(event.transaction.hash.toHexString())
+    if (debug == null) {
+      debug = new DebugEntity(event.transaction.hash.toHexString())
+    }
+
+    debug.reserve0 = pair.reserve0
+    debug.reserve0_2 = pair.reserve0_2
+    debug.reserve1 = pair.reserve1
+    debug.reserve1_2 = pair.reserve1_2
+    // debug.totalSupply = pair.totalSupply
+    // debug.totalSupply_2 = pair.totalSupply_2
+    debug.blockNumber = event.block.number
+    debug.save()
+  }
 
   createOrUpdatePositionOnMint(event, pair, mint)
 }
@@ -276,10 +362,79 @@ export function handleBurn(event: Withdrawn): void {
   burn.liquityAmount = event.params.share
   burn.save()
 
-  pair.reserve0 = pair.reserve0.minus(event.params.token0Amount)
-  pair.reserve1 = pair.reserve1.minus(event.params.token1Amount)
-  pair.totalSupply = pair.totalSupply.minus(event.params.share as BigInt)
+  // TESTING
+  // let pairContract = ERC20.bind(event.address)
+  // let test = pairContract.try_totalSupply()
+  // if (!test.reverted) {
+  //   pair.totalSupply = test.value
+  // }
+  let reserves = fetchReserves(pair)
+  pair.reserve0 = reserves[0]
+  pair.reserve1 = reserves[1]
+
+  pair.reserve0_2 = pair.reserve0_2.minus(event.params.token0Amount)
+  pair.reserve1_2 = pair.reserve1_2.minus(event.params.token1Amount)
+  //pair.totalSupply_2 = pair.totalSupply_2.minus(event.params.share as BigInt)
+
   pair.save()
 
+  let error = false
+  if (pair.reserve0.toString() != pair.reserve0_2.toString()) {
+    log.error('BURN reserve0 mismatch ({}) ({}) - Hash ({})', [pair.reserve0.toString(), pair.reserve0_2.toString(), event.transaction.hash.toHexString()])
+    error = true
+  }
+
+  if (pair.reserve1.toString() != pair.reserve1_2.toString()) {
+    log.error('BURN reserve1 mismatch ({}) ({}) - Hash ({})', [pair.reserve1.toString(), pair.reserve1_2.toString(), event.transaction.hash.toHexString()])
+    error = true
+  }
+
+  // if (pair.totalSupply.toString() != pair.totalSupply_2.toString()) {
+  //   log.error('BURN totalSupply mismatch ({}) ({}) - Hash ({})', [pair.totalSupply.toString(), pair.totalSupply_2.toString(), event.transaction.hash.toHexString()])
+  //   error = true
+  // }
+
+  if (error) {
+    let debug = DebugEntity.load(event.transaction.hash.toHexString())
+    if (debug == null) {
+      debug = new DebugEntity(event.transaction.hash.toHexString())
+    }
+
+    debug.reserve0 = pair.reserve0
+    debug.reserve0_2 = pair.reserve0_2
+    debug.reserve1 = pair.reserve1
+    debug.reserve1_2 = pair.reserve1_2
+    // debug.totalSupply = pair.totalSupply
+    // debug.totalSupply_2 = pair.totalSupply_2
+    debug.blockNumber = event.block.number
+    debug.save()
+  }
+
   createOrUpdatePositionOnBurn(event, pair, burn)
+}
+
+export function handleSync(event: Sync): void {
+  log.info("SYNC EVENT ({}) - ({})", [event.params.srcBalance.toString(), event.params.dstBalance.toString()])
+}
+
+export function fetchReserves(pair: PairEntity): Array<BigInt> {
+  
+  let token0 = pair.token0.toLowerCase() == ADDRESS_ETH ? Address.fromString(ETH_BALANCE_CONTRACT) : Address.fromString(pair.token0)
+  let token1 = pair.token1.toLowerCase() == ADDRESS_ETH ? Address.fromString(ETH_BALANCE_CONTRACT) : Address.fromString(pair.token1)
+  let contract0 = ERC20.bind(token0)
+  let contract1 = ERC20.bind(token1)
+  let token0Call = contract0.try_balanceOf(Address.fromString(pair.id))
+  let token1Call = contract1.try_balanceOf(Address.fromString(pair.id))
+
+  let reserve0 = BigInt.fromI32(0)
+  let reserve1 = BigInt.fromI32(0)
+  if (!token0Call.reverted) {
+    reserve0 = token0Call.value
+  }
+
+  if (!token1Call.reverted) {
+    reserve1 = token1Call.value
+  }
+
+  return [reserve0, reserve1]
 }

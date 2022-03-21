@@ -1,4 +1,4 @@
-import { BigInt } from "@graphprotocol/graph-ts"
+import { Address, BigInt } from "@graphprotocol/graph-ts"
 
 import { Pair as PairEntity } from "../generated/schema"
 
@@ -9,6 +9,8 @@ import {
 } from "../generated/MooniswapFactory/MooniswapFactory"
 
 import {
+  ADDRESS_ZERO,
+  ADDRESS_ETH,
   getOrCreateAccount,
   getOrCreateERC20Token,
   getOrCreateMarket
@@ -20,8 +22,8 @@ export function handleDeployed(event: Deployed): void {
   // Protocol is not consistent with token index, sometimes it uses 0-1 and sometimes 1-2.
   // We use 0-1 across the board and map params accordingly
   // Create a tokens and market entity
-  let token0 = getOrCreateERC20Token(event, event.params.token1)
-  let token1 = getOrCreateERC20Token(event, event.params.token2)
+  let token0 = getOrCreateERC20Token(event, getTokenAddress(event.params.token1))
+  let token1 = getOrCreateERC20Token(event, getTokenAddress(event.params.token2))
   let lpToken = getOrCreateERC20Token(event, event.params.mooniswap)
 
   let market = getOrCreateMarket(
@@ -51,4 +53,13 @@ export function handleDeployed(event: Deployed): void {
 
   // Start listening for market events
   Mooniswap.create(event.params.mooniswap)
+}
+
+function getTokenAddress(token: Address) : Address {
+  // Standard ETH Address for protocols that don't use WETH
+  if (token.toHexString() == ADDRESS_ZERO) {
+    return Address.fromString(ADDRESS_ETH)
+  }
+
+  return token
 }
