@@ -78,11 +78,13 @@ export const UNISWAP_V2_MAINNET_FACTORY = "0x5c69bee701ef814a2b6a3edd4b1652cb9cc
 export const WANNASWAP_AURORA_FACTORY = "0x7928d4fea7b2c90c732c10aff59cf403f0c38246";
 
 // 0.1%
-const FEE_1_BASE_POINTS = BigInt.fromI32(1).div(BigInt.fromI32(1000));
+const FEE_1_BASE_POINTS = BigInt.fromI32(1);
 // 0.2%
-const FEE_2_BASE_POINTS = BigInt.fromI32(2).div(BigInt.fromI32(1000));
+const FEE_2_BASE_POINTS = BigInt.fromI32(2);
 // 0.3%
-const FEE_3_BASE_POINTS = BigInt.fromI32(3).div(BigInt.fromI32(1000));
+const FEE_3_BASE_POINTS = BigInt.fromI32(3);
+// denominator
+export const FEE_DENOMINATOR = BigInt.fromI32(1000);
 
 // populate map
 export let protocolToFee = new TypedMap<string, BigInt>();

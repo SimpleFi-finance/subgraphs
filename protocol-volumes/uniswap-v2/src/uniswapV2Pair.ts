@@ -7,6 +7,7 @@ import {
   Sync,
   Transfer,
 } from "../generated/templates/UniswapV2Pair/UniswapV2Pair";
+import { FEE_DENOMINATOR } from "./constants";
 
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 
@@ -129,8 +130,8 @@ export function handleSwap(event: Swap): void {
   marketDayData.dailySwapTXs = marketDayData.dailySwapTXs.plus(BigInt.fromI32(1));
 
   // update fees collected
-  let swapFeeToken0 = event.params.amount0In.times(marketDayData.protocolFee);
-  let swapFeeToken1 = event.params.amount1In.times(marketDayData.protocolFee);
+  let swapFeeToken0 = event.params.amount0In.times(marketDayData.protocolFee).div(FEE_DENOMINATOR);
+  let swapFeeToken1 = event.params.amount1In.times(marketDayData.protocolFee).div(FEE_DENOMINATOR);
   let prevFees: BigInt[] = marketDayData.feesGenerated;
   let swapFeesDailyCumulatedToken0 = prevFees[0].plus(swapFeeToken0);
   let swapFeesDailyCumulatedToken1 = prevFees[1].plus(swapFeeToken1);

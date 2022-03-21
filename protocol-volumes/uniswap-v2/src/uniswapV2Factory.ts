@@ -41,7 +41,7 @@ function getProtocolFee(address: string): BigInt {
 
   if (fee == null) {
     // if not found, use Uniswap default of 0.3% swap fee
-    fee = BigInt.fromI32(3).div(BigInt.fromI32(1000));
+    fee = BigInt.fromI32(3);
   }
 
   return fee as BigInt;
