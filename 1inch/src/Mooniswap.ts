@@ -7,7 +7,6 @@ import {
   Market as MarketEntity,
   Mint as MintEntity,
   Pair as PairEntity,
-  Debug as DebugEntity,
 } from "../generated/schema"
 
 import {
@@ -261,10 +260,6 @@ export function handleTransfer(event: Transfer): void {
     pair.save()
   }
 
-  if (pair.totalSupply.toString()!= pair.totalSupply_2.toString()) {
-    log.error('tttotalSupply mismatch ({}) ({}) - Hash ({})', [pair.totalSupply.toString(), pair.totalSupply_2.toString(), event.transaction.hash.toHexString()])
-  }
-
   // update account balances
   if (fromHex != ADDRESS_ZERO) {
     let accountLiquidityFrom = getOrCreateLiquidity(pair, event.params.from)
@@ -300,12 +295,6 @@ export function handleMint(event: Deposited): void {
   mint.liquityAmount = event.params.share
   mint.save()
 
-  // TESTING
-  // let pairContract = Mooniswap.bind(event.address)
-  // let test = pairContract.try_totalSupply()
-  // if (!test.reverted) {
-  //   pair.totalSupply = test.value
-  // }
   let reserves = fetchReserves(pair)
   pair.reserve0 = reserves[0]
   pair.reserve1 = reserves[1]
@@ -315,38 +304,6 @@ export function handleMint(event: Deposited): void {
   // pair.totalSupply_2 = pair.totalSupply_2.plus(event.params.share as BigInt)
 
   pair.save()
-
-  let error = false
-  if (pair.reserve0.toString() != pair.reserve0_2.toString()) {
-    log.error('MINT reserve0 mismatch ({}) ({}) - Hash ({})', [pair.reserve0.toString(), pair.reserve0_2.toString(), event.transaction.hash.toHexString()])
-    error = true
-  }
-
-  if (pair.reserve1.toString() != pair.reserve1_2.toString()) {
-    log.error('MINT reserve1 mismatch ({}) ({}) - Hash ({})', [pair.reserve1.toString(), pair.reserve1_2.toString(), event.transaction.hash.toHexString()])
-    error = true
-  }
-
-  // if (pair.totalSupply.toString()!= pair.totalSupply_2.toString()) {
-  //   log.error('MINT totalSupply mismatch ({}) ({}) - Hash ({})', [pair.totalSupply.toString(), pair.totalSupply_2.toString(), event.transaction.hash.toHexString()])
-  //   error = true
-  // }
-
-  if (error) {
-    let debug = DebugEntity.load(event.transaction.hash.toHexString())
-    if (debug == null) {
-      debug = new DebugEntity(event.transaction.hash.toHexString())
-    }
-
-    debug.reserve0 = pair.reserve0
-    debug.reserve0_2 = pair.reserve0_2
-    debug.reserve1 = pair.reserve1
-    debug.reserve1_2 = pair.reserve1_2
-    // debug.totalSupply = pair.totalSupply
-    // debug.totalSupply_2 = pair.totalSupply_2
-    debug.blockNumber = event.block.number
-    debug.save()
-  }
 
   createOrUpdatePositionOnMint(event, pair, mint)
 }
@@ -362,59 +319,13 @@ export function handleBurn(event: Withdrawn): void {
   burn.liquityAmount = event.params.share
   burn.save()
 
-  // TESTING
-  // let pairContract = ERC20.bind(event.address)
-  // let test = pairContract.try_totalSupply()
-  // if (!test.reverted) {
-  //   pair.totalSupply = test.value
-  // }
   let reserves = fetchReserves(pair)
   pair.reserve0 = reserves[0]
   pair.reserve1 = reserves[1]
 
-  pair.reserve0_2 = pair.reserve0_2.minus(event.params.token0Amount)
-  pair.reserve1_2 = pair.reserve1_2.minus(event.params.token1Amount)
-  //pair.totalSupply_2 = pair.totalSupply_2.minus(event.params.share as BigInt)
-
   pair.save()
 
-  let error = false
-  if (pair.reserve0.toString() != pair.reserve0_2.toString()) {
-    log.error('BURN reserve0 mismatch ({}) ({}) - Hash ({})', [pair.reserve0.toString(), pair.reserve0_2.toString(), event.transaction.hash.toHexString()])
-    error = true
-  }
-
-  if (pair.reserve1.toString() != pair.reserve1_2.toString()) {
-    log.error('BURN reserve1 mismatch ({}) ({}) - Hash ({})', [pair.reserve1.toString(), pair.reserve1_2.toString(), event.transaction.hash.toHexString()])
-    error = true
-  }
-
-  // if (pair.totalSupply.toString() != pair.totalSupply_2.toString()) {
-  //   log.error('BURN totalSupply mismatch ({}) ({}) - Hash ({})', [pair.totalSupply.toString(), pair.totalSupply_2.toString(), event.transaction.hash.toHexString()])
-  //   error = true
-  // }
-
-  if (error) {
-    let debug = DebugEntity.load(event.transaction.hash.toHexString())
-    if (debug == null) {
-      debug = new DebugEntity(event.transaction.hash.toHexString())
-    }
-
-    debug.reserve0 = pair.reserve0
-    debug.reserve0_2 = pair.reserve0_2
-    debug.reserve1 = pair.reserve1
-    debug.reserve1_2 = pair.reserve1_2
-    // debug.totalSupply = pair.totalSupply
-    // debug.totalSupply_2 = pair.totalSupply_2
-    debug.blockNumber = event.block.number
-    debug.save()
-  }
-
   createOrUpdatePositionOnBurn(event, pair, burn)
-}
-
-export function handleSync(event: Sync): void {
-  log.info("SYNC EVENT ({}) - ({})", [event.params.srcBalance.toString(), event.params.dstBalance.toString()])
 }
 
 export function fetchReserves(pair: PairEntity): Array<BigInt> {

@@ -212,17 +212,4 @@ type Burn @entity {
   amount1: BigInt
 }
 
-type Debug @entity {
-  id: ID!
-  reserve0: BigInt!
-  reserve1: BigInt!
-  totalSupply: BigInt!
-
-  reserve0_2: BigInt!
-  reserve1_2: BigInt!
-  totalSupply_2: BigInt!
-  
-  blockNumber: BigInt!
-}
-
 # END - 1inch protocol entities
