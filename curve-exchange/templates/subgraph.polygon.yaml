@@ -23,6 +23,8 @@ templates:
       eventHandlers:
         - event: PoolAdded(indexed address,bytes)
           handler: handlePoolAdded
+        - event: PoolRemoved(indexed address)
+          handler: handlePoolRemoved
       file: ./src/poolRegistry.ts
 
   - kind: ethereum/contract

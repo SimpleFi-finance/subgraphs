@@ -1,4 +1,5 @@
-import { PoolAdded } from "../generated/templates/PoolRegistry/PoolRegistry";
+import { Pool } from "../generated/schema";
+import { PoolAdded, PoolRemoved } from "../generated/templates/PoolRegistry/PoolRegistry";
 import { getOrCreatePoolViaRegistry } from "./curveUtil";
 
 /**
@@ -12,6 +13,27 @@ export function handlePoolAdded(event: PoolAdded): void {
   if (!pool.isInRegistry) {
     pool.isInRegistry = true;
     pool.registry = event.address.toHexString();
+    pool.save();
+  }
+}
+
+/**
+ * Remove registry ref from pool entity
+ * @param event
+ * @returns
+ */
+export function handlePoolRemoved(event: PoolRemoved): void {
+  let curvePoolAddress = event.params.pool;
+  let pool = Pool.load(curvePoolAddress.toHexString());
+
+  if (pool == null) {
+    return;
+  }
+
+  // remove registry ref
+  if (pool.isInRegistry) {
+    pool.isInRegistry = false;
+    pool.registry = null;
     pool.save();
   }
 }
