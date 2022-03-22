@@ -4,7 +4,7 @@ export namespace Blockchain {
   export const ETHEREUM = "ETHEREUM";
   export const BSC = "BSC";
   export const XDAI = "XDAI";
-  export const OPTIMISM = "OPTIMISM";
+  export const ARBITRUM = "ARBITRUM";
   export const OPTIMISM = "OPTIMISM";
   export const AVALANCHE = "AVALANCE";
   export const NEAR = "NEAR";
