@@ -1,0 +1,280 @@
+specVersion: 0.0.2
+schema:
+  file: ./schema.graphql
+
+################# TEMPLATES
+templates:
+  - kind: ethereum/contract
+    name: PoolRegistry
+    network: fantom
+    source:
+      abi: PoolRegistry
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Market
+      abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+      eventHandlers:
+        - event: PoolAdded(indexed address,bytes)
+          handler: handlePoolAdded
+      file: ./src/poolRegistry.ts
+
+  - kind: ethereum/contract
+    name: MetaPoolFactory
+    network: fantom
+    source:
+      abi: MetaPoolFactory
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - MetaPoolFactory
+        - Market
+      abis:
+        - name: MetaPoolFactory
+          file: ./abis/MetaPoolFactory.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
+      eventHandlers:
+        - event: MetaPoolDeployed(address,address,uint256,uint256,address)
+          handler: handleMetaPoolDeployedEvent
+        - event: PlainPoolDeployed(address[4],uint256,uint256,address)
+          handler: handlePlainPoolDeployedEvent
+      file: ./src/metaPoolFactory.ts
+
+  - kind: ethereum/contract
+    name: CurvePool
+    network: fantom
+    source:
+      abi: CurvePool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: &common_entities
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Position
+        - PositionSnapshot
+        - Pool
+      abis: &common_abis
+        - name: CurvePool
+          file: ./abis/CurvePool.json
+        - name: ERC20
+          file: ./abis/IERC20.json
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
+      eventHandlers: &all_events
+
+          #### 2 coins
+        - event: AddLiquidity(indexed address,uint256[2],uint256[2],uint256,uint256)
+          handler: handleAddLiquidity2Coins
+        - event: RemoveLiquidity(indexed address,uint256[2],uint256[2],uint256)
+          handler: handleRemoveLiquidity2Coins
+        - event: RemoveLiquidityImbalance(indexed address,uint256[2],uint256[2],uint256,uint256)
+          handler: handleRemoveLiquidityImbalance2Coins
+
+          #### 3 coins
+        - event: AddLiquidity(indexed address,uint256[3],uint256[3],uint256,uint256)
+          handler: handleAddLiquidity3Coins
+        - event: RemoveLiquidity(indexed address,uint256[3],uint256[3],uint256)
+          handler: handleRemoveLiquidity3Coins
+        - event: RemoveLiquidityImbalance(indexed address,uint256[3],uint256[3],uint256,uint256)
+          handler: handleRemoveLiquidityImbalance3Coins
+
+          #### 4 coins
+        - event: AddLiquidity(indexed address,uint256[4],uint256[4],uint256,uint256)
+          handler: handleAddLiquidity4Coins
+        - event: RemoveLiquidity(indexed address,uint256[4],uint256[4],uint256)
+          handler: handleRemoveLiquidity4Coins
+        - event: RemoveLiquidityImbalance(indexed address,uint256[4],uint256[4],uint256,uint256)
+          handler: handleRemoveLiquidityImbalance4Coins
+
+          #### TriCrypto
+        - event: AddLiquidity(indexed address,uint256[3],uint256,uint256)
+          handler: handleAddLiquidityTriCrypto
+        - event: RemoveLiquidity(indexed address,uint256[3],uint256)
+          handler: handleRemoveLiquidityTriCrypto
+        - event: TokenExchange(indexed address,uint256,uint256,uint256,uint256)
+          handler: handleTokenExchangeTriCrypto
+
+          #### other common
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256)
+          handler: handleRemoveLiquidityOne_v1
+        - event: RemoveLiquidityOne(indexed address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOne_v2
+        - event: TokenExchange(indexed address,int128,uint256,int128,uint256)
+          handler: handleTokenExchange
+        - event: TokenExchangeUnderlying(indexed address,int128,uint256,int128,uint256)
+          handler: handleTokenExchangeUnderlying
+
+      callHandlers: &all_calls
+        - function: remove_liquidity_one_coin(uint256,int128,uint256)
+          handler: handleRemoveLiquidityOneCall
+        - function: remove_liquidity_one_coin(uint256,uint256,uint256)
+          handler: handleRemoveLiquidityOneTriCryptoCall
+      file: ./src/pool.ts
+
+  - kind: ethereum/contract
+    name: PoolLPToken
+    network: fantom
+    source:
+      abi: ERC20
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Pool
+      abis:
+        - name: ERC20
+          file: ./abis/IERC20.json
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/pool.ts
+
+dataSources:
+  - kind: ethereum/contract
+    name: CurveExchangeAddressProvider
+    network: fantom
+    source:
+      address: "0x0000000022D53366457F9d5E68Ec105046FC4383"
+      startBlock: 5645424
+      abi: AddressProvider
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - PoolRegistry
+      abis:
+        - name: PoolRegistry
+          file: ./abis/CurveRegistry.json
+        - name: AddressProvider
+          file: ./abis/AddressProvider.json
+        - name: MetaPoolFactory
+          file: ./abis/MetaPoolFactory.json
+      eventHandlers:
+        - event: AddressModified(indexed uint256,address,uint256)
+          handler: handleAddressModified
+      file: ./src/addressProvider.ts
+
+  ############################ Hardcoded pools
+  - kind: ethereum/contract
+    name: A2Pool
+    network: fantom
+    source:
+      address: "0x27E611FD27b276ACbd5Ffd632E5eAEBEC9761E40"
+      startBlock: 2320909
+      abi: CurvePool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *common_entities
+      abis: *common_abis
+      eventHandlers: *all_events
+      file: ./src/pool.ts
+
+  - kind: ethereum/contract
+    name: FUSDT
+    network: fantom
+    source:
+      address: "0x92D5ebF3593a92888C25C0AbEF126583d4b5312E"
+      startBlock: 3182905
+      abi: CurvePool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *common_entities
+      abis: *common_abis
+      eventHandlers: *all_events
+      file: ./src/pool.ts
+
+  - kind: ethereum/contract
+    name: REN
+    network: fantom
+    source:
+      address: "0x3eF6A01A0f81D6046290f3e2A8c5b843e738E604"
+      startBlock: 9464131
+      abi: CurvePool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *common_entities
+      abis: *common_abis
+      eventHandlers: *all_events
+      file: ./src/pool.ts
+
+  - kind: ethereum/contract
+    name: TriCrypto
+    network: fantom
+    source:
+      address: "0x3a1659Ddcf2339Be3aeA159cA010979FB49155FF"
+      startBlock: 17198625
+      abi: CurvePool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *common_entities
+      abis: *common_abis
+      eventHandlers: *all_events
+      file: ./src/pool.ts
+
+  - kind: ethereum/contract
+    name: IronBank
+    network: fantom
+    source:
+      address: "0x4FC8D635c3cB1d0aa123859e2B2587d0FF2707b1"
+      startBlock: 19000244
+      abi: CurvePool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *common_entities
+      abis: *common_abis
+      eventHandlers: *all_events
+      file: ./src/pool.ts
+
+  - kind: ethereum/contract
+    name: Geist
+    network: fantom
+    source:
+      address: "0x0fa949783947Bf6c1b171DB13AEACBB488845B3f"
+      startBlock: 19420477
+      abi: CurvePool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *common_entities
+      abis: *common_abis
+      eventHandlers: *all_events
+      file: ./src/pool.ts
