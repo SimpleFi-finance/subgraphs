@@ -131,7 +131,7 @@ lpTokenToPool.set(IB_FANTOM_LP_TOKEN, IB_FANTOM);
 export const GEIST_FANTOM = "0x0fa949783947bf6c1b171db13aeacbb488845b3f";
 export const GEIST_FANTOM_LP_TOKEN = "0xd02a30d33153877bc20e5721ee53dedee0422b2f";
 addressToPool.set(
-  IB_FANTOM,
-  new PoolStaticInfo(IB_FANTOM, IB_FANTOM_LP_TOKEN, 3, "LENDING", false, [])
+  GEIST_FANTOM,
+  new PoolStaticInfo(GEIST_FANTOM, GEIST_FANTOM_LP_TOKEN, 3, "LENDING", false, [])
 );
-lpTokenToPool.set(IB_FANTOM_LP_TOKEN, IB_FANTOM);
+lpTokenToPool.set(GEIST_FANTOM_LP_TOKEN, GEIST_FANTOM);
