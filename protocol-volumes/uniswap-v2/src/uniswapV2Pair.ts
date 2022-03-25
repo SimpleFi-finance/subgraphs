@@ -164,8 +164,12 @@ export function handleSwap(event: Swap): void {
   marketDayData.dailySwapTXs = marketDayData.dailySwapTXs.plus(BigInt.fromI32(1));
 
   // update fees collected
-  let swapFeeToken0 = event.params.amount0In.times(marketDayData.protocolFee).div(FEE_DENOMINATOR);
-  let swapFeeToken1 = event.params.amount1In.times(marketDayData.protocolFee).div(FEE_DENOMINATOR);
+  let swapFeeToken0 = event.params.amount0In
+    .times(marketDayData.protocolFee)
+    .div(BigInt.fromI32(FEE_DENOMINATOR));
+  let swapFeeToken1 = event.params.amount1In
+    .times(marketDayData.protocolFee)
+    .div(BigInt.fromI32(FEE_DENOMINATOR));
 
   let prevFees = marketDayData.feesGenerated;
   let prevFees0 = TokenBalance.fromString(prevFees[0]).balance;

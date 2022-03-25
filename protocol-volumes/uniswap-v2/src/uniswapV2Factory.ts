@@ -2,7 +2,7 @@ import { BigInt, DataSourceContext } from "@graphprotocol/graph-ts";
 import { Pair } from "../generated/schema";
 import { UniswapV2Pair } from "../generated/templates";
 import { PairCreated } from "../generated/UniswapV2Factory/UniswapV2Factory";
-import { protocolToFee } from "./constants";
+import { FEE_30_BASE_POINTS, protocolToFee } from "./constants";
 
 /**
  * Create Pair entity and start indexing pair contract
@@ -40,8 +40,8 @@ function getProtocolFee(address: string): BigInt {
   let fee = protocolToFee.get(address);
 
   if (fee == null) {
-    // if not found, use Uniswap default of 0.3% swap fee
-    fee = BigInt.fromI32(3);
+    // if not found, use Uniswap default of 0.3% swap fee (30 bps)
+    fee = BigInt.fromI32(FEE_30_BASE_POINTS);
   }
 
   return fee as BigInt;
