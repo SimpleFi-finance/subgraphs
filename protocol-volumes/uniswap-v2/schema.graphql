@@ -9,19 +9,19 @@ type MarketDayData @entity {
   market: String!
 
   "amount of input tokens swapped in "
-  inputTokensDailySwapInVolume: [BigInt!]!
+  inputTokensDailySwapInVolume: [String!]!
 
   " amount of input tokens swapped out  "
-  inputTokensDailySwapOutVolume: [BigInt!]!
+  inputTokensDailySwapOutVolume: [String!]!
 
   " total amount of reserves per input token "
-  inputTokenTotalBalances: [BigInt!]!
+  inputTokenTotalBalances: [String!]!
 
   " reserve amount per input token this day "
-  inputTokenDailyInflow: [BigInt!]!
+  inputTokenDailyInflow: [String!]!
 
   " reserve amount per input token this day "
-  inputTokenDailyOutflow: [BigInt!]!
+  inputTokenDailyOutflow: [String!]!
 
   " total balance of LP tokens "
   outputTokenTotalBalance: BigInt!
@@ -36,7 +36,7 @@ type MarketDayData @entity {
   protocolFee: BigInt!
 
   " amount of fees generated this day, per token "
-  feesGenerated: [BigInt!]!
+  feesGenerated: [String!]!
 
   " number of TXs this day swap "
   dailySwapTXs: BigInt!
