@@ -1,6 +1,7 @@
 import { 
   Address, 
   BigInt, 
+  BigDecimal,
   ethereum, 
   log 
 } from "@graphprotocol/graph-ts"
@@ -98,6 +99,7 @@ export function getOrCreateMarket(
   market.rewardTokens = rewardTokens.map<string>(t => t.id)
   market.inputTokenTotalBalances = inputTokenBalances.map<string>(tb => tb.toString()) as string[]
   market.outputTokenTotalSupply = BigInt.fromI32(0)
+  market.reserveWeights = []
   market.blockNumber = event.block.number
   market.timestamp = event.block.timestamp
   market.save()
