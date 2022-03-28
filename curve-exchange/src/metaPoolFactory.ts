@@ -25,7 +25,7 @@ export function handleMetaPoolDeployedEvent(event: MetaPoolDeployed): void {
   getOrCreatePoolViaFactory(event, newCurvePoolAddress, event.address);
 }
 
-export function handlePlainDeployedEvent(event: PlainPoolDeployed): void {
+export function handlePlainPoolDeployedEvent(event: PlainPoolDeployed): void {
   let factory = MetaPoolFactory.load(event.address.toHexString());
 
   // fetch contract address of new pool from the contract
