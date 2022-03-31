@@ -1,5 +1,7 @@
 import { Address, BigInt, ethereum, store, log } from "@graphprotocol/graph-ts"
 
+import { fetchReserves } from "./utils"
+
 import {
   Account as AccountEntity,
   AccountLiquidity as AccountLiquidityEntity,
@@ -14,15 +16,20 @@ import {
   Withdrawn,
   Transfer,
   Sync,
+  Swapped,
   Mooniswap,
 } from "../generated/templates/Mooniswap/Mooniswap"
 
-import { ERC20 } from "../generated/MooniswapFactory/ERC20"
+import { 
+  handleTransfer as handleTransferVolumetricData,
+  handleSync as handleSyncVolumetricData,
+  handleMint as handleMintVolumetricData,
+  handleBurn as handleBurnVolumetricData,
+  handleSwap as handleSwapVolumetricData,
+} from "./MarketDayData"
 
 import {
   ADDRESS_ZERO,
-  ADDRESS_ETH,
-  ETH_BALANCE_CONTRACT,
   getOrCreateAccount,
   investInMarket,
   redeemFromMarket,
@@ -225,38 +232,23 @@ export function handleTransfer(event: Transfer): void {
 
   let pair = PairEntity.load(event.address.toHexString()) as PairEntity
 
-  // ignore initial transfers for first adds
-  if (
-    fromHex == ADDRESS_ZERO &&
-    toHex == pair.id &&
-    event.params.value.equals(BigInt.fromI32(1000)) && 
-    pair.totalSupply_2.toString() == "0"
-  ) {
-    // First deposit will lock a BASE_SUPPLY to prevent total supply to ever be 0
-    pair.totalSupply_2 = pair.totalSupply_2.plus(BASE_SUPPLY)
-    pair.save()
-    return
-  }
-
   // Mint
   if (fromHex == ADDRESS_ZERO) {
-    let pairContract = Mooniswap.bind(event.address)
-    let test = pairContract.try_totalSupply()
-    if (!test.reverted) {
-      pair.totalSupply = test.value
+    const pairContract = Mooniswap.bind(event.address)
+    const totalSupplyCall = pairContract.try_totalSupply()
+    if (!totalSupplyCall.reverted) {
+      pair.totalSupply = totalSupplyCall.value
     }
 
-    pair.totalSupply_2 = pair.totalSupply_2.plus(event.params.value as BigInt)
     pair.save()
   } else if (toHex == ADDRESS_ZERO) {
     // Burn
-    let pairContract = Mooniswap.bind(event.address)
-    let test = pairContract.try_totalSupply()
-    if (!test.reverted) {
-      pair.totalSupply = test.value
+    const pairContract = Mooniswap.bind(event.address)
+    const totalSupplyCall = pairContract.try_totalSupply()
+    if (!totalSupplyCall.reverted) {
+      pair.totalSupply = totalSupplyCall.value
     }
 
-    pair.totalSupply_2 = pair.totalSupply_2.minus(event.params.value as BigInt)
     pair.save()
   }
 
@@ -277,16 +269,14 @@ export function handleTransfer(event: Transfer): void {
   if (fromHex != ADDRESS_ZERO && fromHex != pair.id && toHex != pair.id) {
     transferLPToken(event, pair, event.params.from, event.params.to, event.params.value)
   }
+
+  // Handle transfer for volumetric data collection
+  handleTransferVolumetricData(event);
 }
 
 export function handleMint(event: Deposited): void {
   let pair = PairEntity.load(event.address.toHexString()) as PairEntity
   let mint = getOrCreateMint(event, pair)
-
-  // First deposit will lock a BASE_SUPPLY to prevent total supply to ever be 0
-  if (pair.totalSupply_2.toString() == "0") {
-    pair.totalSupply_2 = pair.totalSupply_2.plus(BASE_SUPPLY)
-  }
 
   mint.amount0 = event.params.token0Amount
   mint.amount1 = event.params.token1Amount
@@ -299,13 +289,10 @@ export function handleMint(event: Deposited): void {
   pair.reserve0 = reserves[0]
   pair.reserve1 = reserves[1]
 
-  pair.reserve0_2 = pair.reserve0_2.plus(event.params.token0Amount)
-  pair.reserve1_2 = pair.reserve1_2.plus(event.params.token1Amount)
-  // pair.totalSupply_2 = pair.totalSupply_2.plus(event.params.share as BigInt)
-
   pair.save()
 
   createOrUpdatePositionOnMint(event, pair, mint)
+  handleMintVolumetricData(event);
 }
 
 export function handleBurn(event: Withdrawn): void {
@@ -326,26 +313,23 @@ export function handleBurn(event: Withdrawn): void {
   pair.save()
 
   createOrUpdatePositionOnBurn(event, pair, burn)
+  handleBurnVolumetricData(event);
 }
 
-export function fetchReserves(pair: PairEntity): Array<BigInt> {
-  
-  let token0 = pair.token0.toLowerCase() == ADDRESS_ETH ? Address.fromString(ETH_BALANCE_CONTRACT) : Address.fromString(pair.token0)
-  let token1 = pair.token1.toLowerCase() == ADDRESS_ETH ? Address.fromString(ETH_BALANCE_CONTRACT) : Address.fromString(pair.token1)
-  let contract0 = ERC20.bind(token0)
-  let contract1 = ERC20.bind(token1)
-  let token0Call = contract0.try_balanceOf(Address.fromString(pair.id))
-  let token1Call = contract1.try_balanceOf(Address.fromString(pair.id))
+/**
+ * handleSync for volumetric data processing
+ * 
+ * @param event 
+ */
+export function handleSync(event: Sync) {
+  handleSyncVolumetricData(event);
+}
 
-  let reserve0 = BigInt.fromI32(0)
-  let reserve1 = BigInt.fromI32(0)
-  if (!token0Call.reverted) {
-    reserve0 = token0Call.value
-  }
-
-  if (!token1Call.reverted) {
-    reserve1 = token1Call.value
-  }
-
-  return [reserve0, reserve1]
+/**
+ * handleSwap for volumetric data processing
+ * 
+ * @param event 
+ */
+ export function handleSwap(event: Swapped) {
+  handleSwapVolumetricData(event);
 }

@@ -15,7 +15,6 @@ export namespace TokenStandard {
 }
 
 export namespace ProtocolName {
-  export const UNISWAP_V2 = "UNISWAP_V2"
   export const ONEINCH = "ONEINCH"
 }
 
@@ -44,3 +43,5 @@ export namespace TransactionType {
   export const TRANSFER_IN = "TRANSFER_IN"
   export const TRANSFER_OUT = "TRANSFER_OUT"
 }
+
+export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";

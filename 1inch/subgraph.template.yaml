@@ -64,3 +64,7 @@ templates:
           handler: handleMint
         - event: Withdrawn(indexed address,indexed address,uint256,uint256,uint256)
           handler: handleBurn
+        - event: Sync(uint256,uint256,uint256,uint256,uint256,uint256)
+          handler: handleSync
+        - event: Swapped(indexed address,indexed address,indexed address,address,uint256,uint256,uint256,uint256,address)
+          handler: handleSwap
