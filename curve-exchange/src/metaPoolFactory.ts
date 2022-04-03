@@ -1,5 +1,4 @@
 import { BigInt } from "@graphprotocol/graph-ts";
-import { MetaPoolFactory } from "../generated/schema";
 import {
   Add_existing_metapoolsCall,
   MetaPoolFactory as MetaPoolFactoryContract,
@@ -7,10 +6,10 @@ import {
 } from "../generated/templates/MetaPoolFactory/MetaPoolFactory";
 import { MetaPoolDeployed } from "../generated/templates/MetaPoolFactory/MetaPoolFactory";
 import { ADDRESS_ZERO } from "./common";
-import { getOrCreatePoolViaFactory } from "./curveUtil";
+import { getOrCreateMetaPoolFactory, getOrCreatePoolViaFactory } from "./curveUtil";
 
 export function handleMetaPoolDeployedEvent(event: MetaPoolDeployed): void {
-  let factory = MetaPoolFactory.load(event.address.toHexString());
+  let factory = getOrCreateMetaPoolFactory(event.address);
 
   // fetch contract address of new pool from the contract
   let newCurvePoolAddress = MetaPoolFactoryContract.bind(event.address).pool_list(
@@ -26,7 +25,7 @@ export function handleMetaPoolDeployedEvent(event: MetaPoolDeployed): void {
 }
 
 export function handlePlainPoolDeployedEvent(event: PlainPoolDeployed): void {
-  let factory = MetaPoolFactory.load(event.address.toHexString());
+  let factory = getOrCreateMetaPoolFactory(event.address);
 
   // fetch contract address of new pool from the contract
   let newCurvePoolAddress = MetaPoolFactoryContract.bind(event.address).pool_list(
@@ -42,7 +41,7 @@ export function handlePlainPoolDeployedEvent(event: PlainPoolDeployed): void {
 }
 
 export function handleAddExistingMetapoolCall(call: Add_existing_metapoolsCall): void {
-  let factory = MetaPoolFactory.load(call.to.toHexString());
+  let factory = getOrCreateMetaPoolFactory(call.to);
 
   // increase pool counter by the number of pools added
   let pools = call.inputs._pools;

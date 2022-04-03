@@ -185,6 +185,8 @@ dataSources:
       eventHandlers:
         - event: AddressModified(indexed uint256,address,uint256)
           handler: handleAddressModified
+        - event: NewAddressIdentifier(indexed uint256,address,string)
+          handler: handleNewAddressIdentifier
       file: ./src/addressProvider.ts
 
   ############################ Hardcoded pools

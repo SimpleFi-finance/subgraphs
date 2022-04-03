@@ -3,6 +3,7 @@ import {
   Account as AccountEntity,
   AccountLiquidity as AccountLiquidityEntity,
   LPToken,
+  MetaPoolFactory,
   Pool as PoolEntity,
   RemoveLiqudityOneEvent as RemoveLiqudityOneEventEntity,
   Token,
@@ -235,7 +236,7 @@ export function getOrCreatePoolViaFactory(
   CurvePoolTemplate.create(Address.fromString(pool.id));
 
   // start indexing LP token to track transfers
-  PoolLPToken.create(pool.lpToken as Address);
+  // PoolLPToken.create(pool.lpToken as Address);
 
   return pool as PoolEntity;
 }
@@ -471,4 +472,22 @@ export function getOrCreateLpToken(lpTokenAddress: string, poolAddress: string):
   lpToken.save();
 
   return lpToken as LPToken;
+}
+
+/**
+ * Create MetaPoolFactory entity. Source of MetaPoolFactory can be hard-coded dataSource in manifest or template created on AddressProvider event.
+ * @param factoryAddress
+ * @returns
+ */
+export function getOrCreateMetaPoolFactory(factoryAddress: Address): MetaPoolFactory {
+  let factory = MetaPoolFactory.load(factoryAddress.toHexString());
+  if (factory != null) {
+    return factory as MetaPoolFactory;
+  }
+
+  factory = new MetaPoolFactory(factoryAddress.toHexString());
+  factory.poolCount = BigInt.fromI32(0);
+  factory.save();
+
+  return factory as MetaPoolFactory;
 }
