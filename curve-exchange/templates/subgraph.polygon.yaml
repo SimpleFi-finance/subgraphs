@@ -36,17 +36,17 @@ templates:
       kind: ethereum/events
       apiVersion: 0.0.4
       language: wasm/assemblyscript
-      entities:
+      entities: &factory_entities
         - MetaPoolFactory
         - Market
-      abis:
+      abis: &factory_abis
         - name: MetaPoolFactory
           file: ./abis/MetaPoolFactory.json
         - name: ERC20
           file: ./abis/IERC20.json
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
-      eventHandlers:
+      eventHandlers: &factory_events
         - event: MetaPoolDeployed(address,address,uint256,uint256,address)
           handler: handleMetaPoolDeployedEvent
         - event: PlainPoolDeployed(address[4],uint256,uint256,address)
@@ -183,6 +183,23 @@ dataSources:
         - event: AddressModified(indexed uint256,address,uint256)
           handler: handleAddressModified
       file: ./src/addressProvider.ts
+
+  ############################ Hardcoded metapool factories
+  - kind: ethereum/contract
+    name: Factory1
+    network: matic
+    source:
+      address: "0x722272D36ef0Da72FF51c5A65Db7b870E2e8D4ee"
+      startBlock: 19613852
+      abi: MetaPoolFactory
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *factory_entities
+      abis: *factory_abis
+      eventHandlers: *factory_events
+      file: ./src/metaPoolFactory.ts
 
   ############################ Hardcoded pools
   - kind: ethereum/contract
