@@ -186,11 +186,9 @@ export function getOrCreatePoolViaFactory(
   pool.coins = poolCoins.map<string>((t) => t.id);
 
   //// balances
-  //TODO init to zero
-  let balances = factoryContract.get_balances(curvePoolAddress);
   let poolBalances: BigInt[] = [];
   for (let i = 0; i < pool.coinCount; i++) {
-    poolBalances.push(balances[i]);
+    poolBalances.push(BigInt.fromI32(0));
   }
   pool.balances = poolBalances;
   pool.initialBalances = poolBalances;
@@ -236,7 +234,7 @@ export function getOrCreatePoolViaFactory(
   CurvePoolTemplate.create(Address.fromString(pool.id));
 
   // start indexing LP token to track transfers
-  // PoolLPToken.create(pool.lpToken as Address);
+  PoolLPToken.create(pool.lpToken as Address);
 
   return pool as PoolEntity;
 }
