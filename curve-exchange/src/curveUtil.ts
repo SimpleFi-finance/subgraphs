@@ -207,6 +207,7 @@ export function getOrCreatePoolViaFactory(
   pool.lastTransferToZero = null;
   pool.isInRegistry = false;
   pool.source = CurvePoolSource.METAPOOL_FACTORY;
+  pool.factory = factoryAddress.toHexString();
 
   pool.save();
 

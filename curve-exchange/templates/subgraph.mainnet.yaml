@@ -81,6 +81,8 @@ templates:
           file: ./abis/IERC20.json
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
+        - name: MetaPoolFactory
+          file: ./abis/MetaPoolFactory.json
       eventHandlers: &all_events
 
           #### 2 coins
@@ -156,6 +158,8 @@ templates:
           file: ./abis/IERC20.json
         - name: PoolRegistry
           file: ./abis/CurveRegistry.json
+        - name: MetaPoolFactory
+          file: ./abis/MetaPoolFactory.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
