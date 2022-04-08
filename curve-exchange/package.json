@@ -12,16 +12,16 @@
     "prepare-curve-optimism": "cp templates/constants.optimism.ts src/constants.ts && cp templates/subgraph.optimism.yaml subgraph.yaml && npm run codegen",
     "prepare-curve-polygon": "cp templates/constants.polygon.ts src/constants.ts && cp templates/subgraph.polygon.yaml subgraph.yaml && npm run codegen",
     "deploy-curve-arbitrum": "npm run clean && npm run prepare-curve-arbitrum && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/curve-arbitrum",
-    "deploy-curve-avalanche": "npm run clean && npm run prepare-curve-avalanche && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/curve-avalanche",
+    "deploy-curve-avalanche": "npm run clean && npm run prepare-curve-avalanche && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/curve-avalanche",
     "deploy-curve-fantom": "npm run clean && npm run prepare-curve-fantom && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/curve-fantom",
-    "deploy-curve-gnosis": "npm run clean && npm run prepare-curve-gnosis && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/curve-gnosis",
+    "deploy-curve-gnosis": "npm run clean && npm run prepare-curve-gnosis && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/curve-gnosis",
     "deploy-curve-mainnet": "npm run clean && npm run prepare-curve-mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/curve",
-    "deploy-curve-optimism": "npm run clean && npm run prepare-curve-optimism && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/curve-optimism",
+    "deploy-curve-optimism": "npm run clean && npm run prepare-curve-optimism && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/curve-optimism",
     "deploy-curve-polygon": "npm run clean && npm run prepare-curve-polygon && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/curve-polygon",
     "create-local": "graph create --node http://localhost:8020/ simplefi-finance/curve-exchange",
     "remove-local": "graph remove --node http://localhost:8020/ simplefi-finance/curve-exchange",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 simplefi-finance/curve-exchange",
-    "clean": "rm -rf ./build && rm -rf ./generated && rm subgraph.yaml"
+    "clean": "rm -rf ./build && rm -rf ./generated"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.20.0",
