@@ -227,3 +227,57 @@ type Burn @entity {
 }
 
 # END - UniswapV2 protocol entities
+
+# Volumetric daily data
+type MarketDayData @entity {
+  " marketAddress + dayId "
+  id: ID!
+
+  " first trade of the day timestamp "
+  timestamp: BigInt!
+
+  " market id - pair address "
+  market: String!
+
+  "amount of input tokens swapped in "
+  inputTokensDailySwapInVolume: [String!]!
+
+  " amount of input tokens swapped out  "
+  inputTokensDailySwapOutVolume: [String!]!
+
+  " total amount of reserves per input token "
+  inputTokenTotalBalances: [String!]!
+
+  " reserve amount per input token this day "
+  inputTokenDailyInflow: [String!]!
+
+  " reserve amount per input token this day "
+  inputTokenDailyOutflow: [String!]!
+
+  " total balance of LP tokens "
+  outputTokenTotalBalance: BigInt!
+
+  " amount of LP tokens minted this day "
+  outputTokenDailyInflowVolume: BigInt!
+
+  " amount of LP tokens burned this day "
+  outputTokenDailyOutflowVolume: BigInt!
+
+  " fee percentage, applied to swap-in amount, taken by protocol "
+  protocolFee: BigInt!
+
+  " amount of fees generated this day, per token "
+  feesGenerated: [String!]!
+
+  " number of TXs this day swap "
+  dailySwapTXs: BigInt!
+
+  " number of TXs this day mint "
+  dailyMintTXs: BigInt!
+
+  " number of TXs this day burn "
+  dailyBurnTXs: BigInt!
+
+  " dayId - timestamp/86400 "
+  dayId: BigInt!
+}
