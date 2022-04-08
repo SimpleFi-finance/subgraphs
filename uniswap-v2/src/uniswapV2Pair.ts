@@ -459,9 +459,9 @@ export function handleSync(event: Sync): void {
     // Update market
     let market = MarketEntity.load(event.address.toHexString()) as MarketEntity
     updateMarket(
-      event, 
-      market, 
-      inputTokenBalances, 
+      event,
+      market,
+      inputTokenBalances,
       pair.totalSupply
     )
   }
