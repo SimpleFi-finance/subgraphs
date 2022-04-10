@@ -162,6 +162,7 @@ export function getOrCreatePoolViaFactory(
   //// n_coins
   let factoryContract = FactoryContract.bind(factoryAddress);
   let numOfCoins: BigInt;
+  let coins: Address[];
 
   // old factory returns 2 values - number of coins, number of underlying coins
   if (factoryAddress.toHexString() == OLD_FACTORY_ADDRESS) {
@@ -169,14 +170,16 @@ export function getOrCreatePoolViaFactory(
     if (!n_coins.reverted) {
       numOfCoins = n_coins.value.value0;
     }
+    // old factory also returns Address[2] instead of Address[4]
+    coins = factoryContract.get_coins1(curvePoolAddress);
   } else {
     // new factory return only number of coins
     numOfCoins = factoryContract.get_n_coins(curvePoolAddress);
+    coins = factoryContract.get_coins(curvePoolAddress);
   }
   pool.coinCount = numOfCoins.toI32();
 
   //// coins
-  let coins = factoryContract.get_coins(curvePoolAddress);
   let poolCoins: Token[] = [];
   for (let i = 0; i < numOfCoins.toI32(); i++) {
     let coin = coins[i];
@@ -379,8 +382,17 @@ export function getPoolBalances(pool: PoolEntity, block: BigInt): BigInt[] {
 
   // if pool is created from metapool factory, query factory for balances with single call
   if (pool.source == CurvePoolSource.METAPOOL_FACTORY) {
-    let factoryContract = FactoryContract.bind(Address.fromString(pool.factory as string));
-    let balances = factoryContract.get_balances(poolAddress);
+    let factoryAddress = Address.fromString(pool.factory as string);
+    let factoryContract = FactoryContract.bind(factoryAddress);
+    let balances: BigInt[];
+
+    if (factoryAddress.toHexString() == OLD_FACTORY_ADDRESS) {
+      // old factory contract uses BigInt[2] instead of BigInt[4]
+      balances = factoryContract.get_balances1(poolAddress);
+    } else {
+      balances = factoryContract.get_balances(poolAddress);
+    }
+
     for (let i = 0; i < pool.coinCount; i++) {
       poolBalances.push(balances[i]);
     }
@@ -486,6 +498,7 @@ export function getOrCreateMetaPoolFactory(factoryAddress: Address): MetaPoolFac
 
   factory = new MetaPoolFactory(factoryAddress.toHexString());
   factory.poolCount = BigInt.fromI32(0);
+
   factory.save();
 
   return factory as MetaPoolFactory;

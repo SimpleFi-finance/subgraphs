@@ -121,6 +121,14 @@
   {
     "stateMutability": "view",
     "type": "function",
+    "name": "get_coins",
+    "inputs": [{ "name": "_pool", "type": "address" }],
+    "outputs": [{ "name": "", "type": "address[2]" }],
+    "gas": 9164
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
     "name": "get_underlying_coins",
     "inputs": [{ "name": "_pool", "type": "address" }],
     "outputs": [{ "name": "", "type": "address[8]" }],
@@ -156,6 +164,14 @@
     "name": "get_balances",
     "inputs": [{ "name": "_pool", "type": "address" }],
     "outputs": [{ "name": "", "type": "uint256[4]" }],
+    "gas": 20435
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "get_balances",
+    "inputs": [{ "name": "_pool", "type": "address" }],
+    "outputs": [{ "name": "", "type": "uint256[2]" }],
     "gas": 20435
   },
   {
