@@ -76,7 +76,7 @@ templates:
 dataSources:
   ############################ Hardcoded gauges
   - kind: ethereum/contract
-    name: ATriCrypto
+    name: ATriCryptoGauge
     network: xdai
     source:
       address: "0x78CF256256C8089d68Cde634Cf7cDEFb39286470"

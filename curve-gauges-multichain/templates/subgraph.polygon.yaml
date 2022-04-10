@@ -147,3 +147,67 @@ dataSources:
       abis: *gauge_abis
       eventHandlers: *gauge_events
       file: ./src/gauge.ts
+
+  - kind: ethereum/contract
+    name: ATriCrypto2Gauge
+    network: matic
+    source:
+      address: "0x9bd996Db02b3f271c6533235D452a56bc2Cd195a"
+      startBlock: 18196362
+      abi: LiquidityGauge
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *gauge_entities
+      abis: *gauge_abis
+      eventHandlers: *gauge_events
+      file: ./src/gauge.ts
+
+  - kind: ethereum/contract
+    name: ATriCrypto3Gauge
+    network: matic
+    source:
+      address: "0x3B6B158A76fd8ccc297538F454ce7B4787778c7C"
+      startBlock: 18429769
+      abi: LiquidityGauge
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *gauge_entities
+      abis: *gauge_abis
+      eventHandlers: *gauge_events
+      file: ./src/gauge.ts
+
+  - kind: ethereum/contract
+    name: EurTusdGauge
+    network: matic
+    source:
+      address: "0x40c0e9376468b4f257d15F8c47E5D0C646C28880"
+      startBlock: 20778464
+      abi: LiquidityGauge
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *gauge_entities
+      abis: *gauge_abis
+      eventHandlers: *gauge_events
+      file: ./src/gauge.ts
+
+  - kind: ethereum/contract
+    name: EurSusdGauge
+    network: matic
+    source:
+      address: "0x40c0e9376468b4f257d15F8c47E5D0C646C28880"
+      startBlock: 20778464
+      abi: LiquidityGauge
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *gauge_entities
+      abis: *gauge_abis
+      eventHandlers: *gauge_events
+      file: ./src/gauge.ts
