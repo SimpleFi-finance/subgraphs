@@ -7,7 +7,7 @@ templates:
   # Measures the amount of liquidity provided by each user
   - kind: ethereum/contract
     name: LiquidityGauge
-    network: avalanche
+    network: xdai
     source:
       abi: LiquidityGauge
     mapping:
@@ -45,7 +45,7 @@ templates:
 
   - kind: ethereum/contract
     name: RewardToken
-    network: avalanche
+    network: xdai
     source:
       abi: ERC20
     mapping:
@@ -74,70 +74,13 @@ templates:
       file: ./src/gauge.ts
 
 dataSources:
-  ############################ Hardcoded metapool factories
-  - kind: ethereum/contract
-    name: Factory
-    network: avalanche
-    source:
-      address: "0xb17b674D9c5CB2e441F8e196a2f048A81355d031"
-      startBlock: 6571428
-      abi: MetaPoolFactory
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.4
-      language: wasm/assemblyscript
-      entities:
-        - MetaPoolFactory
-        - Market
-      abis:
-        - name: MetaPoolFactory
-          file: ./abis/MetaPoolFactory.json
-        - name: ERC20
-          file: ./abis/ERC20.json
-      eventHandlers:
-        - event: LiquidityGaugeDeployed(address,address)
-          handler: handleLiquidityGaugeDeployed
-      file: ./src/metaPoolFactory.ts
-
-  ############################ Hardcoded metapool factories
+  ############################ Hardcoded gauges
   - kind: ethereum/contract
     name: ATriCrypto
-    network: avalanche
+    network: xdai
     source:
-      address: "0x445FE580eF8d70FF569aB36e80c647af338db351"
-      startBlock: 5220394
-      abi: LiquidityGauge
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.4
-      language: wasm/assemblyscript
-      entities: *gauge_entities
-      abis: *gauge_abis
-      eventHandlers: *gauge_events
-      file: ./src/gauge.ts
-
-  - kind: ethereum/contract
-    name: Ren
-    network: avalanche
-    source:
-      address: "0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1"
-      startBlock: 5216483
-      abi: LiquidityGauge
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.4
-      language: wasm/assemblyscript
-      entities: *gauge_entities
-      abis: *gauge_abis
-      eventHandlers: *gauge_events
-      file: ./src/gauge.ts
-
-  - kind: ethereum/contract
-    name: APool
-    network: avalanche
-    source:
-      address: "0x5B5CFE992AdAC0C9D48E05854B2d91C73a003858"
-      startBlock: 5210076
+      address: "0x78CF256256C8089d68Cde634Cf7cDEFb39286470"
+      startBlock: 16852563
       abi: LiquidityGauge
     mapping:
       kind: ethereum/events
