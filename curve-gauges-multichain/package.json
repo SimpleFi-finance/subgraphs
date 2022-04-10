@@ -1,0 +1,18 @@
+{
+  "name": "simplefi-curve-gauges-multichain",
+  "license": "UNLICENSED",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "clean": "rm -rf ./build && rm -rf ./generated",
+    "prepare-avalanche": "cp templates/subgraph.avalanche.yaml subgraph.yaml && npm run codegen",
+    "deploy-avalanche": "npm run clean && npm run prepare-avalanche &&  graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/curve-gauges-avalanche",
+    "create-local": "graph create --node http://localhost:8020/ simplefi-finance/curve-gauges",
+    "remove-local": "graph remove --node http://localhost:8020/ simplefi-finance/curve-gauges",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 simplefi-finance/curve-gauges"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.20.0",
+    "@graphprotocol/graph-ts": "0.20.0"
+  }
+}
