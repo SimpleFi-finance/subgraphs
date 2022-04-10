@@ -189,9 +189,6 @@ type Gauge @entity {
 
   " Total amount of LP tokens deposited to gauge "
   totalSupply: BigInt!
-
-  " Effective total LP token amount after all deposits have been boosted "
-  workingSupply: BigInt!
 }
 
 enum GaugeVersion {
@@ -221,8 +218,6 @@ type AccountLiquidity @entity {
   gauge: Gauge!
   account: Account!
   balance: BigInt!
-  workingBalance: BigInt!
-  crvReceived: BigInt!
 }
 
 # END - Curve protocol entities

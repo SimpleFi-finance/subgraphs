@@ -26,7 +26,6 @@ export function getOrCreateGauge(event: ethereum.Event, gaugeAddress: Address): 
   gauge.createdAtTransaction = event.transaction.hash;
   gauge.version = GaugeVersion.LIQUIDITY_GAUGE_V3;
   gauge.totalSupply = BigInt.fromI32(0);
-  gauge.workingSupply = BigInt.fromI32(0);
 
   // create common entities
 
@@ -98,8 +97,6 @@ export function getOrCreateAccountLiquidity(account: Account, gauge: Gauge): Acc
   liquidity.gauge = gauge.id;
   liquidity.account = account.id;
   liquidity.balance = BigInt.fromI32(0);
-  liquidity.workingBalance = BigInt.fromI32(0);
-  liquidity.crvReceived = BigInt.fromI32(0);
   liquidity.save();
   return liquidity as AccountLiquidity;
 }
