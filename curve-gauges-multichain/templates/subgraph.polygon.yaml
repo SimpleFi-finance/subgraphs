@@ -7,7 +7,7 @@ templates:
   # Measures the amount of liquidity provided by each user
   - kind: ethereum/contract
     name: LiquidityGauge
-    network: fantom
+    network: matic
     source:
       abi: LiquidityGauge
     mapping:
@@ -45,7 +45,7 @@ templates:
 
   - kind: ethereum/contract
     name: RewardToken
-    network: fantom
+    network: matic
     source:
       abi: ERC20
     mapping:
@@ -74,13 +74,13 @@ templates:
       file: ./src/gauge.ts
 
 dataSources:
-  ############################ Hardcoded gauges
+  ############################ Hardcoded metapool factory
   - kind: ethereum/contract
     name: Factory
-    network: fantom
+    network: matic
     source:
-      address: "0x686d67265703D1f124c45E33d47d794c566889Ba"
-      startBlock: 17079116
+      address: "0x722272D36ef0Da72FF51c5A65Db7b870E2e8D4ee"
+      startBlock: 19613852
       abi: MetaPoolFactory
     mapping:
       kind: ethereum/events
@@ -101,11 +101,11 @@ dataSources:
 
   ############################ Hardcoded gauges
   - kind: ethereum/contract
-    name: A2PoolGauge
-    network: fantom
+    name: AaveGauge
+    network: matic
     source:
-      address: "0x8866414733F22295b7563f9C5299715D2D76CAf4"
-      startBlock: 10460636
+      address: "0x19793B454D3AfC7b454F206Ffe95aDE26cA6912c"
+      startBlock: 16058468
       abi: LiquidityGauge
     mapping:
       kind: ethereum/events
@@ -117,11 +117,11 @@ dataSources:
       file: ./src/gauge.ts
 
   - kind: ethereum/contract
-    name: FUSDTGauge
-    network: fantom
+    name: ATriCryptoGauge
+    network: matic
     source:
-      address: "0x06e3C4da96fd076b97b7ca3Ae23527314b6140dF"
-      startBlock: 10460871
+      address: "0xb0a366b987d77b5eD5803cBd95C80bB6DEaB48C0"
+      startBlock: 16057596
       abi: LiquidityGauge
     mapping:
       kind: ethereum/events
@@ -134,10 +134,10 @@ dataSources:
 
   - kind: ethereum/contract
     name: RenGauge
-    network: fantom
+    network: matic
     source:
-      address: "0xBdFF0C27dd073C119ebcb1299a68A6A92aE607F0"
-      startBlock: 10461007
+      address: "0xffbACcE0CC7C19d46132f1258FC16CF6871D153c"
+      startBlock: 16057818
       abi: LiquidityGauge
     mapping:
       kind: ethereum/events
