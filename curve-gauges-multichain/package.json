@@ -6,9 +6,13 @@
     "build": "graph build",
     "clean": "rm -rf ./build && rm -rf ./generated",
     "prepare-avalanche": "cp templates/subgraph.avalanche.yaml subgraph.yaml && npm run codegen",
+    "prepare-fantom": "cp templates/subgraph.fantom.yaml subgraph.yaml && npm run codegen",
     "prepare-gnosis": "cp templates/subgraph.gnosis.yaml subgraph.yaml && npm run codegen",
+    "prepare-polygon": "cp templates/subgraph.polygon.yaml subgraph.yaml && npm run codegen",
     "deploy-avalanche": "npm run clean && npm run prepare-avalanche &&  graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/curve-gauges-avalanche",
+    "deploy-fantom": "npm run clean && npm run prepare-fantom &&  graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/curve-gauges-fantom",
     "deploy-gnosis": "npm run clean && npm run prepare-gnosis &&  graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/curve-gauges-gnosis",
+    "deploy-polygon": "npm run clean && npm run prepare-polygon &&  graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/curve-gauges-polygon",
     "create-local": "graph create --node http://localhost:8020/ simplefi-finance/curve-gauges",
     "remove-local": "graph remove --node http://localhost:8020/ simplefi-finance/curve-gauges",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 simplefi-finance/curve-gauges"
