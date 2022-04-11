@@ -263,7 +263,12 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
   let poolInfo = MCPoolInfoEntity.load(id) as MCPoolInfoEntity
 
   let uid = masterChef.id.concat("-").concat(event.params.user.toHexString())
-  let userInfo = MCUserInfoEntity.load(uid) as MCUserInfoEntity
+  let userInfo = MCUserInfoEntity.load(uid)
+  if (userInfo == null) {
+    return
+  } else {
+    userInfo = userInfo as MCUserInfoEntity
+  }
   userInfo.amount = BigInt.fromI32(0)
   userInfo.rewardDebt = BigInt.fromI32(0)
   userInfo.save()
