@@ -32,7 +32,7 @@ import {
   TokenBalanceFormula,
 } from "../library/common";
 
-import { getOrCreateUserInfo, updateUserInfo } from "../library/masterChefUtils";
+import { createFarmSnapshot, getOrCreateUserInfo, updateUserInfo } from "../library/masterChefUtils";
 
 import { ProtocolName, ProtocolType } from "../library/constants";
 
@@ -68,12 +68,13 @@ export function handleAdd(call: AddCall): void {
     masterChef.sushiPerBlock = masterChefContract.sushiPerBlock();
     masterChef.bonusEndBlock = masterChefContract.bonusEndBlock();
     masterChef.bonusMultiplier = masterChefContract.BONUS_MULTIPLIER();
+    masterChef.precision = ACC_SUSHI_PRECISION;
     masterChef.save();
   }
 
   // update all farms reward variables
   if (call.inputs._withUpdate) {
-    massUpdateFarms(masterChef as MasterChefEntity, call.block);
+    massUpdateFarms(masterChef as MasterChefEntity, call);
   }
 
   // create SushiFarm entity
@@ -101,7 +102,7 @@ export function handleDeposit(event: Deposit): void {
   let amount = event.params.amount;
 
   // update farm/pool reward variables
-  updateFarm(sushiFarm, event.block);
+  updateFarmEvent(sushiFarm, event);
 
   // save new deposit entity
   let deposit = new FarmDeposit(
@@ -166,7 +167,7 @@ export function handleDeposit(event: Deposit): void {
     new TokenBalance(rewardTokens[0], user.id, BigInt.fromI32(0)),
   ];
 
-  let rewardTokenBalanceFormula = "(UserInfo.amount * SushiFarm.accSushiPerShare / MasterChef.precision) - UserInfo.rewardDebt|" + "UserInfo:" + userInfo.id + "|SushiFarm:"+sushiFarm.id + "|MasterChef:"+ masterChef.id;
+  let rewardTokenBalanceFormula = "(userInfoSnapshots.amount * sushiFarmSnapshots.accSushiPerShare / masterChef.precision) - userInfoSnapshots.rewardDebt|" + "userInfoSnapshots.userInfo:" + userInfo.id + "|sushiFarmSnapshots.sushiFarm:"+sushiFarm.id + "|masterChef.id:"+ masterChef.id;
   let tokenBalanceFormula = new TokenBalanceFormula(null, null, [rewardTokenBalanceFormula]);
 
   investInMarket(
@@ -197,7 +198,7 @@ export function handleWithdraw(event: Withdraw): void {
   let amount = event.params.amount;
 
   // update farm/pool reward variables
-  updateFarm(sushiFarm, event.block);
+  updateFarmEvent(sushiFarm, event);
 
   // save new withdrawal entity
   let withdrawal = new FarmWithdrawal(
@@ -292,6 +293,8 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
   let user = getOrCreateAccount(event.params.user);
   let amount = event.params.amount;
 
+  let farmSnapshot = createFarmSnapshot(event, sushiFarm);
+
   // save new withdrawal entity
   let withdrawal = new FarmWithdrawal(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
@@ -370,7 +373,7 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
 export function handleUpdatePool(call: UpdatePoolCall): void {
   let masterChef = call.to.toHexString();
   let sushiFarm = SushiFarm.load(masterChef + "-" + call.inputs._pid.toString()) as SushiFarm;
-  updateFarm(sushiFarm, call.block);
+  updateFarm(sushiFarm, call);
 }
 
 /**
@@ -384,7 +387,7 @@ export function handleSet(call: SetCall): void {
 
   // update all farms
   if (call.inputs._withUpdate) {
-    massUpdateFarms(masterChefEntity, call.block);
+    massUpdateFarms(masterChefEntity, call);
   }
 
   // update totalalloc of MasterChef
@@ -444,7 +447,7 @@ export function handleMigrate(call: MigrateCall): void {
  */
 export function handleMassUpdatePools(call: MassUpdatePoolsCall): void {
   let masterChef = MasterChefEntity.load(call.to.toHexString()) as MasterChefEntity;
-  massUpdateFarms(masterChef, call.block);
+  massUpdateFarms(masterChef, call);
 }
 
 /**
@@ -452,15 +455,30 @@ export function handleMassUpdatePools(call: MassUpdatePoolsCall): void {
  *
  * Implementation loosely copied from MasterChef's `updatePool` function.
  * @param sushiFarm
- * @param event
+ * @param call
  * @returns
  */
-function updateFarm(sushiFarm: SushiFarm, block: ethereum.Block): void {
+function updateFarm(sushiFarm: SushiFarm, call: ethereum.Call): void {
   let masterChef = MasterChefEntity.load(sushiFarm.masterChef) as MasterChefEntity;
+  let block = call.block
+  let event = new ethereum.Event();
+  event.block = block;
+  event.transaction = call.transaction;
+  // Workaround to keep API of farmSnapshot same
+  event.logIndex = call.transaction.index;
+  
+  updateFarmEvent(sushiFarm, event);
+}
+
+function updateFarmEvent(sushiFarm: SushiFarm, event: ethereum.Event): void {
+  let masterChef = MasterChefEntity.load(sushiFarm.masterChef) as MasterChefEntity;
+  let block = event.block
 
   if (block.number.le(sushiFarm.lastRewardBlock)) {
     return;
   }
+
+  let farmSnapshot = createFarmSnapshot(event, sushiFarm);
 
   if (sushiFarm.totalSupply == BigInt.fromI32(0)) {
     sushiFarm.lastRewardBlock = block.number;
@@ -505,13 +523,13 @@ function getMultiplier(masterChef: MasterChefEntity, from: BigInt, to: BigInt): 
 /**
  * Update reward variables for all pools
  * @param masterChef
- * @param block
+ * @param call
  */
-function massUpdateFarms(masterChef: MasterChefEntity, block: ethereum.Block): void {
+function massUpdateFarms(masterChef: MasterChefEntity, call: ethereum.Call): void {
   let length = masterChef.numberOfFarms.toI32();
   for (let pid: i32 = 0; pid < length; ++pid) {
     let sushiFarm = SushiFarm.load(masterChef.id + "-" + pid.toString()) as SushiFarm;
-    updateFarm(sushiFarm, block);
+    updateFarm(sushiFarm, call);
   }
 }
 

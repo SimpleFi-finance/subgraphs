@@ -18,7 +18,6 @@ import { IRewarder } from "../../generated/MasterChefV2/IRewarder";
 
 import {
   SushiFarm,
-  SushiFarmSnapshot,
   FarmDeposit,
   FarmWithdrawal,
   UserInfo,
@@ -43,7 +42,7 @@ import {
   TokenBalanceFormula,
 } from "../library/common";
 
-import { getOrCreateUserInfo, updateUserInfo } from "../library/masterChefUtils";
+import { createFarmSnapshot, getOrCreateUserInfo, updateUserInfo } from "../library/masterChefUtils";
 
 import { RewardToken } from "../../generated/templates";
 
@@ -78,6 +77,7 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
     masterChef.numberOfFarms = BigInt.fromI32(0);
     masterChef.totalAllocPoint = BigInt.fromI32(0);
     masterChef.sushiPerBlock = masterChefContract.sushiPerBlock();
+    masterChef.precision = ACC_SUSHI_PRECISION;
     masterChef.save();
   }
 
@@ -195,7 +195,7 @@ export function handleDeposit(event: Deposit): void {
   let rewardTokenBalances: TokenBalance[] = [];
   collectRewardTokenBalances(sushiFarm, receiver, rewardTokenBalances, market);
 
-  let rewardTokenBalanceFormula = "(UserInfo.amount * SushiFarm.accSushiPerShare / MasterChef.precision) - UserInfo.rewardDebt|" + "UserInfo:" + userInfo.id + "|SushiFarm:"+sushiFarm.id + "|MasterChef:"+ masterChef;
+  let rewardTokenBalanceFormula = "(userInfoSnapshots.amount * sushiFarmSnapshots.accSushiPerShare / masterChef.precision) - userInfoSnapshots.rewardDebt|" + "userInfoSnapshots.userInfo:" + userInfo.id + "|sushiFarmSnapshots.sushiFarm:"+sushiFarm.id + "|masterChef.id:"+ masterChef;
   let tokenBalanceFormula = new TokenBalanceFormula(null, null, [rewardTokenBalanceFormula]);
 
   investInMarket(
@@ -292,7 +292,7 @@ export function handleWithdraw(event: Withdraw): void {
   let rewardTokenBalances: TokenBalance[] = [];
   collectRewardTokenBalances(sushiFarm, user, rewardTokenBalances, market);
 
-  let rewardTokenBalanceFormula = "(UserInfo.amount * SushiFarm.accSushiPerShare / MasterChef.precision) - UserInfo.rewardDebt|" + "UserInfo:" + userInfo.id + "|SushiFarm:"+sushiFarm.id + "|MasterChef:"+ masterChef;
+  let rewardTokenBalanceFormula = "(userInfoSnapshots.amount * sushiFarmSnapshots.accSushiPerShare / masterChef.precision) - userInfoSnapshots.rewardDebt|" + "userInfoSnapshots.userInfo:" + userInfo.id + "|sushiFarmSnapshots.sushiFarm:"+sushiFarm.id + "|masterChef.id:"+ masterChef;
   let tokenBalanceFormula = new TokenBalanceFormula(null, null, [rewardTokenBalanceFormula]);
 
   redeemFromMarket(
@@ -371,7 +371,7 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
   let rewardTokenBalances: TokenBalance[] = [];
   collectRewardTokenBalances(sushiFarm, user, rewardTokenBalances, market);
 
-  let rewardTokenBalanceFormula = "(UserInfo.amount * SushiFarm.accSushiPerShare / MasterChef.precision) - UserInfo.rewardDebt|" + "UserInfo:" + userInfo.id + "|SushiFarm:"+sushiFarm.id + "|MasterChef:"+ masterChef;
+  let rewardTokenBalanceFormula = "(userInfoSnapshots.amount * sushiFarmSnapshots.accSushiPerShare / masterChef.precision) - userInfoSnapshots.rewardDebt|" + "userInfoSnapshots.userInfo:" + userInfo.id + "|sushiFarmSnapshots.sushiFarm:"+sushiFarm.id + "|masterChef.id:"+ masterChef;
   let tokenBalanceFormula = new TokenBalanceFormula(null, null, [rewardTokenBalanceFormula]);
 
   redeemFromMarket(
@@ -441,7 +441,7 @@ export function handleHarvest(event: Harvest): void {
   let rewardTokenBalances: TokenBalance[] = [];
   collectRewardTokenBalances(sushiFarm, harvester, rewardTokenBalances, market);
 
-  let rewardTokenBalanceFormula = "(UserInfo.amount * SushiFarm.accSushiPerShare / MasterChef.precision) - UserInfo.rewardDebt|" + "UserInfo:" + userInfo.id + "|SushiFarm:"+sushiFarm.id + "|MasterChef:"+ masterChef;
+  let rewardTokenBalanceFormula = "(userInfoSnapshots.amount * sushiFarmSnapshots.accSushiPerShare / masterChef.precision) - userInfoSnapshots.rewardDebt|" + "userInfoSnapshots.userInfo:" + userInfo.id + "|sushiFarmSnapshots.sushiFarm:"+sushiFarm.id + "|masterChef.id:"+ masterChef;
   let tokenBalanceFormula = new TokenBalanceFormula(null, null, [rewardTokenBalanceFormula]);
 
   redeemFromMarket(
@@ -468,18 +468,7 @@ export function handleLogUpdatePool(event: LogUpdatePool): void {
   let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
 
   // create farm snapshot
-  let snapshotId = event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString();
-  let farmSnapshot = new SushiFarmSnapshot(snapshotId);
-  farmSnapshot.farmPid = event.params.pid;
-  farmSnapshot.sushiFarm = sushiFarm.id;
-  farmSnapshot.allocPoint = sushiFarm.allocPoint;
-  farmSnapshot.totalSupply = sushiFarm.totalSupply;
-  farmSnapshot.timestamp = event.block.timestamp;
-  farmSnapshot.transactionHash = event.transaction.hash.toHexString();
-  farmSnapshot.transactionIndexInBlock = event.transaction.index;
-  farmSnapshot.blockNumber = event.block.number;
-  farmSnapshot.logIndex = event.logIndex;
-  farmSnapshot.save();
+  let farmSnapshot = createFarmSnapshot(event, sushiFarm);
 
   // update sushifarm
   let oldAccSushiPerShare = sushiFarm.accSushiPerShare;
@@ -505,6 +494,8 @@ export function handleLogUpdatePool(event: LogUpdatePool): void {
 export function handleLogSetPool(event: LogSetPool): void {
   let masterChef = event.address.toHexString();
   let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
+
+  let sushiFarmSnapshot = createFarmSnapshot(event, sushiFarm);
 
   // update totalalloc of MasterChef
   let masterChefEntity = MasterChef.load(masterChef) as MasterChef;
