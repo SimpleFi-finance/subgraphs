@@ -409,6 +409,11 @@ export function getPoolBalances(pool: PoolEntity, block: BigInt): BigInt[] {
   else {
     let poolContract = CurvePool.bind(poolAddress);
 
+    if (pool.isOldAbiVersion == null) {
+      pool.isOldAbiVersion = poolContract.try_balances(BigInt.fromI32(0)).reverted;
+      pool.save();
+    }
+
     if (!pool.isOldAbiVersion) {
       for (let i = 0; i < pool.coinCount; i++) {
         poolBalances.push(poolContract.balances(BigInt.fromI32(i)));
