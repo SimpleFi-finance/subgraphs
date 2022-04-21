@@ -2,6 +2,10 @@ specVersion: 0.0.2
 schema:
   file: ./schema.graphql
 
+graft:
+  base: Qma7ZabDagjU51RWo2vRkACWWWgDFWrTrBPvwK13ekkmAQ
+  block: 13520000 # Block number 
+
 ################# TEMPLATES
 templates:
   - kind: ethereum/contract
@@ -873,6 +877,23 @@ dataSources:
 
   - kind: ethereum/contract
     name: EUR3Crv
+    network: mainnet
+    source:
+      address: "0x9838eCcC42659FA8AA7daF2aD134b53984c9427b"
+      startBlock: 13526617
+      abi: CurvePool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *common_entities
+      abis: *common_abis
+      eventHandlers: *all_events
+      callHandlers: *all_calls
+      file: ./src/pool.ts
+
+  - kind: ethereum/contract
+    name: EURTUSDPool
     network: mainnet
     source:
       address: "0x9838eCcC42659FA8AA7daF2aD134b53984c9427b"
