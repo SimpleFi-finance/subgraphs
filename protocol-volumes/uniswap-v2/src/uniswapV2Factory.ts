@@ -1,7 +1,8 @@
-import { BigInt } from "@graphprotocol/graph-ts";
+import { BigInt, DataSourceContext } from "@graphprotocol/graph-ts";
 import { Pair } from "../generated/schema";
 import { UniswapV2Pair } from "../generated/templates";
 import { PairCreated } from "../generated/UniswapV2Factory/UniswapV2Factory";
+import { FEE_30_BASE_POINTS, protocolToFee } from "./constants";
 
 /**
  * Create Pair entity and start indexing pair contract
@@ -25,5 +26,23 @@ export function handlePairCreated(event: PairCreated): void {
   pair.save();
 
   // Start listening for market events
-  UniswapV2Pair.create(event.params.pair);
+  let context = new DataSourceContext();
+  context.setBigInt("protocolFee", getProtocolFee(event.address.toHexString()));
+  UniswapV2Pair.createWithContext(event.params.pair, context);
+}
+
+/**
+ * Get protocol's swap fee by looking at static mapping in constants
+ * @param address
+ * @returns
+ */
+function getProtocolFee(address: string): BigInt {
+  let fee = protocolToFee.get(address);
+
+  if (fee == null) {
+    // if not found, use Uniswap default of 0.3% swap fee (30 bps)
+    fee = BigInt.fromI32(FEE_30_BASE_POINTS);
+  }
+
+  return fee as BigInt;
 }
