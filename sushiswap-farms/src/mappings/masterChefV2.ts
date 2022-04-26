@@ -105,6 +105,8 @@ export function handleLogPoolAddition(event: LogPoolAddition): void {
   sushiFarm.accSushiPerShare = BigInt.fromI32(0);
   sushiFarm.save();
 
+  createFarmSnapshot(event, sushiFarm);
+
   // numberOfFarms++
   masterChef.numberOfFarms = masterChef.numberOfFarms.plus(BigInt.fromI32(1));
   masterChef.totalAllocPoint = masterChef.totalAllocPoint.plus(sushiFarm.allocPoint);
@@ -467,15 +469,15 @@ export function handleLogUpdatePool(event: LogUpdatePool): void {
   let masterChef = event.address.toHexString();
   let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
 
-  // create farm snapshot
-  let farmSnapshot = createFarmSnapshot(event, sushiFarm);
-
   // update sushifarm
   let oldAccSushiPerShare = sushiFarm.accSushiPerShare;
   sushiFarm.lastRewardBlock = event.params.lastRewardBlock;
   sushiFarm.totalSupply = event.params.lpSupply;
   sushiFarm.accSushiPerShare = event.params.accSushiPerShare;
   sushiFarm.save();
+
+  // create farm snapshot
+  let farmSnapshot = createFarmSnapshot(event, sushiFarm);
 
   // update market
   let market = Market.load(sushiFarm.id) as Market;
@@ -495,8 +497,6 @@ export function handleLogSetPool(event: LogSetPool): void {
   let masterChef = event.address.toHexString();
   let sushiFarm = SushiFarm.load(masterChef + "-" + event.params.pid.toString()) as SushiFarm;
 
-  let sushiFarmSnapshot = createFarmSnapshot(event, sushiFarm);
-
   // update totalalloc of MasterChef
   let masterChefEntity = MasterChef.load(masterChef) as MasterChef;
   masterChefEntity.totalAllocPoint = masterChefEntity.totalAllocPoint
@@ -510,6 +510,8 @@ export function handleLogSetPool(event: LogSetPool): void {
     sushiFarm.rewarder = event.params.rewarder.toHexString();
   }
   sushiFarm.save();
+
+  let sushiFarmSnapshot = createFarmSnapshot(event, sushiFarm);
 }
 
 /**

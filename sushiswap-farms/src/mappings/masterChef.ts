@@ -131,6 +131,7 @@ export function handleDeposit(event: Deposit): void {
   // update sushifarm
   sushiFarm.totalSupply = sushiFarm.totalSupply.plus(amount);
   sushiFarm.save();
+  createFarmSnapshot(event, sushiFarm);
 
   // update market LP supply
   let market = Market.load(sushiFarm.id) as Market;
@@ -227,6 +228,7 @@ export function handleWithdraw(event: Withdraw): void {
   // update sushifarm
   sushiFarm.totalSupply = sushiFarm.totalSupply.minus(amount);
   sushiFarm.save();
+  createFarmSnapshot(event, sushiFarm);
 
   // update market
   let market = Market.load(sushiFarm.id) as Market;
@@ -293,8 +295,6 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
   let user = getOrCreateAccount(event.params.user);
   let amount = event.params.amount;
 
-  let farmSnapshot = createFarmSnapshot(event, sushiFarm);
-
   // save new withdrawal entity
   let withdrawal = new FarmWithdrawal(
     event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString()
@@ -314,6 +314,8 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
   // update sushifarm
   sushiFarm.totalSupply = sushiFarm.totalSupply.minus(amount);
   sushiFarm.save();
+
+  createFarmSnapshot(event, sushiFarm);
 
   // update market
   let market = Market.load(sushiFarm.id) as Market;
@@ -399,6 +401,12 @@ export function handleSet(call: SetCall): void {
   // update sushifarm
   sushiFarm.allocPoint = call.inputs._allocPoint;
   sushiFarm.save();
+  let event = new ethereum.Event();
+  event.block = call.block;
+  event.transaction = call.transaction;
+  // Workaround to keep API of farmSnapshot same
+  event.logIndex = call.transaction.index;
+  createFarmSnapshot(event, sushiFarm);
 }
 
 /**
@@ -478,11 +486,10 @@ function updateFarmEvent(sushiFarm: SushiFarm, event: ethereum.Event): void {
     return;
   }
 
-  let farmSnapshot = createFarmSnapshot(event, sushiFarm);
-
   if (sushiFarm.totalSupply == BigInt.fromI32(0)) {
     sushiFarm.lastRewardBlock = block.number;
     sushiFarm.save();
+    createFarmSnapshot(event, sushiFarm);
     return;
   }
 
@@ -497,6 +504,8 @@ function updateFarmEvent(sushiFarm: SushiFarm, event: ethereum.Event): void {
   );
   sushiFarm.lastRewardBlock = block.number;
   sushiFarm.save();
+
+  createFarmSnapshot(event, sushiFarm);
 }
 
 /**
@@ -587,6 +596,7 @@ function getOrCreateSushiFarm(
   }
 
   sushiFarm.save();
+  createFarmSnapshot(event, sushiFarm);
 
   // create market representing the farm
   let marketId = sushiFarm.id;

@@ -25,6 +25,10 @@ export function getOrCreateUserInfo(user: string, farmId: string): UserInfo {
 }
 
 export function updateUserInfo(event: ethereum.Event, userInfo: UserInfo, amount: BigInt, rewardDebt: BigInt): UserInfo {
+  userInfo.amount = amount;
+  userInfo.rewardDebt = rewardDebt;
+  userInfo.save();
+
   let id = userInfo.id + "-" + event.transaction.hash.toHexString() + "-" + event.logIndex.toHexString();
   let userInfoSnapshot = new UserInfoSnapshot(id);
 
@@ -38,10 +42,6 @@ export function updateUserInfo(event: ethereum.Event, userInfo: UserInfo, amount
   userInfoSnapshot.logIndex = event.logIndex;
 
   userInfoSnapshot.save();
-
-  userInfo.amount = amount;
-  userInfo.rewardDebt = rewardDebt;
-  userInfo.save();
 
   return userInfo;
 }
