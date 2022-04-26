@@ -3,7 +3,7 @@ schema:
   file: ./schema.graphql
 
 graft:
-  base: QmevgLu9tZ6SUwDELdnNNnFZDVyBboBuFcj8tQUMZvnESE
+  base: QmPvuWXHXqWn4Dj8uhmr9byhuWs4UZ8fiBMmsNf9zETumQ
   block: 13520000 # Block number 
 
 ################# TEMPLATES
@@ -887,6 +887,23 @@ dataSources:
     source:
       address: "0x9838eCcC42659FA8AA7daF2aD134b53984c9427b"
       startBlock: 13526617
+      abi: CurvePool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *common_entities
+      abis: *common_abis
+      eventHandlers: *all_events
+      callHandlers: *all_calls
+      file: ./src/pool.ts
+
+  - kind: ethereum/contract
+    name: EURUSDC
+    network: mainnet
+    source:
+      address: "0x98a7F18d4E56Cfe84E3D081B40001B3d5bD3eB8B"
+      startBlock: 13530680
       abi: CurvePool
     mapping:
       kind: ethereum/events

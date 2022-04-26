@@ -275,6 +275,10 @@ export function getOrCreatePoolViaRegistry(
   }
   pool.coins = poolCoins.map<string>((t) => t.id);
 
+  // set ABI version
+  let poolContract = CurvePool.bind(curvePoolAddress);
+  pool.isOldAbiVersion = poolContract.try_balances(BigInt.fromI32(0)).reverted;
+
   //// get coin balances
   let balances = registryContract.get_balances(curvePoolAddress);
   let poolBalances: BigInt[] = [];
@@ -408,11 +412,6 @@ export function getPoolBalances(pool: PoolEntity, block: BigInt): BigInt[] {
   // else query the pool contract directly, per every coin
   else {
     let poolContract = CurvePool.bind(poolAddress);
-
-    if (pool.isOldAbiVersion == null) {
-      pool.isOldAbiVersion = poolContract.try_balances(BigInt.fromI32(0)).reverted;
-      pool.save();
-    }
 
     if (!pool.isOldAbiVersion) {
       for (let i = 0; i < pool.coinCount; i++) {
