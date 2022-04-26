@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts"
+import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 import {
   Account,
   AccountPosition,
@@ -10,53 +10,53 @@ import {
   Token,
   Transaction,
   Vault,
-  VaultBalance
-} from "../generated/schema"
-import { IERC20 } from "../generated/templates/Vault/IERC20"
-import { Transfer } from "../generated/templates/Vault/Vault"
-import { PositionType, TokenStandard, TransactionType } from "./constants"
+  VaultBalance,
+} from "../generated/schema";
+import { IERC20 } from "../generated/templates/Vault/IERC20";
+import { Transfer } from "../generated/templates/Vault/Vault";
+import { PositionType, TokenStandard, TransactionType } from "./constants";
 import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
 
-export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
+export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 
 export function getOrCreateAccount(address: Address): Account {
-  let addressHex = address.toHexString()
-  let account = Account.load(addressHex)
+  let addressHex = address.toHexString();
+  let account = Account.load(addressHex);
   if (account != null) {
-    return account as Account
+    return account as Account;
   }
 
-  account = new Account(addressHex)
-  account.save()
-  return account as Account
+  account = new Account(addressHex);
+  account.save();
+  return account as Account;
 }
 
 export function getOrCreateERC20Token(block: ethereum.Block, address: Address): Token {
-  let addressHex = address.toHexString()
-  let token = Token.load(addressHex)
+  let addressHex = address.toHexString();
+  let token = Token.load(addressHex);
   if (token != null) {
-    return token as Token
+    return token as Token;
   }
 
-  token = new Token(addressHex)
-  token.tokenStandard = TokenStandard.ERC20
-  let tokenInstance = IERC20.bind(address)
-  let tryName = tokenInstance.try_name()
+  token = new Token(addressHex);
+  token.tokenStandard = TokenStandard.ERC20;
+  let tokenInstance = IERC20.bind(address);
+  let tryName = tokenInstance.try_name();
   if (!tryName.reverted) {
-    token.name = tryName.value
+    token.name = tryName.value;
   }
-  let trySymbol = tokenInstance.try_symbol()
+  let trySymbol = tokenInstance.try_symbol();
   if (!trySymbol.reverted) {
-    token.symbol = trySymbol.value
+    token.symbol = trySymbol.value;
   }
-  let tryDecimals = tokenInstance.try_decimals()
+  let tryDecimals = tokenInstance.try_decimals();
   if (!tryDecimals.reverted) {
-    token.decimals = tryDecimals.value
+    token.decimals = tryDecimals.value;
   }
-  token.blockNumber = block.number
-  token.timestamp = block.timestamp
-  token.save()
-  return token as Token
+  token.blockNumber = block.number;
+  token.timestamp = block.timestamp;
+  token.save();
+  return token as Token;
 }
 
 export function getOrCreateMarket(
@@ -68,31 +68,31 @@ export function getOrCreateMarket(
   outputToken: Token,
   rewardTokens: Token[]
 ): Market {
-  let addressHex = address.toHexString()
-  let market = Market.load(addressHex)
+  let addressHex = address.toHexString();
+  let market = Market.load(addressHex);
   if (market != null) {
-    return market as Market
+    return market as Market;
   }
 
-  let inputTokenBalances: TokenBalance[] = []
+  let inputTokenBalances: TokenBalance[] = [];
   for (let i = 0; i < inputTokens.length; i++) {
-    let token = inputTokens[i]
-    inputTokenBalances.push(new TokenBalance(token.id, addressHex, BigInt.fromI32(0)))
+    let token = inputTokens[i];
+    inputTokenBalances.push(new TokenBalance(token.id, addressHex, BigInt.fromI32(0)));
   }
 
-  market = new Market(addressHex)
-  market.account = getOrCreateAccount(address).id
-  market.protocolName = protocolName
-  market.protocolType = protocolType
-  market.inputTokens = inputTokens.map<string>(t => t.id)
-  market.outputToken = outputToken.id
-  market.rewardTokens = rewardTokens.map<string>(t => t.id)
-  market.inputTokenTotalBalances = inputTokenBalances.map<string>(tb => tb.toString())
-  market.outputTokenTotalSupply = BigInt.fromI32(0)
-  market.blockNumber = block.number
-  market.timestamp = block.timestamp
-  market.save()
-  return market as Market
+  market = new Market(addressHex);
+  market.account = getOrCreateAccount(address).id;
+  market.protocolName = protocolName;
+  market.protocolType = protocolType;
+  market.inputTokens = inputTokens.map<string>((t) => t.id);
+  market.outputToken = outputToken.id;
+  market.rewardTokens = rewardTokens.map<string>((t) => t.id);
+  market.inputTokenTotalBalances = inputTokenBalances.map<string>((tb) => tb.toString());
+  market.outputTokenTotalSupply = BigInt.fromI32(0);
+  market.blockNumber = block.number;
+  market.timestamp = block.timestamp;
+  market.save();
+  return market as Market;
 }
 
 export function updateMarket(
@@ -101,52 +101,49 @@ export function updateMarket(
   inputTokenBalances: TokenBalance[],
   outputTokenTotalSupply: BigInt
 ): MarketSnapshot {
-  let transactionHash = event.transaction.hash.toHexString()
-  let id = transactionHash.concat("-").concat(event.logIndex.toHexString())
-  let marketSnapshot = MarketSnapshot.load(id)
+  let transactionHash = event.transaction.hash.toHexString();
+  let id = transactionHash.concat("-").concat(event.logIndex.toHexString());
+  let marketSnapshot = MarketSnapshot.load(id);
   if (marketSnapshot == null) {
-    marketSnapshot = new MarketSnapshot(id)
-    marketSnapshot.market = market.id
-    marketSnapshot.inputTokenBalances = market.inputTokenTotalBalances
-    marketSnapshot.outputTokenTotalSupply = market.outputTokenTotalSupply
-    marketSnapshot.blockNumber = event.block.number
-    marketSnapshot.timestamp = event.block.timestamp
-    marketSnapshot.transactionHash = transactionHash
-    marketSnapshot.transactionIndexInBlock = event.transaction.index
-    marketSnapshot.logIndex = event.logIndex
-    marketSnapshot.save()
+    marketSnapshot = new MarketSnapshot(id);
+    marketSnapshot.market = market.id;
+    marketSnapshot.inputTokenBalances = market.inputTokenTotalBalances;
+    marketSnapshot.outputTokenTotalSupply = market.outputTokenTotalSupply;
+    marketSnapshot.blockNumber = event.block.number;
+    marketSnapshot.timestamp = event.block.timestamp;
+    marketSnapshot.transactionHash = transactionHash;
+    marketSnapshot.transactionIndexInBlock = event.transaction.index;
+    marketSnapshot.logIndex = event.logIndex;
+    marketSnapshot.save();
   }
 
-  market.inputTokenTotalBalances = inputTokenBalances.map<string>(tb => tb.toString())
-  market.outputTokenTotalSupply = outputTokenTotalSupply
-  market.save()
+  market.inputTokenTotalBalances = inputTokenBalances.map<string>((tb) => tb.toString());
+  market.outputTokenTotalSupply = outputTokenTotalSupply;
+  market.save();
 
-  return marketSnapshot as MarketSnapshot
+  return marketSnapshot as MarketSnapshot;
 }
 
-export function createMarketSnapshot(
-  event: ethereum.Event,
-  market: Market,
-): MarketSnapshot {
-  let transactionHash = event.transaction.hash.toHexString()
-  let id = transactionHash.concat("-").concat(event.logIndex.toHexString())
-  let marketSnapshot = MarketSnapshot.load(id)
+export function createMarketSnapshot(event: ethereum.Event, market: Market): MarketSnapshot {
+  let transactionHash = event.transaction.hash.toHexString();
+  let id = transactionHash.concat("-").concat(event.logIndex.toHexString());
+  let marketSnapshot = MarketSnapshot.load(id);
   if (marketSnapshot != null) {
-    return marketSnapshot as MarketSnapshot
+    return marketSnapshot as MarketSnapshot;
   }
 
-  marketSnapshot = new MarketSnapshot(id)
-  marketSnapshot.market = market.id
-  marketSnapshot.inputTokenBalances = market.inputTokenTotalBalances
-  marketSnapshot.outputTokenTotalSupply = market.outputTokenTotalSupply
-  marketSnapshot.blockNumber = event.block.number
-  marketSnapshot.timestamp = event.block.timestamp
-  marketSnapshot.transactionHash = transactionHash
-  marketSnapshot.transactionIndexInBlock = event.transaction.index
-  marketSnapshot.logIndex = event.logIndex
-  marketSnapshot.save()
+  marketSnapshot = new MarketSnapshot(id);
+  marketSnapshot.market = market.id;
+  marketSnapshot.inputTokenBalances = market.inputTokenTotalBalances;
+  marketSnapshot.outputTokenTotalSupply = market.outputTokenTotalSupply;
+  marketSnapshot.blockNumber = event.block.number;
+  marketSnapshot.timestamp = event.block.timestamp;
+  marketSnapshot.transactionHash = transactionHash;
+  marketSnapshot.transactionIndexInBlock = event.transaction.index;
+  marketSnapshot.logIndex = event.logIndex;
+  marketSnapshot.save();
 
-  return marketSnapshot as MarketSnapshot
+  return marketSnapshot as MarketSnapshot;
 }
 
 export function getOrCreateOpenPosition(
@@ -155,128 +152,136 @@ export function getOrCreateOpenPosition(
   market: Market,
   positionType: string
 ): Position {
-  let id = account.id.concat("-").concat(market.id).concat("-").concat(positionType)
-  let accountPosition = AccountPosition.load(id)
+  let id = account.id
+    .concat("-")
+    .concat(market.id)
+    .concat("-")
+    .concat(positionType);
+  let accountPosition = AccountPosition.load(id);
   if (accountPosition == null) {
-    accountPosition = new AccountPosition(id)
-    accountPosition.positionCounter = BigInt.fromI32(0)
-    accountPosition.save()
+    accountPosition = new AccountPosition(id);
+    accountPosition.positionCounter = BigInt.fromI32(0);
+    accountPosition.save();
   }
 
-  let pid = accountPosition.id.concat("-").concat((accountPosition.positionCounter).toString())
-  let lastPosition = Position.load(pid)
+  let pid = accountPosition.id.concat("-").concat(accountPosition.positionCounter.toString());
+  let lastPosition = Position.load(pid);
 
   if (lastPosition == null || lastPosition.closed) {
-    let newCounter = accountPosition.positionCounter.plus(BigInt.fromI32(1))
-    let newPositionId = id.concat("-").concat(newCounter.toString())
-    let position = new Position(newPositionId)
-    position.accountPosition = accountPosition.id
-    position.account = account.id
-    position.accountAddress = account.id
-    position.market = market.id
-    position.marketAddress = market.id
-    position.positionType = positionType
-    position.outputTokenBalance = BigInt.fromI32(0)
-    position.inputTokenBalances = []
-    position.rewardTokenBalances = []
-    position.transferredTo = []
-    position.closed = false
-    position.blockNumber = event.block.number
-    position.timestamp = event.block.timestamp
-    position.historyCounter = BigInt.fromI32(0)
-    position.save()
+    let newCounter = accountPosition.positionCounter.plus(BigInt.fromI32(1));
+    let newPositionId = id.concat("-").concat(newCounter.toString());
+    let position = new Position(newPositionId);
+    position.accountPosition = accountPosition.id;
+    position.account = account.id;
+    position.accountAddress = account.id;
+    position.market = market.id;
+    position.marketAddress = market.id;
+    position.positionType = positionType;
+    position.outputTokenBalance = BigInt.fromI32(0);
+    position.inputTokenBalances = [];
+    position.rewardTokenBalances = [];
+    position.transferredTo = [];
+    position.closed = false;
+    position.blockNumber = event.block.number;
+    position.timestamp = event.block.timestamp;
+    position.historyCounter = BigInt.fromI32(0);
+    position.save();
 
-    accountPosition.positionCounter = newCounter
-    accountPosition.save()
+    accountPosition.positionCounter = newCounter;
+    accountPosition.save();
 
-    return position
+    return position;
   }
 
-  return lastPosition as Position
+  return lastPosition as Position;
 }
 
 export class TokenBalance {
-  tokenAddress: string
-  accountAddress: string
-  balance: BigInt
+  tokenAddress: string;
+  accountAddress: string;
+  balance: BigInt;
 
   constructor(tokenAddress: string, accountAddress: string, balance: BigInt) {
-    this.tokenAddress = tokenAddress
-    this.accountAddress = accountAddress
-    this.balance = balance
+    this.tokenAddress = tokenAddress;
+    this.accountAddress = accountAddress;
+    this.balance = balance;
   }
 
   // Does not modify this or b TokenBalance, return new TokenBalance
   add(b: TokenBalance): TokenBalance {
     if (this.tokenAddress == b.tokenAddress) {
-      return new TokenBalance(this.tokenAddress, this.accountAddress, this.balance.plus(b.balance))
+      return new TokenBalance(this.tokenAddress, this.accountAddress, this.balance.plus(b.balance));
     } else {
-      return this
+      return this;
     }
   }
 
   toString(): string {
-    return this.tokenAddress.concat("|").concat(this.accountAddress).concat("|").concat(this.balance.toString())
+    return this.tokenAddress
+      .concat("|")
+      .concat(this.accountAddress)
+      .concat("|")
+      .concat(this.balance.toString());
   }
 
   static fromString(tb: string): TokenBalance {
-    let parts = tb.split("|")
-    let tokenAddress = parts[0]
-    let accountAddress = parts[1]
-    let balance = BigInt.fromString(parts[2])
-    return new TokenBalance(tokenAddress, accountAddress, balance)
+    let parts = tb.split("|");
+    let tokenAddress = parts[0];
+    let accountAddress = parts[1];
+    let balance = BigInt.fromString(parts[2]);
+    return new TokenBalance(tokenAddress, accountAddress, balance);
   }
 }
 
 function addTokenBalances(atbs: TokenBalance[], btbs: TokenBalance[]): TokenBalance[] {
   if (atbs.length == 0) {
-    return btbs
+    return btbs;
   }
 
   if (btbs.length == 0) {
-    return atbs
+    return atbs;
   }
 
-  let atbsLength = atbs.length
-  let btbsLength = btbs.length
+  let atbsLength = atbs.length;
+  let btbsLength = btbs.length;
 
-  let sum: TokenBalance[] = []
+  let sum: TokenBalance[] = [];
 
   for (let i = 0; i < btbsLength; i = i + 1) {
-    let bv = btbs[i]
-    let found = false
+    let bv = btbs[i];
+    let found = false;
     for (let j = 0; j < atbsLength; j = j + 1) {
-      let av = atbs[j]
+      let av = atbs[j];
       if (av.tokenAddress == bv.tokenAddress) {
-        found = true
-        sum.push(av.add(bv))
+        found = true;
+        sum.push(av.add(bv));
       }
     }
     if (!found) {
-      sum.push(bv)
+      sum.push(bv);
     }
   }
 
-  return sum
+  return sum;
 }
 
 function createPostionSnapshot(position: Position, transaction: Transaction): PositionSnapshot {
-  let newCounter = position.historyCounter.plus(BigInt.fromI32(1))
-  let newSnapshot = new PositionSnapshot(position.id.concat("-").concat(newCounter.toString()))
-  newSnapshot.position = position.id
-  newSnapshot.transaction = transaction.id
-  newSnapshot.outputTokenBalance = position.outputTokenBalance
-  newSnapshot.inputTokenBalances = position.inputTokenBalances
-  newSnapshot.rewardTokenBalances = position.rewardTokenBalances
-  newSnapshot.transferredTo = position.transferredTo
-  position.blockNumber = transaction.blockNumber
-  position.timestamp = transaction.timestamp
-  newSnapshot.save()
+  let newCounter = position.historyCounter.plus(BigInt.fromI32(1));
+  let newSnapshot = new PositionSnapshot(position.id.concat("-").concat(newCounter.toString()));
+  newSnapshot.position = position.id;
+  newSnapshot.transaction = transaction.id;
+  newSnapshot.outputTokenBalance = position.outputTokenBalance;
+  newSnapshot.inputTokenBalances = position.inputTokenBalances;
+  newSnapshot.rewardTokenBalances = position.rewardTokenBalances;
+  newSnapshot.transferredTo = position.transferredTo;
+  position.blockNumber = transaction.blockNumber;
+  position.timestamp = transaction.timestamp;
+  newSnapshot.save();
 
-  position.historyCounter = newCounter
-  position.save()
+  position.historyCounter = newCounter;
+  position.save();
 
-  return newSnapshot
+  return newSnapshot;
 }
 
 // We don't want to have any logic to calculae balance with protocol specific logic here
@@ -294,49 +299,53 @@ export function investInMarket(
   transferredFrom: string | null
 ): Position {
   // Create marketSnapshot for transaction
-  let marketSnapshot = createMarketSnapshot(event, market)
+  let marketSnapshot = createMarketSnapshot(event, market);
 
   // Create transaction for given event
-  let transactionId = account.id.concat("-").concat(event.transaction.hash.toHexString()).concat("-").concat(event.logIndex.toHexString())
-  let transaction = new Transaction(transactionId)
-  transaction.transactionHash = event.transaction.hash
-  transaction.market = market.id
-  transaction.marketSnapshot = marketSnapshot.id
-  transaction.from = getOrCreateAccount(event.transaction.from).id
+  let transactionId = account.id
+    .concat("-")
+    .concat(event.transaction.hash.toHexString())
+    .concat("-")
+    .concat(event.logIndex.toHexString());
+  let transaction = new Transaction(transactionId);
+  transaction.transactionHash = event.transaction.hash;
+  transaction.market = market.id;
+  transaction.marketSnapshot = marketSnapshot.id;
+  transaction.from = getOrCreateAccount(event.transaction.from).id;
   if (event.transaction.to) {
-    transaction.to = getOrCreateAccount(event.transaction.to as Address).id
+    transaction.to = getOrCreateAccount(event.transaction.to as Address).id;
   }
   if (transferredFrom == null) {
-    transaction.transactionType = TransactionType.INVEST
+    transaction.transactionType = TransactionType.INVEST;
   } else {
-    transaction.transactionType = TransactionType.TRANSFER_IN
+    transaction.transactionType = TransactionType.TRANSFER_IN;
   }
-  transaction.transferredFrom = transferredFrom
-  transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
-  transaction.outputTokenAmount = outputTokenAmount
-  transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasLimit
-  transaction.gasPrice = event.transaction.gasPrice
-  transaction.blockNumber = event.block.number
-  transaction.timestamp = event.block.timestamp
-  transaction.transactionIndexInBlock = event.transaction.index
-  transaction.save()
+  transaction.transferredFrom = transferredFrom;
+  transaction.inputTokenAmounts = inputTokenAmounts.map<string>((tb) => tb.toString());
+  transaction.outputTokenAmount = outputTokenAmount;
+  transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>((tb) => tb.toString());
+  transaction.gasUsed = event.transaction.gasLimit;
+  transaction.gasPrice = event.transaction.gasPrice;
+  transaction.blockNumber = event.block.number;
+  transaction.timestamp = event.block.timestamp;
+  transaction.transactionIndexInBlock = event.transaction.index;
+  transaction.save();
 
-  let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT)
-  let postionSnapshot = createPostionSnapshot(position, transaction)
+  let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT);
+  let postionSnapshot = createPostionSnapshot(position, transaction);
 
-  position.inputTokenBalances = inputTokenBalances.map<string>(tb => tb.toString())
-  position.outputTokenBalance = outputTokenBalance
-  position.rewardTokenBalances = rewardTokenBalances.map<string>(tb => tb.toString())
+  position.inputTokenBalances = inputTokenBalances.map<string>((tb) => tb.toString());
+  position.outputTokenBalance = outputTokenBalance;
+  position.rewardTokenBalances = rewardTokenBalances.map<string>((tb) => tb.toString());
 
   // Check if postion is closed
   if (position.outputTokenBalance == BigInt.fromI32(0)) {
-    position.closed = true
+    position.closed = true;
   }
 
-  position.save()
+  position.save();
 
-  return position
+  return position;
 }
 
 export function redeemFromMarket(
@@ -352,60 +361,64 @@ export function redeemFromMarket(
   transferredTo: string | null
 ): Position {
   // Create marketSnapshot for transaction
-  let marketSnapshot = createMarketSnapshot(event, market)
+  let marketSnapshot = createMarketSnapshot(event, market);
 
   // Create transaction for given event
-  let transactionId = account.id.concat("-").concat(event.transaction.hash.toHexString()).concat("-").concat(event.logIndex.toHexString())
-  let transaction = new Transaction(transactionId)
-  transaction.transactionHash = event.transaction.hash
-  transaction.market = market.id
-  transaction.marketSnapshot = marketSnapshot.id
-  transaction.from = getOrCreateAccount(event.transaction.from).id
+  let transactionId = account.id
+    .concat("-")
+    .concat(event.transaction.hash.toHexString())
+    .concat("-")
+    .concat(event.logIndex.toHexString());
+  let transaction = new Transaction(transactionId);
+  transaction.transactionHash = event.transaction.hash;
+  transaction.market = market.id;
+  transaction.marketSnapshot = marketSnapshot.id;
+  transaction.from = getOrCreateAccount(event.transaction.from).id;
   if (event.transaction.to) {
-    transaction.to = getOrCreateAccount(event.transaction.to as Address).id
+    transaction.to = getOrCreateAccount(event.transaction.to as Address).id;
   }
   if (transferredTo == null) {
-    transaction.transactionType = TransactionType.REDEEM
+    transaction.transactionType = TransactionType.REDEEM;
   } else {
-    transaction.transactionType = TransactionType.TRANSFER_OUT
+    transaction.transactionType = TransactionType.TRANSFER_OUT;
   }
-  transaction.transferredTo = transferredTo
-  transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
-  transaction.outputTokenAmount = outputTokenAmount
-  transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasLimit
-  transaction.gasPrice = event.transaction.gasPrice
-  transaction.blockNumber = event.block.number
-  transaction.timestamp = event.block.timestamp
-  transaction.transactionIndexInBlock = event.transaction.index
-  transaction.save()
+  transaction.transferredTo = transferredTo;
+  transaction.inputTokenAmounts = inputTokenAmounts.map<string>((tb) => tb.toString());
+  transaction.outputTokenAmount = outputTokenAmount;
+  transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>((tb) => tb.toString());
+  transaction.gasUsed = event.transaction.gasLimit;
+  transaction.gasPrice = event.transaction.gasPrice;
+  transaction.blockNumber = event.block.number;
+  transaction.timestamp = event.block.timestamp;
+  transaction.transactionIndexInBlock = event.transaction.index;
+  transaction.save();
 
-  let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT)
-  let postionSnapshot = createPostionSnapshot(position, transaction)
+  let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT);
+  let postionSnapshot = createPostionSnapshot(position, transaction);
 
   // No change in investment amount as no new investment has been made
-  position.inputTokenBalances = inputTokenBalances.map<string>(tb => tb.toString())
-  position.outputTokenBalance = outputTokenBalance
-  position.rewardTokenBalances = rewardTokenBalances.map<string>(tb => tb.toString())
+  position.inputTokenBalances = inputTokenBalances.map<string>((tb) => tb.toString());
+  position.outputTokenBalance = outputTokenBalance;
+  position.rewardTokenBalances = rewardTokenBalances.map<string>((tb) => tb.toString());
 
   // Check if it is transferred to some other account
   if (transferredTo) {
-    let exists = position.transferredTo.includes(transferredTo)
+    let exists = position.transferredTo.includes(transferredTo);
     if (!exists) {
-      let newTransferredTo = position.transferredTo
-      newTransferredTo.push(transferredTo)
-      position.transferredTo = newTransferredTo
+      let newTransferredTo = position.transferredTo;
+      newTransferredTo.push(transferredTo);
+      position.transferredTo = newTransferredTo;
     }
   }
 
   // Check if postion is closed
   if (position.outputTokenBalance == BigInt.fromI32(0)) {
-    position.closed = true
+    position.closed = true;
   }
 
-  position.save()
+  position.save();
 
-  return position
+  return position;
 }
 
 export function borrowFromMarket(
@@ -420,44 +433,48 @@ export function borrowFromMarket(
   rewardTokenBalances: TokenBalance[]
 ): Position {
   // Create marketSnapshot for transaction
-  let marketSnapshot = createMarketSnapshot(event, market)
+  let marketSnapshot = createMarketSnapshot(event, market);
 
   // Create transaction for given event
-  let transactionId = account.id.concat("-").concat(event.transaction.hash.toHexString()).concat("-").concat(event.logIndex.toHexString())
-  let transaction = new Transaction(transactionId)
-  transaction.transactionHash = event.transaction.hash
-  transaction.market = market.id
-  transaction.marketSnapshot = marketSnapshot.id
-  transaction.from = getOrCreateAccount(event.transaction.from).id
+  let transactionId = account.id
+    .concat("-")
+    .concat(event.transaction.hash.toHexString())
+    .concat("-")
+    .concat(event.logIndex.toHexString());
+  let transaction = new Transaction(transactionId);
+  transaction.transactionHash = event.transaction.hash;
+  transaction.market = market.id;
+  transaction.marketSnapshot = marketSnapshot.id;
+  transaction.from = getOrCreateAccount(event.transaction.from).id;
   if (event.transaction.to) {
-    transaction.to = getOrCreateAccount(event.transaction.to as Address).id
+    transaction.to = getOrCreateAccount(event.transaction.to as Address).id;
   }
-  transaction.transactionType = TransactionType.BORROW
-  transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
-  transaction.outputTokenAmount = outputTokenAmount
-  transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasLimit
-  transaction.gasPrice = event.transaction.gasPrice
-  transaction.blockNumber = event.block.number
-  transaction.timestamp = event.block.timestamp
-  transaction.transactionIndexInBlock = event.transaction.index
-  transaction.save()
+  transaction.transactionType = TransactionType.BORROW;
+  transaction.inputTokenAmounts = inputTokenAmounts.map<string>((tb) => tb.toString());
+  transaction.outputTokenAmount = outputTokenAmount;
+  transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>((tb) => tb.toString());
+  transaction.gasUsed = event.transaction.gasLimit;
+  transaction.gasPrice = event.transaction.gasPrice;
+  transaction.blockNumber = event.block.number;
+  transaction.timestamp = event.block.timestamp;
+  transaction.transactionIndexInBlock = event.transaction.index;
+  transaction.save();
 
-  let position = getOrCreateOpenPosition(event, account, market, PositionType.DEBT)
-  let postionSnapshot = createPostionSnapshot(position, transaction)
+  let position = getOrCreateOpenPosition(event, account, market, PositionType.DEBT);
+  let postionSnapshot = createPostionSnapshot(position, transaction);
 
-  position.inputTokenBalances = inputTokenBalances.map<string>(tb => tb.toString())
-  position.outputTokenBalance = outputTokenBalance
-  position.rewardTokenBalances = rewardTokenBalances.map<string>(tb => tb.toString())
+  position.inputTokenBalances = inputTokenBalances.map<string>((tb) => tb.toString());
+  position.outputTokenBalance = outputTokenBalance;
+  position.rewardTokenBalances = rewardTokenBalances.map<string>((tb) => tb.toString());
 
   // Check if postion is closed
   if (position.outputTokenBalance == BigInt.fromI32(0)) {
-    position.closed = true
+    position.closed = true;
   }
 
-  position.save()
+  position.save();
 
-  return position
+  return position;
 }
 
 export function repayToMarket(
@@ -472,50 +489,54 @@ export function repayToMarket(
   rewardTokenBalances: TokenBalance[]
 ): Position {
   // Create marketSnapshot for transaction
-  let marketSnapshot = createMarketSnapshot(event, market)
+  let marketSnapshot = createMarketSnapshot(event, market);
 
   // Create transaction for given event
-  let transactionId = account.id.concat("-").concat(event.transaction.hash.toHexString()).concat("-").concat(event.logIndex.toHexString())
-  let transaction = new Transaction(transactionId)
-  transaction.transactionHash = event.transaction.hash
-  transaction.market = market.id
-  transaction.marketSnapshot = marketSnapshot.id
-  transaction.from = getOrCreateAccount(event.transaction.from).id
+  let transactionId = account.id
+    .concat("-")
+    .concat(event.transaction.hash.toHexString())
+    .concat("-")
+    .concat(event.logIndex.toHexString());
+  let transaction = new Transaction(transactionId);
+  transaction.transactionHash = event.transaction.hash;
+  transaction.market = market.id;
+  transaction.marketSnapshot = marketSnapshot.id;
+  transaction.from = getOrCreateAccount(event.transaction.from).id;
   if (event.transaction.to) {
-    transaction.to = getOrCreateAccount(event.transaction.to as Address).id
+    transaction.to = getOrCreateAccount(event.transaction.to as Address).id;
   }
-  transaction.transactionType = TransactionType.REPAY
-  transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
-  transaction.outputTokenAmount = outputTokenAmount
-  transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasLimit
-  transaction.gasPrice = event.transaction.gasPrice
-  transaction.blockNumber = event.block.number
-  transaction.timestamp = event.block.timestamp
-  transaction.transactionIndexInBlock = event.transaction.index
-  transaction.save()
+  transaction.transactionType = TransactionType.REPAY;
+  transaction.inputTokenAmounts = inputTokenAmounts.map<string>((tb) => tb.toString());
+  transaction.outputTokenAmount = outputTokenAmount;
+  transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>((tb) => tb.toString());
+  transaction.gasUsed = event.transaction.gasLimit;
+  transaction.gasPrice = event.transaction.gasPrice;
+  transaction.blockNumber = event.block.number;
+  transaction.timestamp = event.block.timestamp;
+  transaction.transactionIndexInBlock = event.transaction.index;
+  transaction.save();
 
-  let position = getOrCreateOpenPosition(event, account, market, PositionType.DEBT)
-  let postionSnapshot = createPostionSnapshot(position, transaction)
+  let position = getOrCreateOpenPosition(event, account, market, PositionType.DEBT);
+  let postionSnapshot = createPostionSnapshot(position, transaction);
 
   // Loan amount is not changed on repayment
-  position.inputTokenBalances = inputTokenBalances.map<string>(tb => tb.toString())
-  position.outputTokenBalance = outputTokenBalance
-  position.rewardTokenBalances = rewardTokenBalances.map<string>(tb => tb.toString())
+  position.inputTokenBalances = inputTokenBalances.map<string>((tb) => tb.toString());
+  position.outputTokenBalance = outputTokenBalance;
+  position.rewardTokenBalances = rewardTokenBalances.map<string>((tb) => tb.toString());
 
   // Check if postion is closed
   if (position.outputTokenBalance == BigInt.fromI32(0)) {
-    position.closed = true
+    position.closed = true;
   }
 
-  position.save()
+  position.save();
 
-  return position
+  return position;
 }
 
 export function getOrCreateVault(address: Address): Vault {
   let vault = Vault.load(address.toHexString());
-  if(!vault) {
+  if (!vault) {
     vault = new Vault(address.toHexString());
   }
 
@@ -525,7 +546,7 @@ export function getOrCreateVault(address: Address): Vault {
 export function getOrCreateVaultBalance(address: Address, vault: Vault): VaultBalance {
   let id = vault.id + "-" + address.toHexString();
   let balance = VaultBalance.load(id);
-  if(!balance) {
+  if (!balance) {
     balance = new VaultBalance(id);
     balance.balance = BigInt.fromI32(0);
     balance.vault = vault.id;
@@ -546,19 +567,18 @@ export function deposit(event: Transfer): void {
   let outputTokenBalance = balance.balance;
 
   let inputTokenAmount = event.params.value.times(vault.pricePerShare!).div(vault.underlyingUnit!);
-  let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!)
+  let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!);
 
   let inputTokenAmounts = [
-    new TokenBalance(market.inputTokens[0], event.params.to.toHexString(), inputTokenAmount)
+    new TokenBalance(market.inputTokens[0], event.params.to.toHexString(), inputTokenAmount),
   ];
-    
+
   // @todo
   let rewardTokenAmounts: TokenBalance[] = [];
   let rewardTokenBalances: TokenBalance[] = [];
 
-
   let inputTokenBalances: TokenBalance[] = [
-    new TokenBalance(market.inputTokens[0], event.params.to.toHexString(), inputTokenBalance)
+    new TokenBalance(market.inputTokens[0], event.params.to.toHexString(), inputTokenBalance),
   ];
 
   let outputTokenAmount = event.params.value;
@@ -590,19 +610,18 @@ export function withdraw(event: Transfer): void {
   let outputTokenBalance = balance.balance;
 
   let inputTokenAmount = event.params.value.times(vault.pricePerShare!).div(vault.underlyingUnit!);
-  let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!)
+  let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!);
 
   let inputTokenAmounts = [
-    new TokenBalance(market.inputTokens[0], event.params.from.toHexString(), inputTokenAmount)
+    new TokenBalance(market.inputTokens[0], event.params.from.toHexString(), inputTokenAmount),
   ];
-    
+
   // @todo
   let rewardTokenAmounts: TokenBalance[] = [];
   let rewardTokenBalances: TokenBalance[] = [];
 
-
   let inputTokenBalances: TokenBalance[] = [
-    new TokenBalance(market.inputTokens[0], event.params.from.toHexString(), inputTokenBalance)
+    new TokenBalance(market.inputTokens[0], event.params.from.toHexString(), inputTokenBalance),
   ];
 
   let outputTokenAmount = event.params.value;

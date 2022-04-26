@@ -1,27 +1,37 @@
-import {AddVaultAndStrategyCall, SharePriceChangeLog} from "../generated/HarvestEthController/HarvestEthController";
+import {
+  AddVaultAndStrategyCall,
+  SharePriceChangeLog,
+} from "../generated/HarvestEthController/HarvestEthController";
 import { Market } from "../generated/schema";
-import { ADDRESS_ZERO, deposit, getOrCreateERC20Token, getOrCreateMarket, getOrCreateVault, TokenBalance, updateMarket, withdraw } from "./common";
+import {
+  ADDRESS_ZERO,
+  deposit,
+  getOrCreateERC20Token,
+  getOrCreateMarket,
+  getOrCreateVault,
+  TokenBalance,
+  updateMarket,
+  withdraw,
+} from "./common";
 import { FARM_TOKEN_ADDRESS, ProtocolName, ProtocolType } from "./constants";
 import { Transfer } from "../generated/templates/Vault/Vault";
-import { Vault } from '../generated/templates'
+import { Vault } from "../generated/templates";
 import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
 
-
 export function addVaultAndStrategy(add: AddVaultAndStrategyCall): void {
-  
   let fAssetToken = VaultContract.bind(add.inputs._vault);
   let underlying = fAssetToken.try_underlying();
-  if(underlying.reverted) {
+  if (underlying.reverted) {
     return;
   }
 
   let underlyingUnit = fAssetToken.try_underlyingUnit();
-  if(underlyingUnit.reverted) {
+  if (underlyingUnit.reverted) {
     return;
   }
 
   let pricePerShare = fAssetToken.try_getPricePerFullShare();
-  if(pricePerShare.reverted) {
+  if (pricePerShare.reverted) {
     return;
   }
 
@@ -33,13 +43,12 @@ export function addVaultAndStrategy(add: AddVaultAndStrategyCall): void {
 
   // reward
   let farmERC20 = getOrCreateERC20Token(add.block, FARM_TOKEN_ADDRESS);
-  
+
   let vault = getOrCreateVault(add.inputs._vault);
   vault.underlyingToken = underlying.value.toHexString();
   vault.underlyingUnit = underlyingUnit.value;
   vault.pricePerShare = pricePerShare.value;
   vault.save();
-  
 
   getOrCreateMarket(
     add.block,
@@ -48,17 +57,17 @@ export function addVaultAndStrategy(add: AddVaultAndStrategyCall): void {
     ProtocolType.LP_FARMING,
     [assetERC20], // Asset
     fAssetTokenERC20, // fAsset
-    [farmERC20], // FARM
-  )
+    [farmERC20] // FARM
+  );
 
   Vault.create(add.inputs._vault);
 }
 
 // update fAsset - mint/burn/transfer of users
 export function handleTransfer(event: Transfer): void {
-  if(event.params.from.toHexString() == ADDRESS_ZERO) {
+  if (event.params.from.toHexString() == ADDRESS_ZERO) {
     deposit(event);
-  } else if(event.params.to.toHexString() == ADDRESS_ZERO) {
+  } else if (event.params.to.toHexString() == ADDRESS_ZERO) {
     withdraw(event);
   } else {
     deposit(event);
@@ -71,12 +80,12 @@ export function updateSharePrice(event: SharePriceChangeLog): void {
   let vault = getOrCreateVault(event.params.vault);
   vault.pricePerShare = event.params.newSharePrice;
   vault.save();
-  
+
   let outputTokenBalance = market.outputTokenTotalSupply;
   let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!);
 
   let inputTokenBalances: TokenBalance[] = [
-    new TokenBalance(vault.underlyingToken!, event.params.vault.toHexString(), inputTokenBalance)
+    new TokenBalance(vault.underlyingToken!, event.params.vault.toHexString(), inputTokenBalance),
   ];
 
   updateMarket(event, market, inputTokenBalances, market.outputTokenTotalSupply);
