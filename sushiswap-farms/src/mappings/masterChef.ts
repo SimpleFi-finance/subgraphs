@@ -29,9 +29,10 @@ import {
   investInMarket,
   redeemFromMarket,
   TokenBalance,
+  TokenBalanceFormula,
 } from "../library/common";
 
-import { getOrCreateUserInfo } from "../library/masterChefUtils";
+import { createFarmSnapshot, getOrCreateUserInfo, updateUserInfo } from "../library/masterChefUtils";
 
 import { ProtocolName, ProtocolType } from "../library/constants";
 
@@ -67,12 +68,13 @@ export function handleAdd(call: AddCall): void {
     masterChef.sushiPerBlock = masterChefContract.sushiPerBlock();
     masterChef.bonusEndBlock = masterChefContract.bonusEndBlock();
     masterChef.bonusMultiplier = masterChefContract.BONUS_MULTIPLIER();
+    masterChef.precision = ACC_SUSHI_PRECISION;
     masterChef.save();
   }
 
   // update all farms reward variables
   if (call.inputs._withUpdate) {
-    massUpdateFarms(masterChef as MasterChefEntity, call.block);
+    massUpdateFarms(masterChef as MasterChefEntity, call);
   }
 
   // create SushiFarm entity
@@ -100,7 +102,7 @@ export function handleDeposit(event: Deposit): void {
   let amount = event.params.amount;
 
   // update farm/pool reward variables
-  updateFarm(sushiFarm, event.block);
+  updateFarmEvent(sushiFarm, event);
 
   // save new deposit entity
   let deposit = new FarmDeposit(
@@ -120,15 +122,16 @@ export function handleDeposit(event: Deposit): void {
     .minus(userInfo.rewardDebt);
 
   // increase user's balance of provided LP tokens and amount of rewards entitled to user
-  userInfo.amount = userInfo.amount.plus(amount);
-  userInfo.rewardDebt = userInfo.amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION);
-  userInfo.save();
+  let newUserInfoAmount = userInfo.amount.plus(amount);
+  let newUserInfoRewardDebt = userInfo.amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION);
+  userInfo = updateUserInfo(event, userInfo, newUserInfoAmount, newUserInfoRewardDebt);
 
   ////// update market LP supply
 
   // update sushifarm
   sushiFarm.totalSupply = sushiFarm.totalSupply.plus(amount);
   sushiFarm.save();
+  createFarmSnapshot(event, sushiFarm);
 
   // update market LP supply
   let market = Market.load(sushiFarm.id) as Market;
@@ -165,6 +168,9 @@ export function handleDeposit(event: Deposit): void {
     new TokenBalance(rewardTokens[0], user.id, BigInt.fromI32(0)),
   ];
 
+  let rewardTokenBalanceFormula = "(userInfoSnapshots.amount * sushiFarmSnapshots.accSushiPerShare / masterChef.precision) - userInfoSnapshots.rewardDebt|" + "userInfoSnapshots.userInfo:" + userInfo.id + "|sushiFarmSnapshots.sushiFarm:"+sushiFarm.id + "|masterChef.id:"+ masterChef.id;
+  let tokenBalanceFormula = new TokenBalanceFormula(null, null, [rewardTokenBalanceFormula]);
+
   investInMarket(
     event,
     user,
@@ -175,7 +181,8 @@ export function handleDeposit(event: Deposit): void {
     outputTokenBalance,
     inputTokenBalances,
     rewardTokenBalances,
-    null
+    null,
+    tokenBalanceFormula
   );
 }
 
@@ -192,7 +199,7 @@ export function handleWithdraw(event: Withdraw): void {
   let amount = event.params.amount;
 
   // update farm/pool reward variables
-  updateFarm(sushiFarm, event.block);
+  updateFarmEvent(sushiFarm, event);
 
   // save new withdrawal entity
   let withdrawal = new FarmWithdrawal(
@@ -212,15 +219,16 @@ export function handleWithdraw(event: Withdraw): void {
     .minus(userInfo.rewardDebt);
 
   // decrease user's balance of provided LP tokens and amount of rewards entitled to user
-  userInfo.amount = userInfo.amount.minus(amount);
-  userInfo.rewardDebt = userInfo.amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION);
-  userInfo.save();
+  let newUserInfoAmount = userInfo.amount.minus(amount);
+  let newUserInfoRewardDebt = userInfo.amount.times(sushiFarm.accSushiPerShare).div(ACC_SUSHI_PRECISION);
+  userInfo = updateUserInfo(event, userInfo, newUserInfoAmount, newUserInfoRewardDebt);
 
   ////// update market LP supply
 
   // update sushifarm
   sushiFarm.totalSupply = sushiFarm.totalSupply.minus(amount);
   sushiFarm.save();
+  createFarmSnapshot(event, sushiFarm);
 
   // update market
   let market = Market.load(sushiFarm.id) as Market;
@@ -257,6 +265,9 @@ export function handleWithdraw(event: Withdraw): void {
     new TokenBalance(rewardTokens[0], user.id, BigInt.fromI32(0)),
   ];
 
+  let rewardTokenBalanceFormula = "(UserInfo.amount * SushiFarm.accSushiPerShare / MasterChef.precision) - UserInfo.rewardDebt|" + "UserInfo:" + userInfo.id + "|SushiFarm:"+sushiFarm.id + "|MasterChef:"+ masterChef.id;
+  let tokenBalanceFormula = new TokenBalanceFormula(null, null, [rewardTokenBalanceFormula]);
+
   redeemFromMarket(
     event,
     user,
@@ -267,7 +278,8 @@ export function handleWithdraw(event: Withdraw): void {
     outputTokenBalance,
     inputTokenBalances,
     rewardTokenBalances,
-    null
+    null,
+    tokenBalanceFormula
   );
 }
 
@@ -295,15 +307,15 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
 
   // LP token balance and claimable rewards are resetted to 0 in EmergencyWithdraw
   let userInfo = getOrCreateUserInfo(user.id, sushiFarm.id);
-  userInfo.amount = BigInt.fromI32(0);
-  userInfo.rewardDebt = BigInt.fromI32(0);
-  userInfo.save();
+  userInfo = updateUserInfo(event, userInfo, BigInt.fromI32(0), BigInt.fromI32(0));
 
   ////// update market LP supply
 
   // update sushifarm
   sushiFarm.totalSupply = sushiFarm.totalSupply.minus(amount);
   sushiFarm.save();
+
+  createFarmSnapshot(event, sushiFarm);
 
   // update market
   let market = Market.load(sushiFarm.id) as Market;
@@ -338,6 +350,9 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
     new TokenBalance(rewardTokens[0], user.id, BigInt.fromI32(0)),
   ];
 
+  let rewardTokenBalanceFormula = "(UserInfo.amount * SushiFarm.accSushiPerShare / MasterChef.precision) - UserInfo.rewardDebt|" + "UserInfo:" + userInfo.id + "|SushiFarm:"+sushiFarm.id + "|MasterChef:"+ masterChef.id;
+  let tokenBalanceFormula = new TokenBalanceFormula(null, null, [rewardTokenBalanceFormula]);
+
   redeemFromMarket(
     event,
     user,
@@ -348,7 +363,8 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
     outputTokenBalance,
     inputTokenBalances,
     rewardTokenBalances,
-    null
+    null,
+    tokenBalanceFormula
   );
 }
 
@@ -359,7 +375,7 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
 export function handleUpdatePool(call: UpdatePoolCall): void {
   let masterChef = call.to.toHexString();
   let sushiFarm = SushiFarm.load(masterChef + "-" + call.inputs._pid.toString()) as SushiFarm;
-  updateFarm(sushiFarm, call.block);
+  updateFarm(sushiFarm, call);
 }
 
 /**
@@ -373,7 +389,7 @@ export function handleSet(call: SetCall): void {
 
   // update all farms
   if (call.inputs._withUpdate) {
-    massUpdateFarms(masterChefEntity, call.block);
+    massUpdateFarms(masterChefEntity, call);
   }
 
   // update totalalloc of MasterChef
@@ -385,6 +401,12 @@ export function handleSet(call: SetCall): void {
   // update sushifarm
   sushiFarm.allocPoint = call.inputs._allocPoint;
   sushiFarm.save();
+  let event = new ethereum.Event();
+  event.block = call.block;
+  event.transaction = call.transaction;
+  // Workaround to keep API of farmSnapshot same
+  event.logIndex = call.transaction.index;
+  createFarmSnapshot(event, sushiFarm);
 }
 
 /**
@@ -433,7 +455,7 @@ export function handleMigrate(call: MigrateCall): void {
  */
 export function handleMassUpdatePools(call: MassUpdatePoolsCall): void {
   let masterChef = MasterChefEntity.load(call.to.toHexString()) as MasterChefEntity;
-  massUpdateFarms(masterChef, call.block);
+  massUpdateFarms(masterChef, call);
 }
 
 /**
@@ -441,11 +463,24 @@ export function handleMassUpdatePools(call: MassUpdatePoolsCall): void {
  *
  * Implementation loosely copied from MasterChef's `updatePool` function.
  * @param sushiFarm
- * @param event
+ * @param call
  * @returns
  */
-function updateFarm(sushiFarm: SushiFarm, block: ethereum.Block): void {
+function updateFarm(sushiFarm: SushiFarm, call: ethereum.Call): void {
   let masterChef = MasterChefEntity.load(sushiFarm.masterChef) as MasterChefEntity;
+  let block = call.block
+  let event = new ethereum.Event();
+  event.block = block;
+  event.transaction = call.transaction;
+  // Workaround to keep API of farmSnapshot same
+  event.logIndex = call.transaction.index;
+  
+  updateFarmEvent(sushiFarm, event);
+}
+
+function updateFarmEvent(sushiFarm: SushiFarm, event: ethereum.Event): void {
+  let masterChef = MasterChefEntity.load(sushiFarm.masterChef) as MasterChefEntity;
+  let block = event.block
 
   if (block.number.le(sushiFarm.lastRewardBlock)) {
     return;
@@ -454,6 +489,7 @@ function updateFarm(sushiFarm: SushiFarm, block: ethereum.Block): void {
   if (sushiFarm.totalSupply == BigInt.fromI32(0)) {
     sushiFarm.lastRewardBlock = block.number;
     sushiFarm.save();
+    createFarmSnapshot(event, sushiFarm);
     return;
   }
 
@@ -468,6 +504,8 @@ function updateFarm(sushiFarm: SushiFarm, block: ethereum.Block): void {
   );
   sushiFarm.lastRewardBlock = block.number;
   sushiFarm.save();
+
+  createFarmSnapshot(event, sushiFarm);
 }
 
 /**
@@ -494,13 +532,13 @@ function getMultiplier(masterChef: MasterChefEntity, from: BigInt, to: BigInt): 
 /**
  * Update reward variables for all pools
  * @param masterChef
- * @param block
+ * @param call
  */
-function massUpdateFarms(masterChef: MasterChefEntity, block: ethereum.Block): void {
+function massUpdateFarms(masterChef: MasterChefEntity, call: ethereum.Call): void {
   let length = masterChef.numberOfFarms.toI32();
   for (let pid: i32 = 0; pid < length; ++pid) {
     let sushiFarm = SushiFarm.load(masterChef.id + "-" + pid.toString()) as SushiFarm;
-    updateFarm(sushiFarm, block);
+    updateFarm(sushiFarm, call);
   }
 }
 
@@ -558,6 +596,7 @@ function getOrCreateSushiFarm(
   }
 
   sushiFarm.save();
+  createFarmSnapshot(event, sushiFarm);
 
   // create market representing the farm
   let marketId = sushiFarm.id;
