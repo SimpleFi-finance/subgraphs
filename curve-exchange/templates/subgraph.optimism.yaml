@@ -114,6 +114,12 @@ templates:
         - event: TokenExchange(indexed address,uint256,uint256,uint256,uint256)
           handler: handleTokenExchangeTriCrypto
 
+          #### Metapool TriCrypto, 2 coins
+        - event: AddLiquidity(indexed address,uint256[2],uint256,uint256)
+          handler: handleAddLiquidityTriCryptoMeta2Coins
+        - event: RemoveLiquidity(indexed address,uint256[2],uint256)
+          handler: handleRemoveLiquidityTriCryptoMeta2Coins
+
           #### other common
         - event: RemoveLiquidityOne(indexed address,uint256,uint256)
           handler: handleRemoveLiquidityOne_v1

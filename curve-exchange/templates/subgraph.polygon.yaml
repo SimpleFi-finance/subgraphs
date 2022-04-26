@@ -2,6 +2,10 @@ specVersion: 0.0.2
 schema:
   file: ./schema.graphql
 
+graft:
+  base: QmRH5QUzkqQ5142CeNWJYJri6CjTd35tQT8ZcEJ1mLqNPE
+  block: 20700000 # Block number 
+
 ################# TEMPLATES
 templates:
   - kind: ethereum/contract
@@ -113,6 +117,12 @@ templates:
           handler: handleRemoveLiquidityTriCrypto
         - event: TokenExchange(indexed address,uint256,uint256,uint256,uint256)
           handler: handleTokenExchangeTriCrypto
+
+          #### Metapool TriCrypto, 2 coins
+        - event: AddLiquidity(indexed address,uint256[2],uint256,uint256)
+          handler: handleAddLiquidityTriCryptoMeta2Coins
+        - event: RemoveLiquidity(indexed address,uint256[2],uint256)
+          handler: handleRemoveLiquidityTriCryptoMeta2Coins
 
           #### other common
         - event: RemoveLiquidityOne(indexed address,uint256,uint256)

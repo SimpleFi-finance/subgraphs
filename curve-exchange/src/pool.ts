@@ -5,10 +5,12 @@ import {
   AddLiquidity1 as AddLiquidity3Coins,
   AddLiquidity2 as AddLiquidity4Coins,
   AddLiquidity3 as AddLiquidityTriCrypto,
+  AddLiquidity4 as AddLiquidityTriCryptoMeta2Coins,
   RemoveLiquidity as RemoveLiquidity2Coins,
   RemoveLiquidity1 as RemoveLiquidity3Coins,
   RemoveLiquidity2 as RemoveLiquidity4Coins,
   RemoveLiquidity3 as RemoveLiquidityTriCrypto,
+  RemoveLiquidity4 as RemoveLiquidityTriCryptoMeta2Coins,
   RemoveLiquidityImbalance as RemoveLiquidityImbalance2Coins,
   RemoveLiquidityImbalance1 as RemoveLiquidityImbalance3Coins,
   RemoveLiquidityImbalance2 as RemoveLiquidityImbalance4Coins,
@@ -78,6 +80,18 @@ export function handleAddLiquidity4Coins(event: AddLiquidity4Coins): void {
 }
 
 export function handleAddLiquidityTriCrypto(event: AddLiquidityTriCrypto): void {
+  handleAddLiquidityCommon(
+    event,
+    event.address,
+    event.params.token_supply,
+    event.params.token_amounts,
+    event.params.provider
+  );
+}
+
+export function handleAddLiquidityTriCryptoMeta2Coins(
+  event: AddLiquidityTriCryptoMeta2Coins
+): void {
   handleAddLiquidityCommon(
     event,
     event.address,
@@ -237,6 +251,25 @@ export function handleRemoveLiquidity4Coins(event: RemoveLiquidity4Coins): void 
 }
 
 export function handleRemoveLiquidityTriCrypto(event: RemoveLiquidityTriCrypto): void {
+  // create pool
+  let pool = getOrCreatePool(event, event.address);
+
+  // handle any pending LP token tranfers to zero address
+  checkPendingTransferToZero(event, pool);
+
+  // update all relevant entities
+  handleRemoveLiquidityCommon(
+    event,
+    pool,
+    event.params.provider,
+    event.params.token_amounts,
+    event.params.token_supply
+  );
+}
+
+export function handleRemoveLiquidityTriCryptoMeta2Coins(
+  event: RemoveLiquidityTriCryptoMeta2Coins
+): void {
   // create pool
   let pool = getOrCreatePool(event, event.address);
 
