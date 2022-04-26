@@ -28,6 +28,7 @@ export namespace ProtocolName {
   export const PANGOLIN = "PANGOLIN"
   export const TRADER_JOE = "TRADER_JOE"
   export const WANNASWAP = "WANNASWAP"
+  export const AURORASWAP = "AURORASWAP"
 }
 
 export namespace ProtocolType {

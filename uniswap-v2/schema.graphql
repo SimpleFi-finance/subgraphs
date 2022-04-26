@@ -28,6 +28,7 @@ enum ProtocolName {
   TRADER_JOE
   WANNASWAP
   PANCAKESWAP
+  AURORASWAP
 }
 
 enum ProtocolType {
