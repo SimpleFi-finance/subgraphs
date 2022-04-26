@@ -13,6 +13,8 @@ import { ERC20 } from "../generated/MooniswapFactory/ERC20"
 import { PositionType, TokenStandard, TransactionType } from "./constants"
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
+export const ADDRESS_ETH = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+export const ETH_BALANCE_CONTRACT = '0x42f527F50F16A103b6ccAb48BcCca214500c1021';
 
 export function getOrCreateAccount(address: Address): Account {
   let addressHex = address.toHexString()
