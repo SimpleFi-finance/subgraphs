@@ -178,9 +178,6 @@ type Pair @entity {
   reserve0: BigInt!
   reserve1: BigInt!
   totalSupply: BigInt!
-  reserve0_2: BigInt!
-  reserve1_2: BigInt!
-  totalSupply_2: BigInt!
   blockNumber: BigInt!
   timestamp: BigInt!
 }

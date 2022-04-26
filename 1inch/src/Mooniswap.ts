@@ -230,33 +230,28 @@ export function handleTransfer(event: Transfer): void {
     fromHex == ADDRESS_ZERO &&
     toHex == pair.id &&
     event.params.value.equals(BigInt.fromI32(1000)) && 
-    pair.totalSupply_2.toString() == "0"
+    pair.totalSupply.toString() == "0"
   ) {
-    // First deposit will lock a BASE_SUPPLY to prevent total supply to ever be 0
-    pair.totalSupply_2 = pair.totalSupply_2.plus(BASE_SUPPLY)
-    pair.save()
     return
   }
 
   // Mint
   if (fromHex == ADDRESS_ZERO) {
     let pairContract = Mooniswap.bind(event.address)
-    let test = pairContract.try_totalSupply()
-    if (!test.reverted) {
-      pair.totalSupply = test.value
+    let totalSupplyCall = pairContract.try_totalSupply()
+    if (!totalSupplyCall.reverted) {
+      pair.totalSupply = totalSupplyCall.value
     }
 
-    pair.totalSupply_2 = pair.totalSupply_2.plus(event.params.value as BigInt)
     pair.save()
   } else if (toHex == ADDRESS_ZERO) {
     // Burn
     let pairContract = Mooniswap.bind(event.address)
-    let test = pairContract.try_totalSupply()
-    if (!test.reverted) {
-      pair.totalSupply = test.value
+    let totalSupplyCall = pairContract.try_totalSupply()
+    if (!totalSupplyCall.reverted) {
+      pair.totalSupply = totalSupplyCall.value
     }
 
-    pair.totalSupply_2 = pair.totalSupply_2.minus(event.params.value as BigInt)
     pair.save()
   }
 
@@ -284,8 +279,8 @@ export function handleMint(event: Deposited): void {
   let mint = getOrCreateMint(event, pair)
 
   // First deposit will lock a BASE_SUPPLY to prevent total supply to ever be 0
-  if (pair.totalSupply_2.toString() == "0") {
-    pair.totalSupply_2 = pair.totalSupply_2.plus(BASE_SUPPLY)
+  if (pair.totalSupply.toString() == "0") {
+    pair.totalSupply = pair.totalSupply.plus(BASE_SUPPLY)
   }
 
   mint.amount0 = event.params.token0Amount
@@ -298,10 +293,6 @@ export function handleMint(event: Deposited): void {
   let reserves = fetchReserves(pair)
   pair.reserve0 = reserves[0]
   pair.reserve1 = reserves[1]
-
-  pair.reserve0_2 = pair.reserve0_2.plus(event.params.token0Amount)
-  pair.reserve1_2 = pair.reserve1_2.plus(event.params.token1Amount)
-  // pair.totalSupply_2 = pair.totalSupply_2.plus(event.params.share as BigInt)
 
   pair.save()
 
