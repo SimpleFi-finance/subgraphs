@@ -3,6 +3,10 @@ specVersion: 0.0.2
 schema:
   file: ./schema.graphql
 
+graft:
+  base: QmcHRrTAZNb5eY2pAxePkTVU1R4fQDUg5ft78neLzLjY3u
+  block: 14528100 # Block number
+
 dataSources:
   # Controls liquidity gauges and the issuance of CRV through the liquidity gauges
   - name: GaugeController
@@ -134,7 +138,3 @@ templates:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleRewardTokenTransfer
       file: ./src/gauge.ts
-
-graft:
-  base: QmY32f9tFKyfTWBe6A9AbVAqqcCXk2Bh5ZtFmVPRbttPQC
-  block: 14040000

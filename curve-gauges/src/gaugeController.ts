@@ -20,6 +20,11 @@ const CRV_TOKEN = "0xd533a949740bb3306d119cc777fa900ba034cd52";
  * @param event
  */
 export function handleNewGauge(event: NewGauge): void {
+  if (event.params.addr.toHexString() == "0x34ed182d0812d119c92907852d2b429f095a9b07") {
+    // this addr is not actually a gauge, although it's registered as such
+    return;
+  }
+
   // bind controller and gauge contracts
   let gaugeController = GaugeController.bind(event.address);
   let gaugeContract = GaugeContract.bind(event.params.addr);
