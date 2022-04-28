@@ -3,7 +3,7 @@ schema:
   file: ./schema.graphql
 
 graft:
-  base: QmPvuWXHXqWn4Dj8uhmr9byhuWs4UZ8fiBMmsNf9zETumQ
+  base: QmUtEfLLgF6Kbnw1pLnCQ56BUphu9iRkHjAMitbeWqDZYS
   block: 13520000 # Block number 
 
 ################# TEMPLATES
@@ -24,6 +24,8 @@ templates:
           file: ./abis/CurveRegistry.json
         - name: ERC20
           file: ./abis/IERC20.json
+        - name: CurvePool
+          file: ./abis/CurvePool.json
       eventHandlers:
         - event: PoolAdded(indexed address,bytes)
           handler: handlePoolAdded
