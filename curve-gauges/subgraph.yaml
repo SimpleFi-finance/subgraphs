@@ -4,8 +4,8 @@ schema:
   file: ./schema.graphql
 
 graft:
-  base: QmcHRrTAZNb5eY2pAxePkTVU1R4fQDUg5ft78neLzLjY3u
-  block: 14528100 # Block number
+  base: QmaY6DpdsbaxaQtuZmVPCTuLnN6H6DK74n1jD48pdHipLn
+  block: 14408600 # Block number
 
 dataSources:
   # Controls liquidity gauges and the issuance of CRV through the liquidity gauges

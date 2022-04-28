@@ -58,6 +58,9 @@ export function handleNewGauge(event: NewGauge): void {
 
     // also save LP token reference to gauge entity
     gauge.lpToken = inputToken.id;
+  } else {
+    // if there's no LP token it's not an actual gauge
+    return;
   }
   gauge.save();
 
