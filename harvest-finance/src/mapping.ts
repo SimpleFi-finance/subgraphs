@@ -5,18 +5,16 @@ import {
 import { Market } from "../generated/schema";
 import {
   ADDRESS_ZERO,
-  deposit,
   getOrCreateERC20Token,
   getOrCreateMarket,
-  getOrCreateVault,
   TokenBalance,
   updateMarket,
-  withdraw,
 } from "./common";
 import { FARM_TOKEN_ADDRESS, ProtocolName, ProtocolType } from "./constants";
 import { Transfer } from "../generated/templates/Vault/Vault";
 import { Vault } from "../generated/templates";
 import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
+import { getOrCreateVault, deposit, withdraw } from "./harvestUtils";
 
 export function addVaultAndStrategy(add: AddVaultAndStrategyCall): void {
   let fAssetToken = VaultContract.bind(add.inputs._vault);
