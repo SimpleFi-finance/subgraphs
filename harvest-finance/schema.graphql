@@ -163,19 +163,37 @@ type PositionSnapshot @entity {
   transferredTo: [String!]! # TokenBalance string format
 }
 
+################## Harvest specific entities
+
+type Vault @entity {
+  " vault address "
+  id: ID!
+
+  " vault name "
+  name: String!
+
+  " vault is ERC20 "
+  totalSupply: BigInt!
+
+  " current strategy, optional "
+  strategy: String
+
+  " 10^decimals"
+  underlyingUnit: BigInt!
+
+  " input token of vault "
+  underlyingToken: Token!
+
+  " share price "
+  pricePerShare: BigInt!
+}
+
 type Deposit @entity {
   id: ID!
   depositInputAmount: BigInt
   depositedInput: Boolean!
   depositOutputAmount: BigInt
   depositedOutput: Boolean!
-}
-
-type Vault @entity {
-  id: ID!
-  underlyingUnit: BigInt
-  underlyingToken: String
-  pricePerShare: BigInt
 }
 
 type VaultBalance @entity {

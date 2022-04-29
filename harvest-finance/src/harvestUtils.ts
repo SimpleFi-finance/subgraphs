@@ -1,118 +1,158 @@
-import { Address, BigInt } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum, ValueKind } from "@graphprotocol/graph-ts";
 import { Market, Vault, VaultBalance } from "../generated/schema";
 import { Transfer } from "../generated/templates/Vault/Vault";
+import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
+import { Vault as VaultTemplate } from "../generated/templates";
+
 import {
   getOrCreateAccount,
+  getOrCreateERC20Token,
+  getOrCreateMarket,
   investInMarket,
   redeemFromMarket,
   TokenBalance,
   updateMarket,
 } from "./common";
+import { FARM_TOKEN_ADDRESS, ProtocolName, ProtocolType } from "./constants";
 
-export function getOrCreateVault(address: Address): Vault {
-  let vault = Vault.load(address.toHexString());
-  if (!vault) {
-    vault = new Vault(address.toHexString());
+/**
+ * Create new Vault and Market entities, and start indexing new vault contract.
+ * @param block
+ * @param vaultAddress
+ * @returns
+ */
+export function getOrCreateVault(block: ethereum.Block, vaultAddress: Address): Vault {
+  let vault = Vault.load(vaultAddress.toHexString());
+  if (vault != null) {
+    return vault as Vault;
   }
+
+  // create Vault entity
+  let fAssetToken = VaultContract.bind(vaultAddress);
+  vault = new Vault(vaultAddress.toHexString());
+  vault.name = fAssetToken.name();
+  vault.totalSupply = fAssetToken.totalSupply();
+  vault.strategy = fAssetToken.strategy().toHexString();
+  vault.underlyingUnit = fAssetToken.underlyingUnit();
+  let inputToken = getOrCreateERC20Token(block, fAssetToken.underlying());
+  vault.underlyingToken = inputToken.id;
+  vault.pricePerShare = fAssetToken.getPricePerFullShare();
+  vault.save();
+
+  // create Market entity
+  let outputToken = getOrCreateERC20Token(block, vaultAddress);
+  let farmToken = getOrCreateERC20Token(block, FARM_TOKEN_ADDRESS);
+  getOrCreateMarket(
+    block,
+    vaultAddress,
+    ProtocolName.HARVEST_FINANCE,
+    ProtocolType.TOKEN_MANAGEMENT,
+    [inputToken],
+    outputToken,
+    [farmToken]
+  );
+
+  // start indexing new vault
+  VaultTemplate.create(vaultAddress);
 
   return vault;
 }
 
-export function getOrCreateVaultBalance(address: Address, vault: Vault): VaultBalance {
-  let id = vault.id + "-" + address.toHexString();
-  let balance = VaultBalance.load(id);
-  if (!balance) {
-    balance = new VaultBalance(id);
-    balance.balance = BigInt.fromI32(0);
-    balance.vault = vault.id;
-    balance.owner = address;
-  }
+// export function getOrCreateVaultBalance(address: Address, vault: Vault): VaultBalance {
+//   let id = vault.id + "-" + address.toHexString();
+//   let balance = VaultBalance.load(id);
+//   if (!balance) {
+//     balance = new VaultBalance(id);
+//     balance.balance = BigInt.fromI32(0);
+//     balance.vault = vault.id;
+//     balance.owner = address;
+//   }
 
-  return balance;
-}
+//   return balance;
+// }
 
-export function deposit(event: Transfer): void {
-  let vault = getOrCreateVault(event.address);
-  let market = Market.load(vault.id) as Market;
-  let receiver = getOrCreateAccount(event.params.to);
-  let balance = getOrCreateVaultBalance(event.params.to, vault);
-  balance.balance = balance.balance.plus(event.params.value);
-  balance.save();
+// export function deposit(event: Transfer): void {
+//   let vault = getOrCreateVault(event.address);
+//   let market = Market.load(vault.id) as Market;
+//   let receiver = getOrCreateAccount(event.params.to);
+//   let balance = getOrCreateVaultBalance(event.params.to, vault);
+//   balance.balance = balance.balance.plus(event.params.value);
+//   balance.save();
 
-  let outputTokenBalance = balance.balance;
+//   let outputTokenBalance = balance.balance;
 
-  let inputTokenAmount = event.params.value.times(vault.pricePerShare!).div(vault.underlyingUnit!);
-  let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!);
+//   let inputTokenAmount = event.params.value.times(vault.pricePerShare!).div(vault.underlyingUnit!);
+//   let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!);
 
-  let inputTokenAmounts = [
-    new TokenBalance(market.inputTokens[0], event.params.to.toHexString(), inputTokenAmount),
-  ];
+//   let inputTokenAmounts = [
+//     new TokenBalance(market.inputTokens[0], event.params.to.toHexString(), inputTokenAmount),
+//   ];
 
-  // @todo
-  let rewardTokenAmounts: TokenBalance[] = [];
-  let rewardTokenBalances: TokenBalance[] = [];
+//   // @todo
+//   let rewardTokenAmounts: TokenBalance[] = [];
+//   let rewardTokenBalances: TokenBalance[] = [];
 
-  let inputTokenBalances: TokenBalance[] = [
-    new TokenBalance(market.inputTokens[0], event.params.to.toHexString(), inputTokenBalance),
-  ];
+//   let inputTokenBalances: TokenBalance[] = [
+//     new TokenBalance(market.inputTokens[0], event.params.to.toHexString(), inputTokenBalance),
+//   ];
 
-  let outputTokenAmount = event.params.value;
+//   let outputTokenAmount = event.params.value;
 
-  investInMarket(
-    event,
-    receiver,
-    market,
-    outputTokenAmount,
-    inputTokenAmounts,
-    rewardTokenAmounts,
-    outputTokenBalance,
-    inputTokenBalances,
-    rewardTokenBalances,
-    null
-  );
+//   investInMarket(
+//     event,
+//     receiver,
+//     market,
+//     outputTokenAmount,
+//     inputTokenAmounts,
+//     rewardTokenAmounts,
+//     outputTokenBalance,
+//     inputTokenBalances,
+//     rewardTokenBalances,
+//     null
+//   );
 
-  updateMarket(event, market, inputTokenBalances, market.outputTokenTotalSupply);
-}
+//   updateMarket(event, market, inputTokenBalances, market.outputTokenTotalSupply);
+// }
 
-export function withdraw(event: Transfer): void {
-  let vault = getOrCreateVault(event.address);
-  let market = Market.load(vault.id) as Market;
-  let sender = getOrCreateAccount(event.params.from);
-  let balance = getOrCreateVaultBalance(event.params.from, vault);
-  balance.balance = balance.balance.minus(event.params.value);
-  balance.save();
+// export function withdraw(event: Transfer): void {
+//   let vault = getOrCreateVault(event.address);
+//   let market = Market.load(vault.id) as Market;
+//   let sender = getOrCreateAccount(event.params.from);
+//   let balance = getOrCreateVaultBalance(event.params.from, vault);
+//   balance.balance = balance.balance.minus(event.params.value);
+//   balance.save();
 
-  let outputTokenBalance = balance.balance;
+//   let outputTokenBalance = balance.balance;
 
-  let inputTokenAmount = event.params.value.times(vault.pricePerShare!).div(vault.underlyingUnit!);
-  let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!);
+//   let inputTokenAmount = event.params.value.times(vault.pricePerShare!).div(vault.underlyingUnit!);
+//   let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!);
 
-  let inputTokenAmounts = [
-    new TokenBalance(market.inputTokens[0], event.params.from.toHexString(), inputTokenAmount),
-  ];
+//   let inputTokenAmounts = [
+//     new TokenBalance(market.inputTokens[0], event.params.from.toHexString(), inputTokenAmount),
+//   ];
 
-  // @todo
-  let rewardTokenAmounts: TokenBalance[] = [];
-  let rewardTokenBalances: TokenBalance[] = [];
+//   // @todo
+//   let rewardTokenAmounts: TokenBalance[] = [];
+//   let rewardTokenBalances: TokenBalance[] = [];
 
-  let inputTokenBalances: TokenBalance[] = [
-    new TokenBalance(market.inputTokens[0], event.params.from.toHexString(), inputTokenBalance),
-  ];
+//   let inputTokenBalances: TokenBalance[] = [
+//     new TokenBalance(market.inputTokens[0], event.params.from.toHexString(), inputTokenBalance),
+//   ];
 
-  let outputTokenAmount = event.params.value;
+//   let outputTokenAmount = event.params.value;
 
-  redeemFromMarket(
-    event,
-    sender,
-    market,
-    outputTokenAmount,
-    inputTokenAmounts,
-    rewardTokenAmounts,
-    outputTokenBalance,
-    inputTokenBalances,
-    rewardTokenBalances,
-    null
-  );
+//   redeemFromMarket(
+//     event,
+//     sender,
+//     market,
+//     outputTokenAmount,
+//     inputTokenAmounts,
+//     rewardTokenAmounts,
+//     outputTokenBalance,
+//     inputTokenBalances,
+//     rewardTokenBalances,
+//     null
+//   );
 
-  updateMarket(event, market, inputTokenBalances, market.outputTokenTotalSupply);
-}
+//   updateMarket(event, market, inputTokenBalances, market.outputTokenTotalSupply);
+// }
