@@ -188,17 +188,18 @@ type Vault @entity {
   pricePerShare: BigInt!
 }
 
+type PositionInVault @entity {
+  " userAddress-vaultAddress "
+  id: ID!
+  vault: Vault!
+  user: Account!
+  fTokenBalance: BigInt!
+}
+
 type Deposit @entity {
   id: ID!
   depositInputAmount: BigInt
   depositedInput: Boolean!
   depositOutputAmount: BigInt
   depositedOutput: Boolean!
-}
-
-type VaultBalance @entity {
-  id: ID!
-  owner: Bytes
-  balance: BigInt!
-  vault: Vault
 }

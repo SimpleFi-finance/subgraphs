@@ -1,5 +1,5 @@
 import { Address, BigInt, ethereum, ValueKind } from "@graphprotocol/graph-ts";
-import { Market, Vault, VaultBalance } from "../generated/schema";
+import { Account, Market, PositionInVault, Vault } from "../generated/schema";
 import { Transfer } from "../generated/templates/Vault/Vault";
 import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
 import { Vault as VaultTemplate } from "../generated/templates";
@@ -58,21 +58,30 @@ export function getOrCreateVault(block: ethereum.Block, vaultAddress: Address): 
   return vault;
 }
 
-// export function getOrCreateVaultBalance(address: Address, vault: Vault): VaultBalance {
-//   let id = vault.id + "-" + address.toHexString();
-//   let balance = VaultBalance.load(id);
-//   if (!balance) {
-//     balance = new VaultBalance(id);
-//     balance.balance = BigInt.fromI32(0);
-//     balance.vault = vault.id;
-//     balance.owner = address;
-//   }
+/**
+ * Create tracker for user's position in a vault.
+ * @param user
+ * @param vault
+ * @returns
+ */
+export function getOrCreatePositionInVault(user: Account, vault: Vault): PositionInVault {
+  let id = user.id + "-" + vault.id;
+  let position = PositionInVault.load(id);
+  if (position != null) {
+    return position as PositionInVault;
+  }
 
-//   return balance;
-// }
+  position = new PositionInVault(id);
+  position.user = user.id;
+  position.vault = vault.id;
+  position.fTokenBalance = BigInt.fromI32(0);
+  position.save();
+
+  return position;
+}
 
 // export function deposit(event: Transfer): void {
-//   let vault = getOrCreateVault(event.address);
+//   let vault = getOrCreateVault(event.block, event.address);
 //   let market = Market.load(vault.id) as Market;
 //   let receiver = getOrCreateAccount(event.params.to);
 //   let balance = getOrCreateVaultBalance(event.params.to, vault);
