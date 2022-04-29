@@ -32,15 +32,22 @@ export function handleTransfer(event: Transfer): void {
   // }
 }
 
-export function updateSharePrice(event: SharePriceChangeLog): void {
-  // let market = Market.load(event.params.vault.toHexString()) as Market;
-  // let vault = getOrCreateVault(event.params.vault);
-  // vault.pricePerShare = event.params.newSharePrice;
-  // vault.save();
-  // let outputTokenBalance = market.outputTokenTotalSupply;
-  // let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!);
-  // let inputTokenBalances: TokenBalance[] = [
-  //   new TokenBalance(vault.underlyingToken!, event.params.vault.toHexString(), inputTokenBalance),
-  // ];
-  // updateMarket(event, market, inputTokenBalances, market.outputTokenTotalSupply);
+/**
+ * Update vault's input token balances when share price is changed
+ * @param event
+ */
+export function handleSharePriceChangeLog(event: SharePriceChangeLog): void {
+  let market = Market.load(event.params.vault.toHexString()) as Market;
+
+  let vault = getOrCreateVault(event.block, event.params.vault);
+  vault.pricePerShare = event.params.newSharePrice;
+  vault.save();
+
+  let outputTokenBalance = market.outputTokenTotalSupply;
+  let inputTokenBalance = outputTokenBalance.times(vault.pricePerShare).div(vault.underlyingUnit);
+  let inputTokenBalances: TokenBalance[] = [
+    new TokenBalance(vault.underlyingToken, event.params.vault.toHexString(), inputTokenBalance),
+  ];
+
+  updateMarket(event, market, inputTokenBalances, market.outputTokenTotalSupply);
 }

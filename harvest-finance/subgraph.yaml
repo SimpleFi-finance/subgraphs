@@ -24,7 +24,7 @@ dataSources:
           file: ./abis/IERC20.json
       eventHandlers:
         - event: SharePriceChangeLog(indexed address,indexed address,uint256,uint256,uint256)
-          handler: updateSharePrice
+          handler: handleSharePriceChangeLog
       callHandlers:
         - function: addVaultAndStrategy(address,address)
           handler: addVaultAndStrategy
