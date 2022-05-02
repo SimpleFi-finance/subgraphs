@@ -1,5 +1,5 @@
 import { near, BigInt, log, json, JSONValueKind, Bytes, JSONValue } from "@graphprotocol/graph-ts"
-import { Pool, RefAccount, SimplePool } from "../generated/schema";
+import { Pool, RefAccount, SimplePool, StableSwapPool } from "../generated/schema";
 
 /**
 pub fn new(owner_id: ValidAccountId, exchange_fee: u32, referral_fee: u32) -> Self
@@ -14,7 +14,7 @@ export function initRefV2(
   const ownerId = (args.get("owner_id") as JSONValue).toString();
   const exchangeFee = (args.get("exchange_fee") as JSONValue).toBigInt();
   const referralFee = (args.get("referral_fee") as JSONValue).toBigInt();
-  
+
   const refAccount = new RefAccount(receipt.receiverId);
   refAccount.ownerId = ownerId;
   refAccount.exchangeFee = exchangeFee;
@@ -70,7 +70,32 @@ export function addStableSwapPool(
   block: near.Block, 
   outcome: near.ExecutionOutcome
 ): void {
+  const args = json.fromBytes(functionCall.args).toObject();
+  const tokens = (args.get("tokens") as JSONValue).toArray().map<string>(jv => jv.toString());
+  const decimals = (args.get("decimals") as JSONValue).toArray().map<BigInt>(jv => jv.toBigInt());
+  const fee = (args.get("fee") as JSONValue).toBigInt();
+  const ampFactor = (args.get("amp_factor") as JSONValue).toBigInt();
 
+  const refAccount = RefAccount.load(receipt.receiverId) as RefAccount;
+  const poolId = refAccount.poolsCounter.toString();
+  refAccount.poolsCounter += 1;
+  refAccount.save();
+
+  const pool = new Pool(poolId);
+  pool.poolType = "STABLE_SWAP";
+  pool.save();
+
+  const stableSwapPool = new StableSwapPool(poolId);
+  stableSwapPool.tokens = tokens;
+  stableSwapPool.decimals = decimals;
+  stableSwapPool.cAmounts = tokens.map<BigInt>(t => BigInt.fromI32(0));
+  stableSwapPool.totalFee = fee;
+  stableSwapPool.totalSupply = BigInt.fromI32(0);
+  stableSwapPool.initAmpFactor = ampFactor;
+  stableSwapPool.targetAmpFactor = ampFactor;
+  stableSwapPool.initAmpTime = BigInt.fromI32(0);
+  stableSwapPool.stopAmptTime = BigInt.fromI32(0);
+  stableSwapPool.save();
 }
 
 /**

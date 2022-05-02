@@ -198,6 +198,19 @@ type SimplePool @entity {
   totalSupply: BigInt!
 }
 
+type StableSwapPool @entity {
+  id: ID!
+  tokens: [String!]!
+  decimals: [BigInt!]!
+  cAmounts: [BigInt!]!
+  totalFee: BigInt!
+  totalSupply: BigInt!
+  initAmpFactor: BigInt!
+  targetAmpFactor: BigInt!
+  initAmpTime: BigInt!
+  stopAmptTime: BigInt!
+}
+
 type Share @entity {
   id: ID!
   accountId: String!
