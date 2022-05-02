@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
 import {
   Account as AccountEntity,
   AccountLiquidity as AccountLiquidityEntity,
@@ -376,6 +376,10 @@ export function getOrCreateAccountLiquidity(
  * @returns
  */
 export function getPoolBalances(pool: PoolEntity, block: BigInt): BigInt[] {
+  log.info("XXXXX getPoolBalances at pool={}", [pool.id]);
+  log.info("XXXXX pool.source={}", [pool.source]);
+  log.info("XXXXX pool.blockNumber={}", [pool.blockNumber.toString()]);
+
   // no action needed if balances are up-to-date
   if (block == pool.lastBlockBalanceUpdated) {
     return pool.balances;
@@ -390,14 +394,23 @@ export function getPoolBalances(pool: PoolEntity, block: BigInt): BigInt[] {
     let factoryContract = FactoryContract.bind(factoryAddress);
     let balances: BigInt[];
 
+    log.info("XXXXX pool.factory={}", [pool.factory]);
+    log.info("XXXXX factoryAddress={}", [factoryAddress.toHexString()]);
+
     if (factoryAddress.toHexString() == OLD_FACTORY_ADDRESS) {
       // old factory contract uses BigInt[2] instead of BigInt[4]
       balances = factoryContract.get_balances1(poolAddress);
     } else {
+      log.info("XXXXX doing call on get_balances", []);
+
       balances = factoryContract.get_balances(poolAddress);
+
+      log.info("XXXXX DONE!", []);
     }
 
     for (let i = 0; i < pool.coinCount; i++) {
+      log.info("XXXXX add....", []);
+
       poolBalances.push(balances[i]);
     }
   }

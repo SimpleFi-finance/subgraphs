@@ -151,6 +151,11 @@ export const TRICRYPTO_POOL = "0x80466c64868e1ab14a1ddf27a676c3fcbe638fe5";
 export const TRICRYPTO_LP_TOKEN = "0xca3d75ac011bf5ad07a98d02f18225f9bd9a6bdf";
 export const TRICRYPTO_2_POOL = "0xd51a44d3fae010294c616388b506acda1bfaae46";
 export const TRICRYPTO_2_LP_TOKEN = "0xc4ad29ba4b3c580e6d59105fff484999997675ff";
+export const EUR3CRV_POOL = "0x9838eccc42659fa8aa7daf2ad134b53984c9427b";
+export const EUR3CRV_LP_TOKEN = "0x3b6831c0077a1e44ed0a21841c3bc4dc11bce833";
+
+export const EURUSDC_POOL = "0x98a7f18d4e56cfe84e3d081b40001b3d5bd3eb8b";
+export const EURUSDC_LP_TOKEN = "0x3d229e1b4faab62f621ef2f6a610961f7bd7b23b";
 
 export let addressToPool = new TypedMap<string, PoolStaticInfo>();
 addressToPool.set(
@@ -221,6 +226,14 @@ addressToPool.set(
   TRICRYPTO_2_POOL,
   new PoolStaticInfo(TRICRYPTO_2_POOL, TRICRYPTO_2_LP_TOKEN, 3, "PLAIN", false, [])
 );
+addressToPool.set(
+  EUR3CRV_POOL,
+  new PoolStaticInfo(EUR3CRV_POOL, EUR3CRV_LP_TOKEN, 2, "META", false, [])
+);
+addressToPool.set(
+  EURUSDC_POOL,
+  new PoolStaticInfo(EURUSDC_POOL, EURUSDC_LP_TOKEN, 2, "PLAIN", false, [])
+);
 
 export let lpTokenToPool = new TypedMap<string, string>();
 lpTokenToPool.set(TRIPOOL_LP_TOKEN, TRIPOOL_POOL);
@@ -261,3 +274,5 @@ lpTokenToPool.set(LINK_LP_TOKEN, LINK_POOL);
 lpTokenToPool.set(LINKUSD_LP_TOKEN, LINKUSD_POOL);
 lpTokenToPool.set(TRICRYPTO_LP_TOKEN, TRICRYPTO_POOL);
 lpTokenToPool.set(TRICRYPTO_2_LP_TOKEN, TRICRYPTO_2_POOL);
+lpTokenToPool.set(EUR3CRV_LP_TOKEN, EUR3CRV_POOL);
+lpTokenToPool.set(EURUSDC_LP_TOKEN, EURUSDC_POOL);
