@@ -1,4 +1,5 @@
 import { near, BigInt, log, json, JSONValueKind, Bytes, JSONValue } from "@graphprotocol/graph-ts"
+import { Pool, RefAccount, SimplePool } from "../generated/schema";
 
 /**
 pub fn new(owner_id: ValidAccountId, exchange_fee: u32, referral_fee: u32) -> Self
@@ -13,11 +14,13 @@ export function initRefV2(
   const ownerId = (args.get("owner_id") as JSONValue).toString();
   const exchangeFee = (args.get("exchange_fee") as JSONValue).toBigInt();
   const referralFee = (args.get("referral_fee") as JSONValue).toBigInt();
-  log.warning("Initalize Ref V2 contract with -> ownerId: {}, exchangeFee: {}, referralFee: {}", [
-    ownerId,
-    exchangeFee.toString(),
-    referralFee.toString()
-  ]);
+  
+  const refAccount = new RefAccount(receipt.receiverId);
+  refAccount.ownerId = ownerId;
+  refAccount.exchangeFee = exchangeFee;
+  refAccount.referralFee = referralFee;
+  refAccount.poolsCounter = 0;
+  refAccount.save();
 }
 
 /**
@@ -29,7 +32,27 @@ export function addSimplePool(
   block: near.Block, 
   outcome: near.ExecutionOutcome
 ): void {
+  const args = json.fromBytes(functionCall.args).toObject();
+  const tokens = (args.get("tokens") as JSONValue).toArray().map<string>(jv => jv.toString());
+  const fee = (args.get("fee") as JSONValue).toBigInt();
 
+  const refAccount = RefAccount.load(receipt.receiverId) as RefAccount;
+  const poolId = refAccount.poolsCounter.toString();
+  refAccount.poolsCounter += 1;
+  refAccount.save();
+
+  const pool = new Pool(poolId);
+  pool.poolType = "SIMPLE_POOL";
+  pool.save();
+
+  const simplePool = new SimplePool(poolId);
+  simplePool.tokens = tokens;
+  simplePool.amounts = tokens.map<BigInt>(t => BigInt.fromI32(0));
+  simplePool.totalFee = fee;
+  simplePool.exchangeFee = BigInt.fromI32(0);
+  simplePool.referralFee = BigInt.fromI32(0);
+  simplePool.totalSupply = BigInt.fromI32(0);
+  simplePool.save();
 }
 
 /**

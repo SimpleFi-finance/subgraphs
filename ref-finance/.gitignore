@@ -107,5 +107,3 @@ package-lock.json
 
 build/
 generated/
-
-subgraph.yaml

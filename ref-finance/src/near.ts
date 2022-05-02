@@ -4,16 +4,12 @@ import { addLiquidity, addSimplePool, addStableLiquidity, addStableSwapPool, exe
 export function handleReceipt(
   receiptWithOutcome: near.ReceiptWithOutcome
 ): void {
-  //debugNEARLogs(receiptWithOutcome);
-
   const receipt = receiptWithOutcome.receipt;
   const outcome = receiptWithOutcome.outcome;
   const block = receiptWithOutcome.block;
   const actions = receipt.actions;
 
-  if (block.header.height > 45753050) {
-    return;
-  }
+  // debugNEARLogs(receipt, block, outcome);
 
   for (let i = 0; i < actions.length; i++) {
     handleAction(
@@ -25,11 +21,11 @@ export function handleReceipt(
   }
 }
 
-function debugNEARLogs(receiptWithOutcome: near.ReceiptWithOutcome): void {
-  const receipt = receiptWithOutcome.receipt;
-  const outcome = receiptWithOutcome.outcome;
-  const block = receiptWithOutcome.block;
-
+function debugNEARLogs(
+  receipt: near.ActionReceipt,
+  block: near.Block,
+  outcome: near.ExecutionOutcome
+): void {
   log.info("****************** Receipt ID {} Start ***********************", [receipt.id.toBase58()]);
 
   log.info("Receipt data -> id: {}, predecessorId: {}, receiverId: {}, signerId: {}", [
@@ -113,7 +109,7 @@ function handleCreateAccount(
   block: near.Block,
   outcome: near.ExecutionOutcome
 ): void {
-  log.warning("Handle create account -> id: {}, ", [receipt.id.toBase58()]);
+  log.info("Handle create account -> id: {}, ", [receipt.id.toBase58()]);
 }
 
 function handleDeployContract(
@@ -122,7 +118,7 @@ function handleDeployContract(
   block: near.Block,
   outcome: near.ExecutionOutcome
 ): void {
-  log.warning("Handle deploy contract -> id: {}", [receipt.id.toBase58()]);
+  log.info("Handle deploy contract -> id: {}", [receipt.id.toBase58()]);
 }
 
 function handleTransfer(
@@ -131,7 +127,7 @@ function handleTransfer(
   block: near.Block,
   outcome: near.ExecutionOutcome
 ): void {
-  log.warning("Handle transfer -> id: {}, deposit: {}", [
+  log.info("Handle transfer -> id: {}, deposit: {}", [
     receipt.id.toBase58(),
     transfer.deposit.toHexString()
   ]);
@@ -150,6 +146,7 @@ function handleFunctionCall(
     functionCall.deposit.toHexString()
   ]);
 
+  // Protocol specific logic to handle function calls
   if (functionCall.methodName == "new") {
     initRefV2(functionCall, receipt, block, outcome);
   } else if (functionCall.methodName == "add_simple_pool") {
