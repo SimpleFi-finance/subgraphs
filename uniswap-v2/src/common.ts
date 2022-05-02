@@ -382,16 +382,6 @@ export function redeemFromMarket(
   position.outputTokenBalance = outputTokenBalance
   position.rewardTokenBalances = rewardTokenBalances.map<string>(tb => tb.toString())
 
-  // Check if it is transferred to some other account
-  // if (transferredTo != null) {
-  //   let exists = position.transferredTo.includes(transferredTo)
-  //   if (!exists) {
-  //     let newTransferredTo = position.transferredTo
-  //     newTransferredTo.push(transferredTo)
-  //     position.transferredTo = newTransferredTo
-  //   }
-  // }
-
   // Check if postion is closed
   if (position.outputTokenBalance == BigInt.fromI32(0)) {
     position.closed = true
