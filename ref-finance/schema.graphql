@@ -154,7 +154,6 @@ type Position @entity {
   outputTokenBalance: BigInt!
   inputTokenBalances: [String!]! # TokenBalance string format
   rewardTokenBalances: [String!]! # TokenBalance string format
-  transferredTo: [String!]!
   closed: Boolean!
   blockNumber: BigInt!
   timestamp: BigInt!
@@ -170,60 +169,38 @@ type PositionSnapshot @entity {
   outputTokenBalance: BigInt!
   inputTokenBalances: [String!]! # TokenBalance string format
   rewardTokenBalances: [String!]! # TokenBalance string format
-  transferredTo: [String!]! # TokenBalance string format
 }
 
 # END - Common entities for all protocols
 
-# UniswapV2 protocol entities
+# Ref Finance protocol entities
 
-# Created on PairCreated event on UniswapV2Factory.sol
-# feeTo is not part of Pair contract. We need to fetch it from factory contract
-type Pair @entity {
-  id: ID! # {pairAddress}
-  factory: Account!
-  token0: Token!
-  token1: Token!
-  reserve0: BigInt!
-  reserve1: BigInt!
+type RefAccount @entity {
+  id: ID!
+  ownerId: String!
+  exchangeFee: BigInt!
+  referralFee: BigInt!
+}
+
+type Pool @entity {
+  id: ID!
+  poolType: String!
+}
+
+type SimplePool @entity {
+  id: ID!
+  tokens: [String!]!
+  amounts: [BigInt!]!
+  exchangeFee: BigInt!
+  referralFee: BigInt!
   totalSupply: BigInt!
-  blockNumber: BigInt!
-  timestamp: BigInt!
-  lastIncompleteBurn: Burn
 }
 
-type AccountLiquidity @entity {
-  id: ID! # {pairAddress}{accoutnAddress}
-  pair: Pair!
-  account: Account!
-  balance: BigInt!
+type Share @entity {
+  id: ID!
+  accountId: String!
+  poolId: String!
+  amount: BigInt!
 }
 
-type Mint @entity {
-  id: ID! # {pairAddress}{trasactionHash}
-  pair: Pair
-  from: Account
-  to: Account
-  liquityAmount: BigInt
-  amount0: BigInt
-  amount1: BigInt
-  transferEventApplied: Boolean!
-  syncEventApplied: Boolean!
-  mintEventApplied: Boolean!
-}
-
-type Burn @entity {
-  id: ID! # {pairAddress}{trasactionHash}
-  pair: Pair
-  from: Account
-  to: Account
-  liquityAmount: BigInt
-  amount0: BigInt
-  amount1: BigInt
-  transferToPairEventApplied: Boolean!
-  transferToZeroEventApplied: Boolean!
-  syncEventApplied: Boolean!
-  burnEventApplied: Boolean!
-}
-
-# END - UniswapV2 protocol entities
+# END - Ref Finance protocol entities
