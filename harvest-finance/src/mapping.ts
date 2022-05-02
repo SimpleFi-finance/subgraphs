@@ -9,11 +9,12 @@ import {
   getOrCreateERC20Token,
   getOrCreateMarket,
   investInMarket,
+  redeemFromMarket,
   TokenBalance,
   updateMarket,
 } from "./common";
 import { FARM_TOKEN_ADDRESS, ProtocolName, ProtocolType } from "./constants";
-import { Deposit as DepositEvent, Transfer } from "../generated/templates/Vault/Vault";
+import { Deposit as DepositEvent, Transfer, Withdraw } from "../generated/templates/Vault/Vault";
 import { Vault } from "../generated/templates";
 import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
 import { getOrCreatePositionInVault, getOrCreateVault } from "./harvestUtils";
@@ -77,6 +78,64 @@ export function handleDeposit(event: DepositEvent): void {
   investInMarket(
     event,
     user,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokensAmounts,
+    outputTokenBalance,
+    userInputTokenBalances,
+    rewardTokensBalance,
+    null
+  );
+}
+
+/**
+ * Handle user withdrawals from vault.
+ * @param event
+ */
+export function handleWithdraw(event: Withdraw): void {
+  let withdrawnAmountOfUnderlying = event.params.amount;
+  let receiver = getOrCreateAccount(event.params.beneficiary);
+
+  // update vault state
+  let vault = getOrCreateVault(event.block, event.address);
+  let burndedAmountOfFTokens = withdrawnAmountOfUnderlying
+    .times(vault.underlyingUnit)
+    .div(vault.pricePerShare);
+  vault.totalSupply = vault.totalSupply.minus(burndedAmountOfFTokens);
+  vault.save();
+
+  // update market state
+  let market = Market.load(vault.id) as Market;
+  let inputTokenBalance = vault.totalSupply.times(vault.pricePerShare).div(vault.underlyingUnit);
+  let inputTokenBalances: TokenBalance[] = [
+    new TokenBalance(vault.underlyingToken, vault.id, inputTokenBalance),
+  ];
+  updateMarket(event, market, inputTokenBalances, vault.totalSupply);
+
+  //// update user position
+  let outputTokenAmount = burndedAmountOfFTokens;
+  let inputTokenAmounts = [
+    new TokenBalance(vault.underlyingToken, receiver.id, withdrawnAmountOfUnderlying),
+  ];
+  let rewardTokensAmounts: TokenBalance[] = [];
+
+  let position = getOrCreatePositionInVault(receiver, vault);
+  position.fTokenBalance = position.fTokenBalance.minus(burndedAmountOfFTokens);
+  position.save();
+
+  let outputTokenBalance = position.fTokenBalance;
+  let userInputTokenBalance = position.fTokenBalance
+    .times(vault.pricePerShare)
+    .div(vault.underlyingUnit);
+  let userInputTokenBalances = [
+    new TokenBalance(vault.underlyingToken, receiver.id, userInputTokenBalance),
+  ];
+  let rewardTokensBalance: TokenBalance[] = [];
+
+  redeemFromMarket(
+    event,
+    receiver,
     market,
     outputTokenAmount,
     inputTokenAmounts,

@@ -61,4 +61,6 @@ templates:
           handler: handleTransfer
         - event: Deposit(indexed address,uint256)
           handler: handleDeposit
+        - event: Withdraw(indexed address,uint256)
+          handler: handleWithdraw
       file: ./src/mapping.ts
