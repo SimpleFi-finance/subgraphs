@@ -9,7 +9,6 @@ import {
   Token,
   Transaction
 } from "../generated/schema"
-import { ERC20 } from "../generated/UniswapV2Factory/ERC20"
 import { PositionType, TokenStandard, TransactionType } from "./constants"
 
 
@@ -27,33 +26,33 @@ export function getOrCreateAccount(address: Address): Account {
   return account as Account
 }
 
-export function getOrCreateERC20Token(event: ethereum.Event, address: Address): Token {
-  let addressHex = address.toHexString()
-  let token = Token.load(addressHex)
-  if (token != null) {
-    return token as Token
-  }
+// export function getOrCreateERC20Token(event: ethereum.Event, address: Address): Token {
+//   let addressHex = address.toHexString()
+//   let token = Token.load(addressHex)
+//   if (token != null) {
+//     return token as Token
+//   }
 
-  token = new Token(addressHex)
-  token.tokenStandard = TokenStandard.ERC20
-  let tokenInstance = ERC20.bind(address)
-  let tryName = tokenInstance.try_name()
-  if (!tryName.reverted) {
-    token.name = tryName.value
-  }
-  let trySymbol = tokenInstance.try_symbol()
-  if (!trySymbol.reverted) {
-    token.symbol = trySymbol.value
-  }
-  let tryDecimals = tokenInstance.try_decimals()
-  if (!tryDecimals.reverted) {
-    token.decimals = tryDecimals.value
-  }
-  token.blockNumber = event.block.number
-  token.timestamp = event.block.timestamp
-  token.save()
-  return token as Token
-}
+//   token = new Token(addressHex)
+//   token.tokenStandard = TokenStandard.ERC20
+//   let tokenInstance = ERC20.bind(address)
+//   let tryName = tokenInstance.try_name()
+//   if (!tryName.reverted) {
+//     token.name = tryName.value
+//   }
+//   let trySymbol = tokenInstance.try_symbol()
+//   if (!trySymbol.reverted) {
+//     token.symbol = trySymbol.value
+//   }
+//   let tryDecimals = tokenInstance.try_decimals()
+//   if (!tryDecimals.reverted) {
+//     token.decimals = tryDecimals.value
+//   }
+//   token.blockNumber = event.block.number
+//   token.timestamp = event.block.timestamp
+//   token.save()
+//   return token as Token
+// }
 
 export function getOrCreateMarket(
   event: ethereum.Event,
@@ -311,7 +310,7 @@ export function investInMarket(
   transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
   transaction.outputTokenAmount = outputTokenAmount
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasUsed
+  transaction.gasUsed = event.transaction.gasLimit
   transaction.gasPrice = event.transaction.gasPrice
   transaction.blockNumber = event.block.number
   transaction.timestamp = event.block.timestamp
@@ -369,7 +368,7 @@ export function redeemFromMarket(
   transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
   transaction.outputTokenAmount = outputTokenAmount
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasUsed
+  transaction.gasUsed = event.transaction.gasLimit
   transaction.gasPrice = event.transaction.gasPrice
   transaction.blockNumber = event.block.number
   transaction.timestamp = event.block.timestamp
@@ -432,7 +431,7 @@ export function borrowFromMarket(
   transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
   transaction.outputTokenAmount = outputTokenAmount
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasUsed
+  transaction.gasUsed = event.transaction.gasLimit
   transaction.gasPrice = event.transaction.gasPrice
   transaction.blockNumber = event.block.number
   transaction.timestamp = event.block.timestamp
@@ -484,7 +483,7 @@ export function repayToMarket(
   transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
   transaction.outputTokenAmount = outputTokenAmount
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasUsed
+  transaction.gasUsed = event.transaction.gasLimit
   transaction.gasPrice = event.transaction.gasPrice
   transaction.blockNumber = event.block.number
   transaction.timestamp = event.block.timestamp
