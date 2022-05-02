@@ -25,14 +25,77 @@ export function addVaultAndStrategy(call: AddVaultAndStrategyCall): void {
 
 // update fAsset - mint/burn/transfer of users
 export function handleTransfer(event: Transfer): void {
-  // if (event.params.from.toHexString() == ADDRESS_ZERO) {
-  //   deposit(event);
-  // } else if (event.params.to.toHexString() == ADDRESS_ZERO) {
-  //   withdraw(event);
-  // } else {
-  //   deposit(event);
-  //   withdraw(event);
-  // }
+  if (event.params.from.toHexString() == ADDRESS_ZERO) {
+    // minting, processed in handleDeposit
+    return;
+  } else if (event.params.from.toHexString() == ADDRESS_ZERO) {
+    //TODO handle case which is not burn but manual transfer to zero
+    return;
+  }
+
+  let vault = getOrCreateVault(event.block, event.address);
+  let fTokensTransferredAmount = event.params.value;
+
+  let sender = getOrCreateAccount(event.params.from);
+  let receiver = getOrCreateAccount(event.params.to);
+
+  // update sender's position trackers
+  let senderPosition = getOrCreatePositionInVault(sender, vault);
+  senderPosition.fTokenBalance = senderPosition.fTokenBalance.minus(fTokensTransferredAmount);
+  senderPosition.save();
+
+  let market = Market.load(vault.id) as Market;
+  let outputTokenAmount = fTokensTransferredAmount;
+  let inputTokenAmounts: TokenBalance[] = [];
+  let rewardTokenAmounts: TokenBalance[] = [];
+  let outputTokenBalance = senderPosition.fTokenBalance;
+  let inputTokenBalance = senderPosition.fTokenBalance
+    .times(vault.pricePerShare)
+    .div(vault.underlyingUnit);
+  let inputTokenBalances = [new TokenBalance(vault.underlyingToken, sender.id, inputTokenBalance)];
+  let rewardTokenBalances: TokenBalance[] = [];
+  let transferredTo = receiver.id;
+
+  redeemFromMarket(
+    event,
+    sender,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    transferredTo
+  );
+
+  // update receiver's position trackers
+  let receiverPosition = getOrCreatePositionInVault(receiver, vault);
+  receiverPosition.fTokenBalance = receiverPosition.fTokenBalance.plus(fTokensTransferredAmount);
+  receiverPosition.save();
+
+  inputTokenAmounts = [];
+  rewardTokenAmounts = [];
+  outputTokenBalance = receiverPosition.fTokenBalance;
+  inputTokenBalance = receiverPosition.fTokenBalance
+    .times(vault.pricePerShare)
+    .div(vault.underlyingUnit);
+  inputTokenBalances = [new TokenBalance(vault.underlyingToken, receiver.id, inputTokenBalance)];
+  rewardTokenBalances = [];
+  let transferredFrom = sender.id;
+
+  investInMarket(
+    event,
+    sender,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    transferredFrom
+  );
 }
 
 /**
