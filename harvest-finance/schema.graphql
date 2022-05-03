@@ -186,13 +186,22 @@ type Vault @entity {
 
   " share price "
   pricePerShare: BigInt!
+
+  " used to identify manual transfers to zero address "
+  lastTransferToZero: LPTokenTransferToZero
 }
 
 type PositionInVault @entity {
   " userAddress-vaultAddress "
   id: ID!
+
+  " vault where user provided assets "
   vault: Vault!
+
+  " account providing assets "
   user: Account!
+
+  " amount of vault tokens user got for providing his assets "
   fTokenBalance: BigInt!
 }
 
@@ -202,4 +211,21 @@ type Deposit @entity {
   depositedInput: Boolean!
   depositOutputAmount: BigInt
   depositedOutput: Boolean!
+}
+
+"""
+helper entity used to identify manual transfers to zero address (which are not part of burn event)
+"""
+type LPTokenTransferToZero @entity {
+  " TX hash"
+  id: ID!
+
+  " account sending vault (LP) token to zero address  "
+  from: Bytes!
+
+  " receiver - zero address "
+  to: Bytes!
+
+  " amount of vault tokens sent to zero "
+  value: BigInt!
 }

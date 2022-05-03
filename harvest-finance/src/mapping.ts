@@ -2,7 +2,7 @@ import {
   AddVaultAndStrategyCall,
   SharePriceChangeLog,
 } from "../generated/HarvestEthController/HarvestEthController";
-import { Deposit, Market, Token } from "../generated/schema";
+import { Vault, LPTokenTransferToZero, Market, Account } from "../generated/schema";
 import {
   ADDRESS_ZERO,
   getOrCreateAccount,
@@ -15,87 +15,12 @@ import {
 } from "./common";
 import { FARM_TOKEN_ADDRESS, ProtocolName, ProtocolType } from "./constants";
 import { Deposit as DepositEvent, Transfer, Withdraw } from "../generated/templates/Vault/Vault";
-import { Vault } from "../generated/templates";
 import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
 import { getOrCreatePositionInVault, getOrCreateVault } from "./harvestUtils";
+import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 
 export function addVaultAndStrategy(call: AddVaultAndStrategyCall): void {
   getOrCreateVault(call.block, call.inputs._vault);
-}
-
-// update fAsset - mint/burn/transfer of users
-export function handleTransfer(event: Transfer): void {
-  if (event.params.from.toHexString() == ADDRESS_ZERO) {
-    // minting, processed in handleDeposit
-    return;
-  } else if (event.params.from.toHexString() == ADDRESS_ZERO) {
-    //TODO handle case which is not burn but manual transfer to zero
-    return;
-  }
-
-  let vault = getOrCreateVault(event.block, event.address);
-  let fTokensTransferredAmount = event.params.value;
-
-  let sender = getOrCreateAccount(event.params.from);
-  let receiver = getOrCreateAccount(event.params.to);
-
-  // update sender's position trackers
-  let senderPosition = getOrCreatePositionInVault(sender, vault);
-  senderPosition.fTokenBalance = senderPosition.fTokenBalance.minus(fTokensTransferredAmount);
-  senderPosition.save();
-
-  let market = Market.load(vault.id) as Market;
-  let outputTokenAmount = fTokensTransferredAmount;
-  let inputTokenAmounts: TokenBalance[] = [];
-  let rewardTokenAmounts: TokenBalance[] = [];
-  let outputTokenBalance = senderPosition.fTokenBalance;
-  let inputTokenBalance = senderPosition.fTokenBalance
-    .times(vault.pricePerShare)
-    .div(vault.underlyingUnit);
-  let inputTokenBalances = [new TokenBalance(vault.underlyingToken, sender.id, inputTokenBalance)];
-  let rewardTokenBalances: TokenBalance[] = [];
-  let transferredTo = receiver.id;
-
-  redeemFromMarket(
-    event,
-    sender,
-    market,
-    outputTokenAmount,
-    inputTokenAmounts,
-    rewardTokenAmounts,
-    outputTokenBalance,
-    inputTokenBalances,
-    rewardTokenBalances,
-    transferredTo
-  );
-
-  // update receiver's position trackers
-  let receiverPosition = getOrCreatePositionInVault(receiver, vault);
-  receiverPosition.fTokenBalance = receiverPosition.fTokenBalance.plus(fTokensTransferredAmount);
-  receiverPosition.save();
-
-  inputTokenAmounts = [];
-  rewardTokenAmounts = [];
-  outputTokenBalance = receiverPosition.fTokenBalance;
-  inputTokenBalance = receiverPosition.fTokenBalance
-    .times(vault.pricePerShare)
-    .div(vault.underlyingUnit);
-  inputTokenBalances = [new TokenBalance(vault.underlyingToken, receiver.id, inputTokenBalance)];
-  rewardTokenBalances = [];
-  let transferredFrom = sender.id;
-
-  investInMarket(
-    event,
-    sender,
-    market,
-    outputTokenAmount,
-    inputTokenAmounts,
-    rewardTokenAmounts,
-    outputTokenBalance,
-    inputTokenBalances,
-    rewardTokenBalances,
-    transferredFrom
-  );
 }
 
 /**
@@ -106,8 +31,11 @@ export function handleDeposit(event: DepositEvent): void {
   let depositedAmount = event.params.amount;
   let user = getOrCreateAccount(event.params.beneficiary);
 
-  // update vault state
+  // check if there's a pending tx to zero
   let vault = getOrCreateVault(event.block, event.address);
+  checkPendingTransferToZero(event, vault);
+
+  // update vault state
   let mintedAmount = depositedAmount.times(vault.underlyingUnit).div(vault.pricePerShare);
   vault.totalSupply = vault.totalSupply.plus(mintedAmount);
   vault.save();
@@ -160,12 +88,16 @@ export function handleWithdraw(event: Withdraw): void {
   let withdrawnAmountOfUnderlying = event.params.amount;
   let receiver = getOrCreateAccount(event.params.beneficiary);
 
-  // update vault state
+  // check if there's a pending tx to zero
   let vault = getOrCreateVault(event.block, event.address);
-  let burndedAmountOfFTokens = withdrawnAmountOfUnderlying
+  checkPendingTransferToZero(event, vault);
+  vault.lastTransferToZero = null;
+
+  // update vault state
+  let burnedAmountOfFTokens = withdrawnAmountOfUnderlying
     .times(vault.underlyingUnit)
     .div(vault.pricePerShare);
-  vault.totalSupply = vault.totalSupply.minus(burndedAmountOfFTokens);
+  vault.totalSupply = vault.totalSupply.minus(burnedAmountOfFTokens);
   vault.save();
 
   // update market state
@@ -177,14 +109,14 @@ export function handleWithdraw(event: Withdraw): void {
   updateMarket(event, market, inputTokenBalances, vault.totalSupply);
 
   //// update user position
-  let outputTokenAmount = burndedAmountOfFTokens;
+  let outputTokenAmount = burnedAmountOfFTokens;
   let inputTokenAmounts = [
     new TokenBalance(vault.underlyingToken, receiver.id, withdrawnAmountOfUnderlying),
   ];
   let rewardTokensAmounts: TokenBalance[] = [];
 
   let position = getOrCreatePositionInVault(receiver, vault);
-  position.fTokenBalance = position.fTokenBalance.minus(burndedAmountOfFTokens);
+  position.fTokenBalance = position.fTokenBalance.minus(burnedAmountOfFTokens);
   position.save();
 
   let outputTokenBalance = position.fTokenBalance;
@@ -228,4 +160,142 @@ export function handleSharePriceChangeLog(event: SharePriceChangeLog): void {
   ];
 
   updateMarket(event, market, inputTokenBalances, market.outputTokenTotalSupply);
+}
+
+/**
+ * Handle vault (LP) token transfers
+ * @param event
+ * @returns
+ */
+export function handleTransfer(event: Transfer): void {
+  if (event.params.from.toHexString() == ADDRESS_ZERO) {
+    // minting, processed in handleDeposit
+    return;
+  } else if (event.params.from.toHexString() == ADDRESS_ZERO) {
+    // store txToZero entity. later we check if it's part of burn event, or manual transfer to zero
+    let txToZero = new LPTokenTransferToZero(event.transaction.hash.toHexString());
+    txToZero.from = event.params.from;
+    txToZero.to = event.params.to;
+    txToZero.value = event.params.value;
+    txToZero.save();
+    return;
+  }
+
+  let vault = getOrCreateVault(event.block, event.address);
+  let fTokensTransferredAmount = event.params.value;
+
+  let sender = getOrCreateAccount(event.params.from);
+  let receiver = getOrCreateAccount(event.params.to);
+
+  transferLPToken(sender, receiver, vault, fTokensTransferredAmount, event);
+}
+
+/**
+ * Update vault state and user positions.
+ * @param sender
+ * @param receiver
+ * @param vault
+ * @param fTokensTransferredAmount
+ * @param event
+ */
+function transferLPToken(
+  sender: Account,
+  receiver: Account,
+  vault: Vault,
+  fTokensTransferredAmount: BigInt,
+  event: ethereum.Event
+): void {
+  //// update sender's position trackers
+  let senderPosition = getOrCreatePositionInVault(sender, vault);
+  senderPosition.fTokenBalance = senderPosition.fTokenBalance.minus(fTokensTransferredAmount);
+  senderPosition.save();
+
+  let market = Market.load(vault.id) as Market;
+  let outputTokenAmount = fTokensTransferredAmount;
+  let inputTokenAmounts: TokenBalance[] = [];
+  let rewardTokenAmounts: TokenBalance[] = [];
+  let outputTokenBalance = senderPosition.fTokenBalance;
+  let inputTokenBalance = senderPosition.fTokenBalance
+    .times(vault.pricePerShare)
+    .div(vault.underlyingUnit);
+  let inputTokenBalances = [new TokenBalance(vault.underlyingToken, sender.id, inputTokenBalance)];
+  let rewardTokenBalances: TokenBalance[] = [];
+  let transferredTo = receiver.id;
+
+  redeemFromMarket(
+    event,
+    sender,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    transferredTo
+  );
+
+  //// update receiver's position trackers
+  let receiverPosition = getOrCreatePositionInVault(receiver, vault);
+  receiverPosition.fTokenBalance = receiverPosition.fTokenBalance.plus(fTokensTransferredAmount);
+  receiverPosition.save();
+
+  inputTokenAmounts = [];
+  rewardTokenAmounts = [];
+  outputTokenBalance = receiverPosition.fTokenBalance;
+  inputTokenBalance = receiverPosition.fTokenBalance
+    .times(vault.pricePerShare)
+    .div(vault.underlyingUnit);
+  inputTokenBalances = [new TokenBalance(vault.underlyingToken, receiver.id, inputTokenBalance)];
+  rewardTokenBalances = [];
+  let transferredFrom = sender.id;
+
+  investInMarket(
+    event,
+    sender,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokenBalances,
+    rewardTokenBalances,
+    transferredFrom
+  );
+}
+
+/**
+ * Check if there is a pending transfer of LP tokens to zero address.
+ * If yes, and it is not part of add/remove liquidity events, then update sender's position
+ * Otherwise positions will be updated in add/remove liquidity handlers
+ * @param event
+ * @param pool
+ * @returns
+ */
+function checkPendingTransferToZero(event: ethereum.Event, vault: Vault): void {
+  // This no ongoing LP token transfer to zero address
+  if (vault.lastTransferToZero == null) {
+    return;
+  }
+
+  // This LP token transfer to zero address is part of add/remove liquidity event, don't handle it here
+  if (vault.lastTransferToZero == event.transaction.hash.toHexString()) {
+    return;
+  }
+
+  // It's a manual transfer to zero address, not part of add/remove liquidity events
+  // use standard LP token transfer processing
+  let txToZero = LPTokenTransferToZero.load(
+    vault.lastTransferToZero as string
+  ) as LPTokenTransferToZero;
+  transferLPToken(
+    getOrCreateAccount(txToZero.from as Address),
+    getOrCreateAccount(txToZero.to as Address),
+    vault,
+    txToZero.value,
+    event
+  );
+
+  vault.lastTransferToZero = null;
+  vault.save();
 }
