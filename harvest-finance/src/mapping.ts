@@ -6,16 +6,12 @@ import { Vault, LPTokenTransferToZero, Market, Account } from "../generated/sche
 import {
   ADDRESS_ZERO,
   getOrCreateAccount,
-  getOrCreateERC20Token,
-  getOrCreateMarket,
   investInMarket,
   redeemFromMarket,
   TokenBalance,
   updateMarket,
 } from "./common";
-import { FARM_TOKEN_ADDRESS, ProtocolName, ProtocolType } from "./constants";
 import { Deposit as DepositEvent, Transfer, Withdraw } from "../generated/templates/Vault/Vault";
-import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
 import { getOrCreatePositionInVault, getOrCreateVault } from "./harvestUtils";
 import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 
@@ -33,7 +29,7 @@ export function handleDeposit(event: DepositEvent): void {
 
   // check if there's a pending tx to zero
   let vault = getOrCreateVault(event.block, event.address);
-  checkPendingTransferToZero(event, vault);
+  checkForUnprocessedTransferToZero(event, vault);
 
   // update vault state
   let mintedAmount = depositedAmount.times(vault.underlyingUnit).div(vault.pricePerShare);
@@ -90,7 +86,7 @@ export function handleWithdraw(event: Withdraw): void {
 
   // check if there's a pending tx to zero
   let vault = getOrCreateVault(event.block, event.address);
-  checkPendingTransferToZero(event, vault);
+  checkForUnprocessedTransferToZero(event, vault);
   vault.lastTransferToZero = null;
 
   // update vault state
@@ -277,18 +273,18 @@ function transferLPToken(
  * @param pool
  * @returns
  */
-function checkPendingTransferToZero(event: ethereum.Event, vault: Vault): void {
-  // This no ongoing LP token transfer to zero address
+function checkForUnprocessedTransferToZero(event: ethereum.Event, vault: Vault): void {
+  // This no unprocessed LP token transfer to zero address
   if (vault.lastTransferToZero == null) {
     return;
   }
 
-  // This LP token transfer to zero address is part of add/remove liquidity event, don't handle it here
+  // This LP token transfer to zero address is part of burn event, don't handle it here
   if (vault.lastTransferToZero == event.transaction.hash.toHexString()) {
     return;
   }
 
-  // It's a manual transfer to zero address, not part of add/remove liquidity events
+  // It's a manual transfer to zero address, not part of burn event
   // use standard LP token transfer processing
   let txToZero = LPTokenTransferToZero.load(
     vault.lastTransferToZero as string
