@@ -178,6 +178,11 @@ export function handleTransfer(event: Transfer): void {
     txToZero.to = event.params.to;
     txToZero.value = event.params.value;
     txToZero.save();
+
+    let vault = getOrCreateVault(event.block, event.address);
+    vault.lastTransferToZero = txToZero.id;
+    vault.save();
+
     return;
   }
 
