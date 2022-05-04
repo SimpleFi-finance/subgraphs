@@ -242,3 +242,20 @@ type RewardPool @entity {
   " FARM token "
   rewardToken: Token!
 }
+
+type RewardClaim @entity {
+  " user-tx "
+  id: ID!
+
+  " account claiming the reward "
+  user: Account!
+
+  " tx hash "
+  tx: String!
+
+  " claimed amount of reward token "
+  amount: BigInt!
+
+  " source of the reward "
+  rewardPool: RewardPool!
+}

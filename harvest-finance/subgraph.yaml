@@ -113,3 +113,24 @@ templates:
         - event: TokenPoolSet(address,address)
           handler: handleTokenPoolSet
       file: ./src/feeRewardForwarder.ts
+
+  - kind: ethereum/contract
+    name: RewardPool
+    network: mainnet
+    source:
+      abi: RewardPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - RewardPool
+      abis:
+        - name: Vault
+          file: ./abis/Vault.json
+        - name: RewardPool
+          file: ./abis/RewardPool.json
+      eventHandlers:
+        - event: RewardPaid(indexed address,uint256)
+          handler: handleRewardPaid
+      file: ./src/rewardPool.ts
