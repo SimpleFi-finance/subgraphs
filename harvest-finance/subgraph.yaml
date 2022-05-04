@@ -79,8 +79,6 @@ templates:
         - Transfer
         - Position
         - PositionSnapshot
-        - Gauge
-        - GaugeSnapshot
       abis:
         - name: Vault
           file: ./abis/Vault.json
@@ -94,3 +92,24 @@ templates:
         - event: Withdraw(indexed address,uint256)
           handler: handleWithdraw
       file: ./src/mapping.ts
+
+  - kind: ethereum/contract
+    name: FeeRewardForwarder
+    network: mainnet
+    source:
+      abi: FeeRewardForwarder
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - FeeRewardForwarder
+      abis:
+        - name: Vault
+          file: ./abis/Vault.json
+        - name: FeeRewardForwarder
+          file: ./abis/FeeRewardForwarder.json
+      eventHandlers:
+        - event: TokenPoolSet(address,address)
+          handler: handleTokenPoolSet
+      file: ./src/feeRewardForwarder.ts

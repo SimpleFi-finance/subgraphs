@@ -234,3 +234,11 @@ type FeeRewardForwarder @entity {
   " contract address "
   id: ID!
 }
+
+type RewardPool @entity {
+  " contract address "
+  id: ID!
+
+  " FARM token "
+  rewardToken: Token!
+}

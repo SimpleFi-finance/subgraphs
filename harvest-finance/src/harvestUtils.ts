@@ -1,18 +1,20 @@
-import { Address, BigInt, ethereum, ValueKind } from "@graphprotocol/graph-ts";
-import { Account, FeeRewardForwarder, Market, PositionInVault, Vault } from "../generated/schema";
-import { Transfer } from "../generated/templates/Vault/Vault";
+import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
+import {
+  Account,
+  FeeRewardForwarder,
+  PositionInVault,
+  RewardPool,
+  Vault,
+} from "../generated/schema";
 import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
-import { Vault as VaultTemplate } from "../generated/templates";
+import { FeeRewardForwarder as FeeRewardForwarderContract } from "../generated/templates/FeeRewardForwarder/FeeRewardForwarder";
 
 import {
-  getOrCreateAccount,
-  getOrCreateERC20Token,
-  getOrCreateMarket,
-  investInMarket,
-  redeemFromMarket,
-  TokenBalance,
-  updateMarket,
-} from "./common";
+  Vault as VaultTemplate,
+  FeeRewardForwarder as FeeRewardForwarderTemplate,
+} from "../generated/templates";
+
+import { getOrCreateERC20Token, getOrCreateMarket } from "./common";
 import { FARM_TOKEN_ADDRESS, ProtocolName, ProtocolType } from "./constants";
 
 /**
@@ -81,7 +83,7 @@ export function getOrCreatePositionInVault(user: Account, vault: Vault): Positio
 }
 
 /**
- * Create entity for FeeRewardForwarder
+ * Create entity for FeeRewardForwarder and start indexing it.
  * @param forwarderAddress
  * @returns
  */
@@ -93,5 +95,34 @@ export function getOrCreateFeeRewardForwarder(forwarderAddress: string): FeeRewa
 
   forwarder = new FeeRewardForwarder(forwarderAddress);
   forwarder.save();
+
+  // get reward pool
+  let feeRewarderContract = FeeRewardForwarderContract.bind(Address.fromString(forwarderAddress));
+  let rewardPool = feeRewarderContract.profitSharingPool();
+  if (rewardPool) {
+    getOrCreateRewardPool(rewardPool.toHexString(), feeRewarderContract.farm().toHexString());
+  }
+
+  // start indexing FeeRewardForwarder contract
+  FeeRewardForwarderTemplate.create(Address.fromString(forwarderAddress));
+
   return forwarder;
+}
+
+/**
+ * Create entity for RewardPool
+ * @param rewardPoolAddress
+ * @param rewardToken
+ * @returns
+ */
+export function getOrCreateRewardPool(rewardPoolAddress: string, rewardToken: string): RewardPool {
+  let rewardPool = RewardPool.load(rewardPoolAddress);
+  if (rewardPool != null) {
+    return rewardPool as RewardPool;
+  }
+
+  rewardPool = new RewardPool(rewardPoolAddress);
+  rewardPool.rewardToken = rewardToken;
+  rewardPool.save();
+  return rewardPool;
 }
