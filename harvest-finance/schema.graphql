@@ -229,3 +229,8 @@ type LPTokenTransferToZero @entity {
   " amount of vault tokens sent to zero "
   value: BigInt!
 }
+
+type FeeRewardForwarder @entity {
+  " contract address "
+  id: ID!
+}

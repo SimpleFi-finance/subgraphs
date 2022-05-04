@@ -1,5 +1,6 @@
 import {
   AddVaultAndStrategyCall,
+  SetFeeRewardForwarderCall,
   SharePriceChangeLog,
 } from "../generated/HarvestEthController1/HarvestEthController";
 import { Vault, LPTokenTransferToZero, Market, Account } from "../generated/schema";
@@ -12,11 +13,20 @@ import {
   updateMarket,
 } from "./common";
 import { Deposit as DepositEvent, Transfer, Withdraw } from "../generated/templates/Vault/Vault";
-import { getOrCreatePositionInVault, getOrCreateVault } from "./harvestUtils";
+import {
+  getOrCreateFeeRewardForwarder,
+  getOrCreatePositionInVault,
+  getOrCreateVault,
+} from "./harvestUtils";
 import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 
 export function addVaultAndStrategy(call: AddVaultAndStrategyCall): void {
   getOrCreateVault(call.block, call.inputs._vault);
+}
+
+export function setFeeRewardForwarder(call: SetFeeRewardForwarderCall): void {
+  let feeRewardForwarder = call.inputs._feeRewardForwarder;
+  getOrCreateFeeRewardForwarder(feeRewardForwarder.toHexString());
 }
 
 /**

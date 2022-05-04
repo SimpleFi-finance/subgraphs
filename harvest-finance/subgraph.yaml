@@ -28,6 +28,8 @@ dataSources:
       callHandlers:
         - function: addVaultAndStrategy(address,address)
           handler: addVaultAndStrategy
+        - function: setFeeRewardForwarder(address)
+          handler: setFeeRewardForwarder
       file: ./src/mapping.ts
 
   - kind: ethereum/contract

@@ -1,5 +1,5 @@
 import { Address, BigInt, ethereum, ValueKind } from "@graphprotocol/graph-ts";
-import { Account, Market, PositionInVault, Vault } from "../generated/schema";
+import { Account, FeeRewardForwarder, Market, PositionInVault, Vault } from "../generated/schema";
 import { Transfer } from "../generated/templates/Vault/Vault";
 import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
 import { Vault as VaultTemplate } from "../generated/templates";
@@ -80,88 +80,18 @@ export function getOrCreatePositionInVault(user: Account, vault: Vault): Positio
   return position;
 }
 
-// export function deposit(event: Transfer): void {
-//   let vault = getOrCreateVault(event.block, event.address);
-//   let market = Market.load(vault.id) as Market;
-//   let receiver = getOrCreateAccount(event.params.to);
-//   let balance = getOrCreateVaultBalance(event.params.to, vault);
-//   balance.balance = balance.balance.plus(event.params.value);
-//   balance.save();
+/**
+ * Create entity for FeeRewardForwarder
+ * @param forwarderAddress
+ * @returns
+ */
+export function getOrCreateFeeRewardForwarder(forwarderAddress: string): FeeRewardForwarder {
+  let forwarder = FeeRewardForwarder.load(forwarderAddress);
+  if (forwarder != null) {
+    return forwarder as FeeRewardForwarder;
+  }
 
-//   let outputTokenBalance = balance.balance;
-
-//   let inputTokenAmount = event.params.value.times(vault.pricePerShare!).div(vault.underlyingUnit!);
-//   let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!);
-
-//   let inputTokenAmounts = [
-//     new TokenBalance(market.inputTokens[0], event.params.to.toHexString(), inputTokenAmount),
-//   ];
-
-//   // @todo
-//   let rewardTokenAmounts: TokenBalance[] = [];
-//   let rewardTokenBalances: TokenBalance[] = [];
-
-//   let inputTokenBalances: TokenBalance[] = [
-//     new TokenBalance(market.inputTokens[0], event.params.to.toHexString(), inputTokenBalance),
-//   ];
-
-//   let outputTokenAmount = event.params.value;
-
-//   investInMarket(
-//     event,
-//     receiver,
-//     market,
-//     outputTokenAmount,
-//     inputTokenAmounts,
-//     rewardTokenAmounts,
-//     outputTokenBalance,
-//     inputTokenBalances,
-//     rewardTokenBalances,
-//     null
-//   );
-
-//   updateMarket(event, market, inputTokenBalances, market.outputTokenTotalSupply);
-// }
-
-// export function withdraw(event: Transfer): void {
-//   let vault = getOrCreateVault(event.address);
-//   let market = Market.load(vault.id) as Market;
-//   let sender = getOrCreateAccount(event.params.from);
-//   let balance = getOrCreateVaultBalance(event.params.from, vault);
-//   balance.balance = balance.balance.minus(event.params.value);
-//   balance.save();
-
-//   let outputTokenBalance = balance.balance;
-
-//   let inputTokenAmount = event.params.value.times(vault.pricePerShare!).div(vault.underlyingUnit!);
-//   let inputTokenBalance = outputTokenBalance.div(vault.pricePerShare!).times(vault.underlyingUnit!);
-
-//   let inputTokenAmounts = [
-//     new TokenBalance(market.inputTokens[0], event.params.from.toHexString(), inputTokenAmount),
-//   ];
-
-//   // @todo
-//   let rewardTokenAmounts: TokenBalance[] = [];
-//   let rewardTokenBalances: TokenBalance[] = [];
-
-//   let inputTokenBalances: TokenBalance[] = [
-//     new TokenBalance(market.inputTokens[0], event.params.from.toHexString(), inputTokenBalance),
-//   ];
-
-//   let outputTokenAmount = event.params.value;
-
-//   redeemFromMarket(
-//     event,
-//     sender,
-//     market,
-//     outputTokenAmount,
-//     inputTokenAmounts,
-//     rewardTokenAmounts,
-//     outputTokenBalance,
-//     inputTokenBalances,
-//     rewardTokenBalances,
-//     null
-//   );
-
-//   updateMarket(event, market, inputTokenBalances, market.outputTokenTotalSupply);
-// }
+  forwarder = new FeeRewardForwarder(forwarderAddress);
+  forwarder.save();
+  return forwarder;
+}
