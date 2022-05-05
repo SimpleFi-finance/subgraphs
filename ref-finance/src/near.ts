@@ -1,5 +1,5 @@
 import { near, BigInt, log, json, JSONValueKind } from "@graphprotocol/graph-ts"
-import { addLiquidity, addSimplePool, addStableLiquidity, addStableSwapPool, executeActions, initRefV2, removeLiquidity, removeLiquidityByTokens, swap } from "./exchange";
+import { addLiquidity, addSimplePool, addStableLiquidity, addStableSwapPool, executeActions, initRefV2, removeLiquidity, removeLiquidityByTokens, swap } from "./exchange/exchange";
 
 export function handleReceipt(
   receiptWithOutcome: near.ReceiptWithOutcome

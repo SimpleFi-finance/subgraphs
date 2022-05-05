@@ -180,12 +180,12 @@ type RefAccount @entity {
   ownerId: String!
   exchangeFee: BigInt!
   referralFee: BigInt!
-  poolsCounter: Int!
 }
 
 type Pool @entity {
   id: ID!
   poolType: String!
+  receiptId: Bytes!
 }
 
 type SimplePool @entity {

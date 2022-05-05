@@ -1,5 +1,5 @@
 import { near, BigInt, log, json, JSONValueKind, Bytes, JSONValue } from "@graphprotocol/graph-ts"
-import { Pool, RefAccount, SimplePool, StableSwapPool } from "../generated/schema";
+import { Pool, RefAccount, SimplePool, StableSwapPool } from "../../generated/schema";
 
 /**
 pub fn new(owner_id: ValidAccountId, exchange_fee: u32, referral_fee: u32) -> Self
@@ -19,7 +19,6 @@ export function initRefV2(
   refAccount.ownerId = ownerId;
   refAccount.exchangeFee = exchangeFee;
   refAccount.referralFee = referralFee;
-  refAccount.poolsCounter = 0;
   refAccount.save();
 }
 
@@ -36,13 +35,12 @@ export function addSimplePool(
   const tokens = (args.get("tokens") as JSONValue).toArray().map<string>(jv => jv.toString());
   const fee = (args.get("fee") as JSONValue).toBigInt();
 
-  const refAccount = RefAccount.load(receipt.receiverId) as RefAccount;
-  const poolId = refAccount.poolsCounter.toString();
-  refAccount.poolsCounter += 1;
-  refAccount.save();
-
+  const returnBytes = outcome.status.toValue();
+  const number = json.fromBytes(returnBytes).toBigInt()
+  const poolId = number.toString();
   const pool = new Pool(poolId);
   pool.poolType = "SIMPLE_POOL";
+  pool.receiptId = receipt.id;
   pool.save();
 
   const simplePool = new SimplePool(poolId);
@@ -76,13 +74,12 @@ export function addStableSwapPool(
   const fee = (args.get("fee") as JSONValue).toBigInt();
   const ampFactor = (args.get("amp_factor") as JSONValue).toBigInt();
 
-  const refAccount = RefAccount.load(receipt.receiverId) as RefAccount;
-  const poolId = refAccount.poolsCounter.toString();
-  refAccount.poolsCounter += 1;
-  refAccount.save();
-
+  const returnBytes = outcome.status.toValue();
+  const number = json.fromBytes(returnBytes).toBigInt()
+  const poolId = number.toString();
   const pool = new Pool(poolId);
   pool.poolType = "STABLE_SWAP";
+  pool.receiptId = receipt.id;
   pool.save();
 
   const stableSwapPool = new StableSwapPool(poolId);
