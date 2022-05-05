@@ -22,6 +22,8 @@ dataSources:
           file: ./abis/Vault.json
         - name: IERC20
           file: ./abis/IERC20.json
+        - name: FeeRewardForwarder
+          file: ./abis/FeeRewardForwarder.json
       eventHandlers:
         - event: SharePriceChangeLog(indexed address,indexed address,uint256,uint256,uint256)
           handler: handleSharePriceChangeLog
@@ -52,6 +54,8 @@ dataSources:
           file: ./abis/Vault.json
         - name: IERC20
           file: ./abis/IERC20.json
+        - name: FeeRewardForwarder
+          file: ./abis/FeeRewardForwarder.json
       eventHandlers:
         - event: SharePriceChangeLog(indexed address,indexed address,uint256,uint256,uint256)
           handler: handleSharePriceChangeLog

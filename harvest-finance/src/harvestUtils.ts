@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
 import {
   Account,
   FeeRewardForwarder,
@@ -18,7 +18,7 @@ import {
   RewardPool as RewardPoolTemplate,
 } from "../generated/templates";
 
-import { getOrCreateERC20Token, getOrCreateMarket } from "./common";
+import { ADDRESS_ZERO, getOrCreateERC20Token, getOrCreateMarket } from "./common";
 import { FARM_TOKEN_ADDRESS, ProtocolName, ProtocolType } from "./constants";
 
 /**
@@ -103,7 +103,8 @@ export function getOrCreateFeeRewardForwarder(forwarderAddress: string): FeeRewa
   // get reward pool
   let feeRewarderContract = FeeRewardForwarderContract.bind(Address.fromString(forwarderAddress));
   let rewardPool = feeRewarderContract.profitSharingPool();
-  if (rewardPool) {
+
+  if (rewardPool && rewardPool.toHexString() != ADDRESS_ZERO) {
     getOrCreateRewardPool(rewardPool.toHexString(), feeRewarderContract.farm().toHexString());
   }
 
