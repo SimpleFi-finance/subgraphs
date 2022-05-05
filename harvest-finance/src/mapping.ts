@@ -18,7 +18,12 @@ import {
   TokenBalance,
   updateMarket,
 } from "./common";
-import { Deposit as DepositEvent, Transfer, Withdraw } from "../generated/templates/Vault/Vault";
+import {
+  Deposit as DepositEvent,
+  Transfer,
+  Withdraw,
+  Vault as VaultContract,
+} from "../generated/templates/Vault/Vault";
 import {
   getOrCreateFeeRewardForwarder,
   getOrCreateHarvestController,
@@ -53,6 +58,9 @@ export function handleDeposit(event: DepositEvent): void {
   checkForUnprocessedTransferToZero(event, vault);
 
   // update vault state
+  if (vault.pricePerShare == BigInt.fromI32(0)) {
+    vault.pricePerShare = VaultContract.bind(event.address).getPricePerFullShare();
+  }
   let mintedAmount = depositedAmount.times(vault.underlyingUnit).div(vault.pricePerShare);
   vault.totalSupply = vault.totalSupply.plus(mintedAmount);
   vault.save();
@@ -111,6 +119,9 @@ export function handleWithdraw(event: Withdraw): void {
   vault.lastTransferToZero = null;
 
   // update vault state
+  if (vault.pricePerShare == BigInt.fromI32(0)) {
+    vault.pricePerShare = VaultContract.bind(event.address).getPricePerFullShare();
+  }
   let burnedAmountOfFTokens = withdrawnAmountOfUnderlying
     .times(vault.underlyingUnit)
     .div(vault.pricePerShare);
@@ -233,6 +244,10 @@ function transferLPToken(
   let senderPosition = getOrCreatePositionInVault(sender, vault);
   senderPosition.fTokenBalance = senderPosition.fTokenBalance.minus(fTokensTransferredAmount);
   senderPosition.save();
+
+  if (vault.pricePerShare == BigInt.fromI32(0)) {
+    vault.pricePerShare = VaultContract.bind(event.address).getPricePerFullShare();
+  }
 
   let market = Market.load(vault.id) as Market;
   let outputTokenAmount = fTokensTransferredAmount;
