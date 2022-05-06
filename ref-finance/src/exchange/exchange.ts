@@ -1,14 +1,14 @@
-import { near, BigInt, log, json, JSONValueKind, Bytes, JSONValue } from "@graphprotocol/graph-ts"
+import { BigInt, json, JSONValue, near } from "@graphprotocol/graph-ts";
 import { Pool, RefAccount, SimplePool, StableSwapPool } from "../../generated/schema";
 
 /**
 pub fn new(owner_id: ValidAccountId, exchange_fee: u32, referral_fee: u32) -> Self
  */
 export function initRefV2(
-  functionCall: near.FunctionCallAction, 
-  receipt: near.ActionReceipt, 
-  block: near.Block, 
-  outcome: near.ExecutionOutcome
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
 ): void {
   const args = json.fromBytes(functionCall.args).toObject();
   const ownerId = (args.get("owner_id") as JSONValue).toString();
@@ -24,12 +24,12 @@ export function initRefV2(
 
 /**
 add_simple_pool(&mut self, tokens: Vec<ValidAccountId>, fee: u32) -> u64
- */ 
+ */
 export function addSimplePool(
-  functionCall: near.FunctionCallAction, 
-  receipt: near.ActionReceipt, 
-  block: near.Block, 
-  outcome: near.ExecutionOutcome
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
 ): void {
   const args = json.fromBytes(functionCall.args).toObject();
   const tokens = (args.get("tokens") as JSONValue).toArray().map<string>(jv => jv.toString());
@@ -63,10 +63,10 @@ add_stable_swap_pool(
 ) -> u64
  */
 export function addStableSwapPool(
-  functionCall: near.FunctionCallAction, 
-  receipt: near.ActionReceipt, 
-  block: near.Block, 
-  outcome: near.ExecutionOutcome
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
 ): void {
   const args = json.fromBytes(functionCall.args).toObject();
   const tokens = (args.get("tokens") as JSONValue).toArray().map<string>(jv => jv.toString());
@@ -103,10 +103,10 @@ execute_actions(
 ) -> ActionResult
  */
 export function executeActions(
-  functionCall: near.FunctionCallAction, 
-  receipt: near.ActionReceipt, 
-  block: near.Block, 
-  outcome: near.ExecutionOutcome
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
 ): void {
 
 }
@@ -120,10 +120,10 @@ add_liquidity(
 )
  */
 export function addLiquidity(
-  functionCall: near.FunctionCallAction, 
-  receipt: near.ActionReceipt, 
-  block: near.Block, 
-  outcome: near.ExecutionOutcome
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
 ): void {
 
 }
@@ -137,10 +137,10 @@ add_stable_liquidity(
 ) -> U128
  */
 export function addStableLiquidity(
-  functionCall: near.FunctionCallAction, 
-  receipt: near.ActionReceipt, 
-  block: near.Block, 
-  outcome: near.ExecutionOutcome
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
 ): void {
 
 }
@@ -149,10 +149,10 @@ export function addStableLiquidity(
 remove_liquidity(&mut self, pool_id: u64, shares: U128, min_amounts: Vec<U128>)
  */
 export function removeLiquidity(
-  functionCall: near.FunctionCallAction, 
-  receipt: near.ActionReceipt, 
-  block: near.Block, 
-  outcome: near.ExecutionOutcome
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
 ): void {
 
 }
@@ -165,10 +165,10 @@ remove_liquidity_by_tokens(
 ) -> U128
  */
 export function removeLiquidityByTokens(
-  functionCall: near.FunctionCallAction, 
-  receipt: near.ActionReceipt, 
-  block: near.Block, 
-  outcome: near.ExecutionOutcome
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
 ): void {
 
 }
@@ -177,10 +177,10 @@ export function removeLiquidityByTokens(
 swap(&mut self, actions: Vec<SwapAction>, referral_id: Option<ValidAccountId>) -> U128
  */
 export function swap(
-  functionCall: near.FunctionCallAction, 
-  receipt: near.ActionReceipt, 
-  block: near.Block, 
-  outcome: near.ExecutionOutcome
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
 ): void {
 
 }

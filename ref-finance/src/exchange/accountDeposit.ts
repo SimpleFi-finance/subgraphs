@@ -1,4 +1,4 @@
-import { near, BigInt, log, json, JSONValueKind, Bytes, JSONValue } from "@graphprotocol/graph-ts"
+import { near } from "@graphprotocol/graph-ts";
 
 /**
 pub fn withdraw(
@@ -9,10 +9,10 @@ pub fn withdraw(
 ) -> Promise
  */
 export function withdraw(
-  functionCall: near.FunctionCallAction, 
-  receipt: near.ActionReceipt, 
-  block: near.Block, 
-  outcome: near.ExecutionOutcome
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
 ): void {
 
 }
@@ -26,10 +26,10 @@ pub fn exchange_callback_post_withdraw(
 )
  */
 export function callbakPostWithdraw(
-  functionCall: near.FunctionCallAction, 
-  receipt: near.ActionReceipt, 
-  block: near.Block, 
-  outcome: near.ExecutionOutcome
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
 ): void {
 
 }

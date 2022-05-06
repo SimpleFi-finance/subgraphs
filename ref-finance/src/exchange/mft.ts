@@ -1,4 +1,4 @@
-import { near, BigInt, log, json, JSONValueKind, Bytes, JSONValue } from "@graphprotocol/graph-ts"
+import { near } from "@graphprotocol/graph-ts";
 
 /**
 pub fn mft_transfer(
@@ -10,10 +10,10 @@ pub fn mft_transfer(
 )
  */
 export function mftTransfer(
-  functionCall: near.FunctionCallAction, 
-  receipt: near.ActionReceipt, 
-  block: near.Block, 
-  outcome: near.ExecutionOutcome
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
 ): void {
 
 }
@@ -29,10 +29,10 @@ pub fn mft_transfer_call(
 ) -> PromiseOrValue<U128>
  */
 export function mftTransferCall(
-  functionCall: near.FunctionCallAction, 
-  receipt: near.ActionReceipt, 
-  block: near.Block, 
-  outcome: near.ExecutionOutcome
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
 ): void {
 
 }
@@ -49,10 +49,10 @@ pub fn mft_resolve_transfer(
 ) -> U128
  */
 export function mftResolveTransfer(
-  functionCall: near.FunctionCallAction, 
-  receipt: near.ActionReceipt, 
-  block: near.Block, 
-  outcome: near.ExecutionOutcome
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
 ): void {
 
 }
