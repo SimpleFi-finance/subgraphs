@@ -251,6 +251,17 @@ type ProfitSharingPool @entity {
   rewardToken: Token!
 }
 
+type RewardPool @entity {
+  " contract address "
+  id: ID!
+
+  " vault token being staked "
+  lpToken: Token!
+
+  " FARM token being rewarded "
+  rewardToken: Token!
+}
+
 type RewardClaim @entity {
   " user-tx "
   id: ID!

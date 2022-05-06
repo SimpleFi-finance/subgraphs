@@ -6,8 +6,11 @@ import {
   PositionInVault,
   ProfitSharingPool,
   Vault,
+  RewardPool,
 } from "../generated/schema";
 import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
+import { RewardPool as RewardPoolContract } from "../generated/templates/RewardPool/RewardPool";
+
 import { HarvestEthController as ControllerContract } from "../generated/HarvestEthController1/HarvestEthController";
 
 import { FeeRewardForwarder as FeeRewardForwarderContract } from "../generated/templates/FeeRewardForwarder/FeeRewardForwarder";
@@ -16,6 +19,7 @@ import {
   Vault as VaultTemplate,
   FeeRewardForwarder as FeeRewardForwarderTemplate,
   ProfitSharingPool as ProfitSharingPoolTemplate,
+  RewardPool as RewardPoolTemplate,
 } from "../generated/templates";
 
 import { ADDRESS_ZERO, getOrCreateERC20Token, getOrCreateMarket } from "./common";
@@ -166,4 +170,33 @@ export function getOrCreateHarvestController(controllerAddress: string): Harvest
   }
 
   return controller;
+}
+
+/**
+ * Create RewardPool entity and start indexing it
+ * @param block
+ * @param rewardPoolAddress
+ * @returns
+ */
+export function getOrCreateRewardPool(
+  block: ethereum.Block,
+  rewardPoolAddress: string
+): RewardPool {
+  let rewardPool = RewardPool.load(rewardPoolAddress);
+  if (rewardPool != null) {
+    return rewardPool as RewardPool;
+  }
+
+  let rewardPoolContract = RewardPoolContract.bind(Address.fromString(rewardPoolAddress));
+
+  // create RewardPool entity
+  rewardPool = new RewardPool(rewardPoolAddress);
+  rewardPool.rewardToken = getOrCreateERC20Token(block, rewardPoolContract.rewardToken()).id;
+  rewardPool.lpToken = getOrCreateERC20Token(block, rewardPoolContract.lpToken()).id;
+  rewardPool.save();
+
+  // start indexing reward pool
+  RewardPoolTemplate.create(Address.fromString(rewardPoolAddress));
+
+  return rewardPool;
 }
