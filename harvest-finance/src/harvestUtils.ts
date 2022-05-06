@@ -154,7 +154,7 @@ export function getOrCreateHarvestController(controllerAddress: string): Harvest
   // init fee reward forwarder if available
   let controllerContract = ControllerContract.bind(Address.fromString(controllerAddress));
   let feeRewardForwarder = controllerContract.feeRewardForwarder();
-  if (feeRewardForwarder) {
+  if (feeRewardForwarder && feeRewardForwarder.toHexString() != ADDRESS_ZERO) {
     getOrCreateFeeRewardForwarder(feeRewardForwarder.toHexString());
   }
 
