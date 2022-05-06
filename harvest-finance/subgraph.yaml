@@ -14,7 +14,7 @@ dataSources:
       apiVersion: 0.0.5
       language: wasm/assemblyscript
       entities:
-        - SharePriceChangeLog
+        - Vault
       abis:
         - name: HarvestEthController
           file: ./abis/HarvestEthController.json
@@ -46,7 +46,7 @@ dataSources:
       apiVersion: 0.0.5
       language: wasm/assemblyscript
       entities:
-        - SharePriceChangeLog
+        - Vault
       abis:
         - name: HarvestEthController
           file: ./abis/HarvestEthController.json
@@ -65,6 +65,28 @@ dataSources:
         - function: setFeeRewardForwarder(address)
           handler: setFeeRewardForwarder
       file: ./src/vault.ts
+
+  - kind: ethereum/contract
+    name: NotifyHelper
+    network: mainnet
+    source:
+      address: "0xE20c31e3d08027F5AfACe84A3A46B7b3B165053c"
+      startBlock: 11276997
+      abi: NotifyHelper
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+        - RewardPool
+      abis:
+        - name: NotifyHelper
+          file: ./abis/NotifyHelper.json
+      callHandlers:
+        - function: notifyPools(uint256[],address[],uint256)
+          handler: handleNotifyPools
+      file: ./src/notifyHelper.ts
 
 templates:
   - kind: ethereum/contract

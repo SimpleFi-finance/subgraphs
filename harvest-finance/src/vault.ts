@@ -1,8 +1,3 @@
-import {
-  AddVaultAndStrategyCall,
-  SetFeeRewardForwarderCall,
-  SharePriceChangeLog,
-} from "../generated/HarvestEthController1/HarvestEthController";
 import { Vault, LPTokenTransferToZero, Market, Account } from "../generated/schema";
 import {
   ADDRESS_ZERO,
@@ -18,12 +13,7 @@ import {
   Withdraw,
   Vault as VaultContract,
 } from "../generated/templates/Vault/Vault";
-import {
-  getOrCreateFeeRewardForwarder,
-  getOrCreateHarvestController,
-  getOrCreatePositionInVault,
-  getOrCreateVault,
-} from "./harvestUtils";
+import { getOrCreatePositionInVault, getOrCreateVault } from "./harvestUtils";
 import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 
 /**
