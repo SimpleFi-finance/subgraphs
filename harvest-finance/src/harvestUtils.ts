@@ -4,7 +4,7 @@ import {
   FeeRewardForwarder,
   HarvestController,
   PositionInVault,
-  RewardPool,
+  ProfitSharingPool,
   Vault,
 } from "../generated/schema";
 import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
@@ -15,7 +15,7 @@ import { FeeRewardForwarder as FeeRewardForwarderContract } from "../generated/t
 import {
   Vault as VaultTemplate,
   FeeRewardForwarder as FeeRewardForwarderTemplate,
-  RewardPool as RewardPoolTemplate,
+  ProfitSharingPool as ProfitSharingPoolTemplate,
 } from "../generated/templates";
 
 import { ADDRESS_ZERO, getOrCreateERC20Token, getOrCreateMarket } from "./common";
@@ -98,15 +98,19 @@ export function getOrCreateFeeRewardForwarder(forwarderAddress: string): FeeRewa
   }
 
   forwarder = new FeeRewardForwarder(forwarderAddress);
-  forwarder.save();
 
   // get reward pool
   let feeRewarderContract = FeeRewardForwarderContract.bind(Address.fromString(forwarderAddress));
-  let rewardPool = feeRewarderContract.profitSharingPool();
+  let profitSharingPoolAddress = feeRewarderContract.profitSharingPool();
 
-  if (rewardPool && rewardPool.toHexString() != ADDRESS_ZERO) {
-    getOrCreateRewardPool(rewardPool.toHexString(), feeRewarderContract.farm().toHexString());
+  if (profitSharingPoolAddress && profitSharingPoolAddress.toHexString() != ADDRESS_ZERO) {
+    let profitSharingPool = getOrCreateProfitSharingPool(
+      profitSharingPoolAddress.toHexString(),
+      feeRewarderContract.farm().toHexString()
+    );
+    forwarder.profitSharingPool = profitSharingPool.id;
   }
+  forwarder.save();
 
   // start indexing FeeRewardForwarder contract
   FeeRewardForwarderTemplate.create(Address.fromString(forwarderAddress));
@@ -115,25 +119,28 @@ export function getOrCreateFeeRewardForwarder(forwarderAddress: string): FeeRewa
 }
 
 /**
- * Create entity for RewardPool and start indexing it
- * @param rewardPoolAddress
+ * Create entity for ProfitSharingPool and start indexing it
+ * @param profitSharingPoolAddress
  * @param rewardToken
  * @returns
  */
-export function getOrCreateRewardPool(rewardPoolAddress: string, rewardToken: string): RewardPool {
-  let rewardPool = RewardPool.load(rewardPoolAddress);
-  if (rewardPool != null) {
-    return rewardPool as RewardPool;
+export function getOrCreateProfitSharingPool(
+  profitSharingPoolAddress: string,
+  rewardToken: string
+): ProfitSharingPool {
+  let profitSharingPool = ProfitSharingPool.load(profitSharingPoolAddress);
+  if (profitSharingPool != null) {
+    return profitSharingPool as ProfitSharingPool;
   }
 
-  rewardPool = new RewardPool(rewardPoolAddress);
-  rewardPool.rewardToken = rewardToken;
-  rewardPool.save();
+  profitSharingPool = new ProfitSharingPool(profitSharingPoolAddress);
+  profitSharingPool.rewardToken = rewardToken;
+  profitSharingPool.save();
 
   // start indexing reward pool contract
-  RewardPoolTemplate.create(Address.fromString(rewardPoolAddress));
+  ProfitSharingPoolTemplate.create(Address.fromString(profitSharingPoolAddress));
 
-  return rewardPool;
+  return profitSharingPool;
 }
 
 /**

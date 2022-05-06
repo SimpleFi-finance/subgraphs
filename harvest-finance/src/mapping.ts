@@ -3,13 +3,7 @@ import {
   SetFeeRewardForwarderCall,
   SharePriceChangeLog,
 } from "../generated/HarvestEthController1/HarvestEthController";
-import {
-  Vault,
-  LPTokenTransferToZero,
-  Market,
-  Account,
-  HarvestController,
-} from "../generated/schema";
+import { Vault, LPTokenTransferToZero, Market, Account } from "../generated/schema";
 import {
   ADDRESS_ZERO,
   getOrCreateAccount,

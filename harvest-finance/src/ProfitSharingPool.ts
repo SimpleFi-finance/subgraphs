@@ -1,5 +1,5 @@
 import { RewardClaim } from "../generated/schema";
-import { RewardPaid } from "../generated/templates/RewardPool/RewardPool";
+import { RewardPaid } from "../generated/templates/ProfitSharingPool/ProfitSharingPool";
 import { getOrCreateAccount } from "./common";
 
 export function handleRewardPaid(event: RewardPaid): void {
@@ -11,6 +11,6 @@ export function handleRewardPaid(event: RewardPaid): void {
   claim.user = user.id;
   claim.tx = tx;
   claim.amount = amount;
-  claim.rewardPool = event.address.toHexString();
+  claim.rewardSource = event.address.toHexString();
   claim.save();
 }

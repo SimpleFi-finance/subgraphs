@@ -1,6 +1,6 @@
 import { TokenPoolSet } from "../generated/templates/FeeRewardForwarder/FeeRewardForwarder";
 import { getOrCreateERC20Token } from "./common";
-import { getOrCreateRewardPool } from "./harvestUtils";
+import { getOrCreateProfitSharingPool } from "./harvestUtils";
 
 /**
  * Handle new reward pools
@@ -8,7 +8,7 @@ import { getOrCreateRewardPool } from "./harvestUtils";
  */
 export function handleTokenPoolSet(event: TokenPoolSet): void {
   let rewardToken = getOrCreateERC20Token(event.block, event.params.token);
-  let rewardPool = event.params.pool;
+  let profitSharingPool = event.params.pool;
 
-  getOrCreateRewardPool(rewardPool.toHexString(), rewardToken.id);
+  getOrCreateProfitSharingPool(profitSharingPool.toHexString(), rewardToken.id);
 }

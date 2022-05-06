@@ -121,22 +121,22 @@ templates:
       file: ./src/feeRewardForwarder.ts
 
   - kind: ethereum/contract
-    name: RewardPool
+    name: ProfitSharingPool
     network: mainnet
     source:
-      abi: RewardPool
+      abi: ProfitSharingPool
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.5
       language: wasm/assemblyscript
       entities:
-        - RewardPool
+        - ProfitSharingPool
       abis:
         - name: Vault
           file: ./abis/Vault.json
-        - name: RewardPool
-          file: ./abis/RewardPool.json
+        - name: ProfitSharingPool
+          file: ./abis/ProfitSharingPool.json
       eventHandlers:
         - event: RewardPaid(indexed address,uint256)
           handler: handleRewardPaid
-      file: ./src/rewardPool.ts
+      file: ./src/profitSharingPool.ts

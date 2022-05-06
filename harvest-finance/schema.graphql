@@ -238,9 +238,12 @@ type LPTokenTransferToZero @entity {
 type FeeRewardForwarder @entity {
   " contract address "
   id: ID!
+
+  " pool ref "
+  profitSharingPool: ProfitSharingPool
 }
 
-type RewardPool @entity {
+type ProfitSharingPool @entity {
   " contract address "
   id: ID!
 
@@ -262,5 +265,5 @@ type RewardClaim @entity {
   amount: BigInt!
 
   " source of the reward "
-  rewardPool: RewardPool!
+  rewardSource: String!
 }
