@@ -25,7 +25,7 @@ export function handleDeposit(event: DepositEvent): void {
   let user = getOrCreateAccount(event.params.beneficiary);
 
   // check if there's a pending tx to zero
-  let vault = getOrCreateVault(event.block, event.address);
+  let vault = getOrCreateVault(event, event.address);
   checkForUnprocessedTransferToZero(event, vault);
 
   // update vault state
@@ -85,7 +85,7 @@ export function handleWithdraw(event: Withdraw): void {
   let receiver = getOrCreateAccount(event.params.beneficiary);
 
   // check if there's a pending tx to zero
-  let vault = getOrCreateVault(event.block, event.address);
+  let vault = getOrCreateVault(event, event.address);
   checkForUnprocessedTransferToZero(event, vault);
   vault.lastTransferToZero = null;
 
@@ -158,14 +158,14 @@ export function handleTransfer(event: Transfer): void {
     txToZero.value = event.params.value;
     txToZero.save();
 
-    let vault = getOrCreateVault(event.block, event.address);
+    let vault = getOrCreateVault(event, event.address);
     vault.lastTransferToZero = txToZero.id;
     vault.save();
 
     return;
   }
 
-  let vault = getOrCreateVault(event.block, event.address);
+  let vault = getOrCreateVault(event, event.address);
   let fTokensTransferredAmount = event.params.value;
 
   let sender = getOrCreateAccount(event.params.from);

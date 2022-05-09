@@ -6,6 +6,7 @@ import {
 import { Market } from "../generated/schema";
 import { TokenBalance, updateMarket } from "./common";
 import {
+  createFakeEventFromCall,
   getOrCreateFeeRewardForwarder,
   getOrCreateHarvestController,
   getOrCreateVault,
@@ -18,7 +19,7 @@ import {
 export function addVaultAndStrategy(call: AddVaultAndStrategyCall): void {
   getOrCreateHarvestController(call.to.toHexString());
 
-  getOrCreateVault(call.block, call.inputs._vault);
+  getOrCreateVault(createFakeEventFromCall(call), call.inputs._vault);
 }
 
 /**
@@ -41,7 +42,7 @@ export function handleSharePriceChangeLog(event: SharePriceChangeLog): void {
 
   let market = Market.load(event.params.vault.toHexString()) as Market;
 
-  let vault = getOrCreateVault(event.block, event.params.vault);
+  let vault = getOrCreateVault(event, event.params.vault);
   vault.pricePerShare = event.params.newSharePrice;
   vault.save();
 

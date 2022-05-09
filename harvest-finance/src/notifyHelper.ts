@@ -1,5 +1,5 @@
 import { NotifyPoolsCall } from "../generated/NotifyHelper/NotifyHelper";
-import { getOrCreateRewardPool, getOrCreateVault } from "./harvestUtils";
+import { createFakeEventFromCall, getOrCreateRewardPool, getOrCreateVault } from "./harvestUtils";
 import { RewardPool as RewardPoolContract } from "../generated/templates/RewardPool/RewardPool";
 
 export function handleNotifyPools(call: NotifyPoolsCall): void {
@@ -8,9 +8,9 @@ export function handleNotifyPools(call: NotifyPoolsCall): void {
     // get vault
     let rewardPoolContract = RewardPoolContract.bind(rewardPoolAddresses[i]);
     let vaultAddress = rewardPoolContract.lpToken();
-    getOrCreateVault(call.block, vaultAddress);
+    getOrCreateVault(createFakeEventFromCall(call), vaultAddress);
 
     // create reward pool if it doesn't exist
-    getOrCreateRewardPool(call.block, rewardPoolAddresses[i].toHexString());
+    getOrCreateRewardPool(createFakeEventFromCall(call), rewardPoolAddresses[i].toHexString());
   }
 }

@@ -7,6 +7,7 @@ import {
   ProfitSharingPool,
   Vault,
   RewardPool,
+  Token,
 } from "../generated/schema";
 import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
 import { RewardPool as RewardPoolContract } from "../generated/templates/RewardPool/RewardPool";
@@ -22,7 +23,12 @@ import {
   RewardPool as RewardPoolTemplate,
 } from "../generated/templates";
 
-import { ADDRESS_ZERO, getOrCreateERC20Token, getOrCreateMarket } from "./common";
+import {
+  ADDRESS_ZERO,
+  getOrCreateERC20Token,
+  getOrCreateMarket,
+  getOrCreateMarketWithId,
+} from "./common";
 import { FARM_TOKEN_ADDRESS, ProtocolName, ProtocolType } from "./constants";
 
 /**
@@ -31,7 +37,7 @@ import { FARM_TOKEN_ADDRESS, ProtocolName, ProtocolType } from "./constants";
  * @param vaultAddress
  * @returns
  */
-export function getOrCreateVault(block: ethereum.Block, vaultAddress: Address): Vault {
+export function getOrCreateVault(event: ethereum.Event, vaultAddress: Address): Vault {
   let vault = Vault.load(vaultAddress.toHexString());
   if (vault != null) {
     return vault as Vault;
@@ -44,16 +50,16 @@ export function getOrCreateVault(block: ethereum.Block, vaultAddress: Address): 
   vault.totalSupply = fAssetToken.totalSupply();
   vault.strategy = fAssetToken.strategy().toHexString();
   vault.underlyingUnit = fAssetToken.underlyingUnit();
-  let inputToken = getOrCreateERC20Token(block, fAssetToken.underlying());
+  let inputToken = getOrCreateERC20Token(event, fAssetToken.underlying());
   vault.underlyingToken = inputToken.id;
   vault.pricePerShare = fAssetToken.getPricePerFullShare();
   vault.save();
 
   // create Market entity
-  let outputToken = getOrCreateERC20Token(block, vaultAddress);
-  let farmToken = getOrCreateERC20Token(block, FARM_TOKEN_ADDRESS);
+  let outputToken = getOrCreateERC20Token(event, vaultAddress);
+  let farmToken = getOrCreateERC20Token(event, FARM_TOKEN_ADDRESS);
   getOrCreateMarket(
-    block,
+    event,
     vaultAddress,
     ProtocolName.HARVEST_FINANCE,
     ProtocolType.TOKEN_MANAGEMENT,
@@ -179,7 +185,7 @@ export function getOrCreateHarvestController(controllerAddress: string): Harvest
  * @returns
  */
 export function getOrCreateRewardPool(
-  block: ethereum.Block,
+  event: ethereum.Event,
   rewardPoolAddress: string
 ): RewardPool {
   let rewardPool = RewardPool.load(rewardPoolAddress);
@@ -191,12 +197,53 @@ export function getOrCreateRewardPool(
 
   // create RewardPool entity
   rewardPool = new RewardPool(rewardPoolAddress);
-  rewardPool.rewardToken = getOrCreateERC20Token(block, rewardPoolContract.rewardToken()).id;
-  rewardPool.lpToken = getOrCreateERC20Token(block, rewardPoolContract.lpToken()).id;
+  let rewardToken = getOrCreateERC20Token(event, rewardPoolContract.rewardToken());
+  rewardPool.rewardToken = rewardToken.id;
+  let lpToken = getOrCreateERC20Token(event, rewardPoolContract.lpToken());
+  rewardPool.lpToken = lpToken.id;
   rewardPool.save();
+
+  // create market for this reward pool
+  let marketId = rewardPool.id;
+  let marketAddress = Address.fromString(rewardPoolAddress);
+  let protocolName = ProtocolName.HARVEST_FINANCE_REWARD_POOL;
+  let protocolType = ProtocolType.LP_FARMING;
+  let inputTokens: Token[] = [lpToken];
+  let outputToken: Token = getOrCreateERC20Token(event, Address.fromString(rewardPoolAddress));
+  let rewardTokens: Token[] = [rewardToken];
+
+  getOrCreateMarketWithId(
+    event,
+    marketId,
+    marketAddress,
+    protocolName,
+    protocolType,
+    inputTokens,
+    outputToken,
+    rewardTokens
+  );
 
   // start indexing reward pool
   RewardPoolTemplate.create(Address.fromString(rewardPoolAddress));
 
   return rewardPool;
+}
+
+/**
+ * Helper function to transform call to matching event when it's needed for common functions
+ * @param call
+ * @returns
+ */
+export function createFakeEventFromCall(call: ethereum.Call): ethereum.Event {
+  let fakeEvent = new ethereum.Event(
+    call.to,
+    BigInt.fromI32(0),
+    BigInt.fromI32(0),
+    null,
+    call.block,
+    call.transaction,
+    []
+  );
+
+  return fakeEvent;
 }

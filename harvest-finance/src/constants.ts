@@ -18,6 +18,7 @@ export namespace TokenStandard {
 
 export namespace ProtocolName {
   export const HARVEST_FINANCE = "HARVEST_FINANCE"
+  export const HARVEST_FINANCE_REWARD_POOL = "HARVEST_FINANCE_REWARD_POOL"
 }
 
 export namespace ProtocolType {

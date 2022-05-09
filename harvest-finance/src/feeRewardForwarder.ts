@@ -7,7 +7,7 @@ import { getOrCreateProfitSharingPool } from "./harvestUtils";
  * @param event
  */
 export function handleTokenPoolSet(event: TokenPoolSet): void {
-  let rewardToken = getOrCreateERC20Token(event.block, event.params.token);
+  let rewardToken = getOrCreateERC20Token(event, event.params.token);
   let profitSharingPool = event.params.pool;
 
   getOrCreateProfitSharingPool(profitSharingPool.toHexString(), rewardToken.id);
