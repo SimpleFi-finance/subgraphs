@@ -4,13 +4,50 @@ import {
   Staked,
   Withdrawn,
 } from "../generated/templates/ProfitSharingPool/ProfitSharingPool";
-import { getOrCreateAccount, redeemFromMarket, TokenBalance } from "./common";
+import { getOrCreateAccount, investInMarket, redeemFromMarket, TokenBalance } from "./common";
 import { getOrCreatePositionInRewardPool, getOrCreateRewardPool } from "./harvestUtils";
 import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { RewardPool as RewardPoolContract } from "../generated/templates/RewardPool/RewardPool";
 
+/**
+ * Handle user staking fTokens to RewardPool
+ * @param event
+ */
 export function handleStaked(event: Staked): void {
-  // to do
+  let rewardPool = getOrCreateRewardPool(event, event.address.toHexString());
+  let stakedAmount = event.params.amount;
+  let user = getOrCreateAccount(event.params.user);
+
+  // update fToken balance tracker
+  let position = getOrCreatePositionInRewardPool(user, rewardPool);
+  position.fTokenBalance = position.fTokenBalance.plus(stakedAmount);
+  position.save();
+
+  // update position by calling invest in market
+  let market = Market.load(rewardPool.lpToken);
+  let outputTokenAmount = stakedAmount;
+  let inputTokenAmounts: TokenBalance[] = [
+    new TokenBalance(rewardPool.lpToken, user.id, stakedAmount),
+  ];
+  let rewardTokenAmounts: TokenBalance[] = [];
+  let outputTokenBalance = position.fTokenBalance;
+  let inputTokeneBalances = [new TokenBalance(rewardPool.lpToken, user.id, position.fTokenBalance)];
+  let rewardTokenBalances = [
+    new TokenBalance(rewardPool.rewardToken, user.id, earned(user.id, rewardPool.id)),
+  ];
+
+  investInMarket(
+    event,
+    user,
+    market!,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokeneBalances,
+    rewardTokenBalances,
+    null
+  );
 }
 
 export function handleWithdrawn(event: Withdrawn): void {
@@ -28,7 +65,7 @@ export function handleRewardPaid(event: RewardPaid): void {
 
   let position = getOrCreatePositionInRewardPool(user, rewardPool);
 
-  // update position by doing redeem from market call
+  // update position by calling redeem from market
   let market = Market.load(rewardPool.lpToken);
   let outputTokenAmount = BigInt.fromI32(0);
   let inputTokenAmounts: TokenBalance[] = [];
