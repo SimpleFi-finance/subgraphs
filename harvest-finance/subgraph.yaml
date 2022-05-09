@@ -83,6 +83,8 @@ dataSources:
       abis:
         - name: NotifyHelper
           file: ./abis/NotifyHelper.json
+        - name: RewardPool
+          file: ./abis/RewardPool.json
       callHandlers:
         - function: notifyPools(uint256[],address[],uint256)
           handler: handleNotifyPools
