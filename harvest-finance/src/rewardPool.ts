@@ -50,8 +50,45 @@ export function handleStaked(event: Staked): void {
   );
 }
 
+/**
+ * Handle user withdrawing fTokens from RewardPool
+ * @param event
+ */
 export function handleWithdrawn(event: Withdrawn): void {
-  // to do
+  let rewardPool = getOrCreateRewardPool(event, event.address.toHexString());
+  let amountWithdrawn = event.params.amount;
+  let user = getOrCreateAccount(event.params.user);
+
+  // update fToken balance tracker
+  let position = getOrCreatePositionInRewardPool(user, rewardPool);
+  position.fTokenBalance = position.fTokenBalance.minus(amountWithdrawn);
+  position.save();
+
+  // update position by calling redeem from market
+  let market = Market.load(rewardPool.lpToken);
+  let outputTokenAmount = amountWithdrawn;
+  let inputTokenAmounts: TokenBalance[] = [
+    new TokenBalance(rewardPool.lpToken, user.id, amountWithdrawn),
+  ];
+  let rewardTokenAmounts: TokenBalance[] = [];
+  let outputTokenBalance = position.fTokenBalance;
+  let inputTokeneBalances = [new TokenBalance(rewardPool.lpToken, user.id, position.fTokenBalance)];
+  let rewardTokenBalances = [
+    new TokenBalance(rewardPool.rewardToken, user.id, earned(user.id, rewardPool.id)),
+  ];
+
+  redeemFromMarket(
+    event,
+    user,
+    market!,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    outputTokenBalance,
+    inputTokeneBalances,
+    rewardTokenBalances,
+    null
+  );
 }
 
 /**
