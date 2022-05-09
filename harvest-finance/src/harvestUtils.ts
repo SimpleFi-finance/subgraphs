@@ -8,6 +8,7 @@ import {
   Vault,
   RewardPool,
   Token,
+  PositionInRewardPool,
 } from "../generated/schema";
 import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
 import { RewardPool as RewardPoolContract } from "../generated/templates/RewardPool/RewardPool";
@@ -227,6 +228,31 @@ export function getOrCreateRewardPool(
   RewardPoolTemplate.create(Address.fromString(rewardPoolAddress));
 
   return rewardPool;
+}
+
+/**
+ * Track amount of fTokens user staked in RewardPool
+ * @param user
+ * @param rewardPool
+ * @returns
+ */
+export function getOrCreatePositionInRewardPool(
+  user: Account,
+  rewardPool: RewardPool
+): PositionInRewardPool {
+  let id = user.id + "-" + rewardPool.id;
+  let position = PositionInRewardPool.load(id);
+  if (position != null) {
+    return position as PositionInRewardPool;
+  }
+
+  position = new PositionInRewardPool(id);
+  position.user = user.id;
+  position.rewardPool = rewardPool.id;
+  position.fTokenBalance = BigInt.fromI32(0);
+  position.save();
+
+  return position;
 }
 
 /**

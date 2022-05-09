@@ -262,6 +262,20 @@ type RewardPool @entity {
   rewardToken: Token!
 }
 
+type PositionInRewardPool @entity {
+  " userAddress-rewardPool "
+  id: ID!
+
+  " rewardPool where user staked fTokens "
+  rewardPool: RewardPool!
+
+  " account providing assets "
+  user: Account!
+
+  " amount of staked fTokens "
+  fTokenBalance: BigInt!
+}
+
 type RewardClaim @entity {
   " user-tx "
   id: ID!
