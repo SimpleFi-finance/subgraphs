@@ -8,12 +8,19 @@ import {
   PositionSnapshot,
   Token,
   Transaction,
-} from "../generated/schema";
-import { IERC20 } from "../generated/templates/Vault/IERC20";
+} from "../../generated/schema";
+import { IERC20 } from "../../generated/templates/CToken/IERC20";
 import { PositionType, TokenStandard, TransactionType } from "./constants";
 
 export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 
+/**
+ * Fetch account entity, or create it if it doens't exist. Account can be either EOA or contract.
+ *
+ * @export
+ * @param {Address} address Address of the account to load/create
+ * @return {*}  {Account} Account entity
+ */
 export function getOrCreateAccount(address: Address): Account {
   let addressHex = address.toHexString();
   let account = Account.load(addressHex);
@@ -26,7 +33,16 @@ export function getOrCreateAccount(address: Address): Account {
   return account as Account;
 }
 
-export function getOrCreateERC20Token(block: ethereum.Block, address: Address): Token {
+/**
+ * Fetch token entity, or create it if not existing, for ERC20 token.
+ * Token name, symbol and decimals are fetched by contract calls.
+ *
+ * @export
+ * @param {ethereum.Event} event Event with block info for this token
+ * @param {Address} address Address of the ERC20 token
+ * @return {*}  {Token} Token entity
+ */
+export function getOrCreateERC20Token(event: ethereum.Event, address: Address): Token {
   let addressHex = address.toHexString();
   let token = Token.load(addressHex);
   if (token != null) {
@@ -48,14 +64,64 @@ export function getOrCreateERC20Token(block: ethereum.Block, address: Address): 
   if (!tryDecimals.reverted) {
     token.decimals = tryDecimals.value;
   }
-  token.blockNumber = block.number;
-  token.timestamp = block.timestamp;
+  token.blockNumber = event.block.number;
+  token.timestamp = event.block.timestamp;
   token.save();
   return token as Token;
 }
 
+/**
+ * Fetch market entity, or create it if it doesn't exist. ID of the market is its address.
+ *
+ * @export
+ * @param {ethereum.Event} event Event contains block info
+ * @param {Address} address Address of the market
+ * @param {string} protocolName Name of the protocol based on ProtocolName enum
+ * @param {string} protocolType Type of the protocol based on ProtocolType enum
+ * @param {Token[]} inputTokens List of tokens that can be deposited in this market as investment
+ * @param {Token} outputToken Token that is minted by the market to track the position of a user in the market (e.g. an LP token)
+ * @param {Token[]} rewardTokens List of reward tokens given out by protocol as incentives
+ * @return {*}  {Market} Market entity
+ */
 export function getOrCreateMarket(
-  block: ethereum.Block,
+  event: ethereum.Event,
+  address: Address,
+  protocolName: string,
+  protocolType: string,
+  inputTokens: Token[],
+  outputToken: Token,
+  rewardTokens: Token[]
+): Market {
+  let market = getOrCreateMarketWithId(
+    event,
+    address.toHexString(),
+    address,
+    protocolName,
+    protocolType,
+    inputTokens,
+    outputToken,
+    rewardTokens
+  );
+  return market;
+}
+
+/**
+ * Fetch market entity, or create it if it doesn't exist.
+ *
+ * @export
+ * @param {ethereum.Event} event Event contains block info
+ * @param {string} id ID of the market
+ * @param {Address} address Address of the market
+ * @param {string} protocolName Name of the protocol based on ProtocolName enum
+ * @param {string} protocolType Type of the protocol based on ProtocolType enum
+ * @param {Token[]} inputTokens List of tokens that can be deposited in this market as investment
+ * @param {Token} outputToken Token that is minted by the market to track the position of a user in the market (e.g. an LP token)
+ * @param {Token[]} rewardTokens List of reward tokens given out by protocol as incentives
+ * @return {*}  {Market} Market entity
+ */
+export function getOrCreateMarketWithId(
+  event: ethereum.Event,
+  id: string,
   address: Address,
   protocolName: string,
   protocolType: string,
@@ -64,7 +130,7 @@ export function getOrCreateMarket(
   rewardTokens: Token[]
 ): Market {
   let addressHex = address.toHexString();
-  let market = Market.load(addressHex);
+  let market = Market.load(id);
   if (market != null) {
     return market as Market;
   }
@@ -75,7 +141,7 @@ export function getOrCreateMarket(
     inputTokenBalances.push(new TokenBalance(token.id, addressHex, BigInt.fromI32(0)));
   }
 
-  market = new Market(addressHex);
+  market = new Market(id);
   market.account = getOrCreateAccount(address).id;
   market.protocolName = protocolName;
   market.protocolType = protocolType;
@@ -84,12 +150,23 @@ export function getOrCreateMarket(
   market.rewardTokens = rewardTokens.map<string>((t) => t.id);
   market.inputTokenTotalBalances = inputTokenBalances.map<string>((tb) => tb.toString());
   market.outputTokenTotalSupply = BigInt.fromI32(0);
-  market.blockNumber = block.number;
-  market.timestamp = block.timestamp;
+  market.blockNumber = event.block.number;
+  market.timestamp = event.block.timestamp;
   market.save();
   return market as Market;
 }
 
+/**
+ * Update market with new input token balances and new supply of output token.
+ * Before updating market create market snapshot and store it.
+ *
+ * @export
+ * @param {ethereum.Event} event Event which triggered the change
+ * @param {Market} market Market to be updated
+ * @param {TokenBalance[]} inputTokenBalances Balances of the input tokens that can be redeemed by sending the outputTokenBalance back to the market.
+ * @param {BigInt} outputTokenTotalSupply Total supply of output token
+ * @return {*}  {MarketSnapshot} Market snapshot entity
+ */
 export function updateMarket(
   event: ethereum.Event,
   market: Market,
@@ -99,18 +176,20 @@ export function updateMarket(
   let transactionHash = event.transaction.hash.toHexString();
   let id = transactionHash.concat("-").concat(event.logIndex.toHexString());
   let marketSnapshot = MarketSnapshot.load(id);
-  if (marketSnapshot == null) {
-    marketSnapshot = new MarketSnapshot(id);
-    marketSnapshot.market = market.id;
-    marketSnapshot.inputTokenBalances = market.inputTokenTotalBalances;
-    marketSnapshot.outputTokenTotalSupply = market.outputTokenTotalSupply;
-    marketSnapshot.blockNumber = event.block.number;
-    marketSnapshot.timestamp = event.block.timestamp;
-    marketSnapshot.transactionHash = transactionHash;
-    marketSnapshot.transactionIndexInBlock = event.transaction.index;
-    marketSnapshot.logIndex = event.logIndex;
-    marketSnapshot.save();
+  if (marketSnapshot != null) {
+    return marketSnapshot as MarketSnapshot;
   }
+
+  marketSnapshot = new MarketSnapshot(id);
+  marketSnapshot.market = market.id;
+  marketSnapshot.inputTokenBalances = market.inputTokenTotalBalances;
+  marketSnapshot.outputTokenTotalSupply = market.outputTokenTotalSupply;
+  marketSnapshot.blockNumber = event.block.number;
+  marketSnapshot.timestamp = event.block.timestamp;
+  marketSnapshot.transactionHash = transactionHash;
+  marketSnapshot.transactionIndexInBlock = event.transaction.index;
+  marketSnapshot.logIndex = event.logIndex;
+  marketSnapshot.save();
 
   market.inputTokenTotalBalances = inputTokenBalances.map<string>((tb) => tb.toString());
   market.outputTokenTotalSupply = outputTokenTotalSupply;
@@ -119,6 +198,14 @@ export function updateMarket(
   return marketSnapshot as MarketSnapshot;
 }
 
+/**
+ * Create market snapshot entity which stores balances of input tokens and supply of output token at given block.
+ *
+ * @export
+ * @param {ethereum.Event} event Event which holds block and transaction info
+ * @param {Market} market Market to create snapshot for
+ * @return {*}  {MarketSnapshot} MarketSnapshot entity
+ */
 export function createMarketSnapshot(event: ethereum.Event, market: Market): MarketSnapshot {
   let transactionHash = event.transaction.hash.toHexString();
   let id = transactionHash.concat("-").concat(event.logIndex.toHexString());
@@ -141,6 +228,17 @@ export function createMarketSnapshot(event: ethereum.Event, market: Market): Mar
   return marketSnapshot as MarketSnapshot;
 }
 
+/**
+ * Fetch user's open position, or create a new one if user has no open positions.
+ * Position stores user's balances of input, output and reward tokens for certain market.
+ *
+ * @export
+ * @param {ethereum.Event} event Event which triggered change in user's position
+ * @param {Account} account Account for which we fetch/create the position
+ * @param {Market} market Market which position is tracking
+ * @param {string} positionType Position type can be investment or debt
+ * @return {*}  {Position} Position entity
+ */
 export function getOrCreateOpenPosition(
   event: ethereum.Event,
   account: Account,
@@ -191,6 +289,12 @@ export function getOrCreateOpenPosition(
   return lastPosition as Position;
 }
 
+/**
+ * User's balance of specific token
+ *
+ * @export
+ * @class TokenBalance
+ */
 export class TokenBalance {
   tokenAddress: string;
   accountAddress: string;
@@ -228,39 +332,14 @@ export class TokenBalance {
   }
 }
 
-function addTokenBalances(atbs: TokenBalance[], btbs: TokenBalance[]): TokenBalance[] {
-  if (atbs.length == 0) {
-    return btbs;
-  }
-
-  if (btbs.length == 0) {
-    return atbs;
-  }
-
-  let atbsLength = atbs.length;
-  let btbsLength = btbs.length;
-
-  let sum: TokenBalance[] = [];
-
-  for (let i = 0; i < btbsLength; i = i + 1) {
-    let bv = btbs[i];
-    let found = false;
-    for (let j = 0; j < atbsLength; j = j + 1) {
-      let av = atbs[j];
-      if (av.tokenAddress == bv.tokenAddress) {
-        found = true;
-        sum.push(av.add(bv));
-      }
-    }
-    if (!found) {
-      sum.push(bv);
-    }
-  }
-
-  return sum;
-}
-
-function createPostionSnapshot(position: Position, transaction: Transaction): PositionSnapshot {
+/**
+ * Create snapshot of user's position at certain block
+ *
+ * @param {Position} position Position to create snapshot of
+ * @param {Transaction} transaction Transaction which triggered the change in position
+ * @return {*}  {PositionSnapshot} PositionSnapshot entity
+ */
+function createPositionSnapshot(position: Position, transaction: Transaction): PositionSnapshot {
   let newCounter = position.historyCounter.plus(BigInt.fromI32(1));
   let newSnapshot = new PositionSnapshot(position.id.concat("-").concat(newCounter.toString()));
   newSnapshot.position = position.id;
@@ -279,8 +358,25 @@ function createPostionSnapshot(position: Position, transaction: Transaction): Po
   return newSnapshot;
 }
 
-// We don't want to have any logic to calculae balance with protocol specific logic here
-// Balance should be calculated in protocol specific evennt handlers and sent here
+/**
+ * Store transaction and update user's position when user has invested in market (or received market
+ * output token). Before transaction is stored and position updated, snapshots of market and
+ * position are created for historical tracking. If new balance of user's market output tokens is 0,
+ * position is closed.
+ *
+ * @export
+ * @param {ethereum.Event} event Event emitted after user's investment
+ * @param {Account} account Investor's account
+ * @param {Market} market Market in which user invested
+ * @param {BigInt} outputTokenAmount Change in user's output token balance as part of this transaction
+ * @param {TokenBalance[]} inputTokenAmounts Amounts of input tokens that are deposited by user in this transaction
+ * @param {TokenBalance[]} rewardTokenAmounts Amounts of reward tokens that are claimed by user in this transaction
+ * @param {BigInt} outputTokenBalance Latest user's balance of the market's output token
+ * @param {TokenBalance[]} inputTokenBalances Balances of the input tokens that can be redeemed by sending the outputTokenBalance back to the market
+ * @param {TokenBalance[]} rewardTokenBalances Amounts of market's reward tokens claimable by user (not counting already claimed tokens)
+ * @param {(string | null)} transferredFrom Null if investment was made by user; or address of sender in case when market ouput tokens were transferred to user
+ * @return {*}  {Position} User's updated position in the market
+ */
 export function investInMarket(
   event: ethereum.Event,
   account: Account,
@@ -327,13 +423,13 @@ export function investInMarket(
   transaction.save();
 
   let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT);
-  let postionSnapshot = createPostionSnapshot(position, transaction);
+  let positionSnapshot = createPositionSnapshot(position, transaction);
 
   position.inputTokenBalances = inputTokenBalances.map<string>((tb) => tb.toString());
   position.outputTokenBalance = outputTokenBalance;
   position.rewardTokenBalances = rewardTokenBalances.map<string>((tb) => tb.toString());
 
-  // Check if postion is closed
+  // Check if position is closed
   if (position.outputTokenBalance == BigInt.fromI32(0)) {
     position.closed = true;
   }
@@ -343,6 +439,25 @@ export function investInMarket(
   return position;
 }
 
+/**
+ * Store transaction and update user's position when user has withdrawn tokens from market (or sent out
+ * market output token). Before transaction is stored and position updated, snapshots of market and
+ * position are created for historical tracking. If new balance of user's market output tokens is 0,
+ * position is closed.
+ *
+ * @export
+ * @param {ethereum.Event} event Event emitted after user's withdrawal
+ * @param {Account} account Investor's account
+ * @param {Market} market Market from which user withdrew
+ * @param {BigInt} outputTokenAmount Change in user's output token balance as part of this transaction
+ * @param {TokenBalance[]} inputTokenAmounts Amounts of input tokens that are received by user in this transaction
+ * @param {TokenBalance[]} rewardTokenAmounts Amounts of reward tokens that are claimed by user in this transaction
+ * @param {BigInt} outputTokenBalance Latest user's balance of the market's output token
+ * @param {TokenBalance[]} inputTokenBalances Balances of the input tokens that can be redeemed by sending the outputTokenBalance back to the market
+ * @param {TokenBalance[]} rewardTokenBalances Amounts of market's reward tokens claimable by user (not counting already claimed tokens)
+ * @param {(string | null)} transferredTo Null if withdrawal was made by user; or address of receiver in case when user sent out marker output tokens
+ * @return {*}  {Position} User's updated position in the market
+ */
 export function redeemFromMarket(
   event: ethereum.Event,
   account: Account,
@@ -389,7 +504,7 @@ export function redeemFromMarket(
   transaction.save();
 
   let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT);
-  let postionSnapshot = createPostionSnapshot(position, transaction);
+  let postionSnapshot = createPositionSnapshot(position, transaction);
 
   // No change in investment amount as no new investment has been made
   position.inputTokenBalances = inputTokenBalances.map<string>((tb) => tb.toString());
@@ -397,11 +512,11 @@ export function redeemFromMarket(
   position.rewardTokenBalances = rewardTokenBalances.map<string>((tb) => tb.toString());
 
   // Check if it is transferred to some other account
-  if (transferredTo) {
-    let exists = position.transferredTo.includes(transferredTo);
+  if (transferredTo != null) {
+    let exists = position.transferredTo.includes(transferredTo as string);
     if (!exists) {
       let newTransferredTo = position.transferredTo;
-      newTransferredTo.push(transferredTo);
+      newTransferredTo.push(transferredTo as string);
       position.transferredTo = newTransferredTo;
     }
   }
@@ -416,6 +531,22 @@ export function redeemFromMarket(
   return position;
 }
 
+/**
+ * Store transaction and update user's position when user has borrowed from market. Before transaction
+ * is stored and position updated, snapshots of market and position are created for historical tracking.
+ *
+ * @export
+ * @param {ethereum.Event} event Event emitted after user's borrowing
+ * @param {Account} account Investor's account
+ * @param {Market} market Market from which user borrowed
+ * @param {BigInt} outputTokenAmount Change in user's output token balance as part of this transaction
+ * @param {TokenBalance[]} inputTokenAmounts Amounts of input tokens borrowed by user in this transaction
+ * @param {TokenBalance[]} rewardTokenAmounts Amounts of reward tokens that are claimed by user in this transaction
+ * @param {BigInt} outputTokenBalance Latest user's balance of the market's output token
+ * @param {TokenBalance[]} inputTokenBalances Balances of the input tokens that can be redeemed by sending the outputTokenBalance back to the market
+ * @param {TokenBalance[]} rewardTokenBalances Amounts of market's reward tokens claimable by user (not counting already claimed tokens)
+ * @return {*}  {Position} User's updated position in the market
+ */
 export function borrowFromMarket(
   event: ethereum.Event,
   account: Account,
@@ -456,13 +587,13 @@ export function borrowFromMarket(
   transaction.save();
 
   let position = getOrCreateOpenPosition(event, account, market, PositionType.DEBT);
-  let postionSnapshot = createPostionSnapshot(position, transaction);
+  let positionSnapshot = createPositionSnapshot(position, transaction);
 
   position.inputTokenBalances = inputTokenBalances.map<string>((tb) => tb.toString());
   position.outputTokenBalance = outputTokenBalance;
   position.rewardTokenBalances = rewardTokenBalances.map<string>((tb) => tb.toString());
 
-  // Check if postion is closed
+  // Check if position is closed
   if (position.outputTokenBalance == BigInt.fromI32(0)) {
     position.closed = true;
   }
@@ -472,6 +603,23 @@ export function borrowFromMarket(
   return position;
 }
 
+/**
+ * Store transaction and update user's position when user has repayed debt to market. Before
+ * transaction is stored and position updated, snapshots of market and position are created
+ * for historical tracking.
+ *
+ * @export
+ * @param {ethereum.Event} event Event emitted after user's repayment
+ * @param {Account} account Investor's account
+ * @param {Market} market Market to which user repayed
+ * @param {BigInt} outputTokenAmount Change in user's output token balance as part of this transaction
+ * @param {TokenBalance[]} inputTokenAmounts Amounts of input tokens repayed by user in this transaction
+ * @param {TokenBalance[]} rewardTokenAmounts Amounts of reward tokens that are claimed by user in this transaction
+ * @param {BigInt} outputTokenBalance Latest user's balance of the market's output token
+ * @param {TokenBalance[]} inputTokenBalances Balances of the input tokens that can be redeemed by sending the outputTokenBalance back to the market
+ * @param {TokenBalance[]} rewardTokenBalances Amounts of market's reward tokens claimable by user (not counting already claimed tokens)
+ * @return {*}  {Position} User's updated position in the market
+ */
 export function repayToMarket(
   event: ethereum.Event,
   account: Account,
@@ -512,7 +660,7 @@ export function repayToMarket(
   transaction.save();
 
   let position = getOrCreateOpenPosition(event, account, market, PositionType.DEBT);
-  let postionSnapshot = createPostionSnapshot(position, transaction);
+  let postionSnapshot = createPositionSnapshot(position, transaction);
 
   // Loan amount is not changed on repayment
   position.inputTokenBalances = inputTokenBalances.map<string>((tb) => tb.toString());
