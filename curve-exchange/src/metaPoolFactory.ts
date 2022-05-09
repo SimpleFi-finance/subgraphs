@@ -1,4 +1,4 @@
-import { BigInt } from "@graphprotocol/graph-ts";
+import { BigInt, log } from "@graphprotocol/graph-ts";
 import {
   Add_existing_metapoolsCall,
   MetaPoolFactory as MetaPoolFactoryContract,
@@ -9,6 +9,11 @@ import { ADDRESS_ZERO } from "./common";
 import { getOrCreateMetaPoolFactory, getOrCreatePoolViaFactory } from "./curveUtil";
 
 export function handleMetaPoolDeployedEvent(event: MetaPoolDeployed): void {
+  log.info("XXXXX handleMetaPoolDeployedEvent at TX={}; index={}", [
+    event.transaction.hash.toHexString(),
+    event.logIndex.toString(),
+  ]);
+
   let factory = getOrCreateMetaPoolFactory(event.address);
 
   // fetch contract address of new pool from the contract
@@ -16,15 +21,27 @@ export function handleMetaPoolDeployedEvent(event: MetaPoolDeployed): void {
     factory.poolCount
   );
 
+  log.info("XXXXXX New pool = {}, at index {}", [
+    newCurvePoolAddress.toHexString(),
+    factory.poolCount.toString(),
+  ]);
+
   // ++poolCount
   factory.poolCount = factory.poolCount.plus(BigInt.fromI32(1));
   factory.save();
 
   // create new pool
-  getOrCreatePoolViaFactory(event, newCurvePoolAddress, event.address);
+  if (newCurvePoolAddress.toHexString() == "0xceaf7747579696a2f0bb206a14210e3c9e6fb269") {
+    getOrCreatePoolViaFactory(event, newCurvePoolAddress, event.address);
+  }
 }
 
 export function handlePlainPoolDeployedEvent(event: PlainPoolDeployed): void {
+  log.info("XXXXX handlePlainPoolDeployedEvent at TX={}; index={}", [
+    event.transaction.hash.toHexString(),
+    event.logIndex.toString(),
+  ]);
+
   let factory = getOrCreateMetaPoolFactory(event.address);
 
   // fetch contract address of new pool from the contract
@@ -32,15 +49,24 @@ export function handlePlainPoolDeployedEvent(event: PlainPoolDeployed): void {
     factory.poolCount
   );
 
+  log.info("XXXXXX New pool2 = {}, at index {}", [
+    newCurvePoolAddress.toHexString(),
+    factory.poolCount.toString(),
+  ]);
+
   // ++poolCount
   factory.poolCount = factory.poolCount.plus(BigInt.fromI32(1));
   factory.save();
 
   // create new pool
-  getOrCreatePoolViaFactory(event, newCurvePoolAddress, event.address);
+  if (newCurvePoolAddress.toHexString() == "0xceaf7747579696a2f0bb206a14210e3c9e6fb269") {
+    getOrCreatePoolViaFactory(event, newCurvePoolAddress, event.address);
+  }
 }
 
 export function handleAddExistingMetapoolCall(call: Add_existing_metapoolsCall): void {
+  log.info("YXXXX handleAddExistingMetapoolCall at TX={};", [call.transaction.hash.toHexString()]);
+
   let factory = getOrCreateMetaPoolFactory(call.to);
 
   // increase pool counter by the number of pools added

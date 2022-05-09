@@ -18,9 +18,10 @@
     "deploy-curve-mainnet": "npm run clean && npm run prepare-curve-mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/curve",
     "deploy-curve-optimism": "npm run clean && npm run prepare-curve-optimism && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/curve-optimism",
     "deploy-curve-polygon": "npm run clean && npm run prepare-curve-polygon && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/curve-polygon",
-    "create-local": "graph create --node http://localhost:8020/ simplefi-finance/curve-exchange",
+    "deploy-debug": "npm run clean && npm run prepare-curve-mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/debug-curve",
+    "create-local": "graph create --node http://localhost:8020/ xx/curve-exchange",
     "remove-local": "graph remove --node http://localhost:8020/ simplefi-finance/curve-exchange",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 simplefi-finance/curve-exchange",
+    "deploy-local": "npm run clean && npm run prepare-curve-mainnet && graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 xx/curve-exchange",
     "clean": "rm -rf ./build && rm -rf ./generated"
   },
   "dependencies": {

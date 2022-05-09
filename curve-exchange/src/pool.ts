@@ -441,7 +441,7 @@ export function handleTokenExchangeUnderlying(event: TokenExchangeUnderlying): v
  * @param poolAddress
  */
 function handleTokenExchangeCommon(event: ethereum.Event, poolAddress: Address): void {
-  log.info("XXXXX handleTokenExchangeCommon at TX={}; index={}", [
+  log.info("XXXXX handleTokenExchangeCommon at TX={};;; index={}", [
     event.transaction.hash.toHexString(),
     event.logIndex.toString(),
   ]);

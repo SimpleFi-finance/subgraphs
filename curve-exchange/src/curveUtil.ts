@@ -379,6 +379,7 @@ export function getPoolBalances(pool: PoolEntity, block: BigInt): BigInt[] {
   log.info("XXXXX getPoolBalances at pool={}", [pool.id]);
   log.info("XXXXX pool.source={}", [pool.source]);
   log.info("XXXXX pool.blockNumber={}", [pool.blockNumber.toString()]);
+  log.info("XXXXX pool.lastBlockBalanceUpdated={}", [pool.lastBlockBalanceUpdated.toString()]);
 
   // no action needed if balances are up-to-date
   if (block == pool.lastBlockBalanceUpdated) {
@@ -409,13 +410,15 @@ export function getPoolBalances(pool: PoolEntity, block: BigInt): BigInt[] {
     }
 
     for (let i = 0; i < pool.coinCount; i++) {
-      log.info("XXXXX add....", []);
+      log.info("XXXXX add....", [balances[i].toString()]);
 
       poolBalances.push(balances[i]);
     }
   }
   // if pool is part of registry, query factory for balances with single call
   else if (pool.isInRegistry) {
+    log.info("XXXXX IN REGISTRY", []);
+
     let registryContract = PoolRegistry.bind(Address.fromString(pool.registry as string));
     let balances = registryContract.get_balances(poolAddress);
     for (let i = 0; i < pool.coinCount; i++) {
@@ -424,6 +427,8 @@ export function getPoolBalances(pool: PoolEntity, block: BigInt): BigInt[] {
   }
   // else query the pool contract directly, per every coin
   else {
+    log.info("XXXXX ELSE", []);
+
     let poolContract = CurvePool.bind(poolAddress);
 
     if (!pool.isOldAbiVersion) {
