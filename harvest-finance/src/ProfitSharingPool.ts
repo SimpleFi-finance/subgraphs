@@ -27,7 +27,7 @@ export function handleStaked(event: Staked): void {
   position.save();
 
   // update position by calling invest in market
-  let market = Market.load(profitSharingPool.lpToken);
+  let market = Market.load(profitSharingPool.id);
   let outputTokenAmount = stakedAmount;
   let inputTokenAmounts: TokenBalance[] = [
     new TokenBalance(profitSharingPool.lpToken, user.id, stakedAmount),
