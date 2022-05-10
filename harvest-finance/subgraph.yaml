@@ -187,6 +187,10 @@ templates:
         - name: IERC20
           file: ./abis/IERC20.json
       eventHandlers:
+        - event: Staked(indexed address,uint256)
+          handler: handleStaked
+        - event: Withdrawn(indexed address,uint256)
+          handler: handleWithdrawn
         - event: RewardPaid(indexed address,uint256)
           handler: handleRewardPaid
       file: ./src/profitSharingPool.ts

@@ -17,6 +17,8 @@ enum TokenStandard {
 enum ProtocolName {
   UNISWAP_V2
   HARVEST_FINANCE
+  HARVEST_FINANCE_REWARD_POOL
+  HARVEST_FINANCE_STAKING_POOL
 }
 
 enum ProtocolType {
@@ -252,6 +254,20 @@ type ProfitSharingPool @entity {
 
   " token rewarded to stakers "
   rewardToken: Token!
+}
+
+type PositionInProfitSharingPool @entity {
+  " userAddress-profitSharingPool "
+  id: ID!
+
+  " profitSharingPool where user staked FARM token "
+  profitSharingPool: ProfitSharingPool!
+
+  " account providing tokens "
+  user: Account!
+
+  " amount of staked tokens "
+  stakedBalance: BigInt!
 }
 
 type RewardPool @entity {

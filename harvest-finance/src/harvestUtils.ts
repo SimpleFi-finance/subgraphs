@@ -9,6 +9,7 @@ import {
   RewardPool,
   Token,
   PositionInRewardPool,
+  PositionInProfitSharingPool,
 } from "../generated/schema";
 import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
 import { RewardPool as RewardPoolContract } from "../generated/templates/RewardPool/RewardPool";
@@ -181,6 +182,31 @@ export function getOrCreateProfitSharingPool(
   ProfitSharingPoolTemplate.create(Address.fromString(profitSharingPoolAddress));
 
   return profitSharingPool;
+}
+
+/**
+ * Track user's staking of FARM tokens
+ * @param user
+ * @param profitSharingPool
+ * @returns
+ */
+export function getOrCreatePositionInProfitSharingPool(
+  user: Account,
+  profitSharingPool: ProfitSharingPool
+): PositionInProfitSharingPool {
+  let id = user.id + "-" + profitSharingPool.id;
+  let position = PositionInProfitSharingPool.load(id);
+  if (position != null) {
+    return position as PositionInProfitSharingPool;
+  }
+
+  position = new PositionInProfitSharingPool(id);
+  position.user = user.id;
+  position.profitSharingPool = profitSharingPool.id;
+  position.stakedBalance = BigInt.fromI32(0);
+  position.save();
+
+  return position;
 }
 
 /**
