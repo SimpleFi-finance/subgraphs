@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts"
+import { BigInt, near } from "@graphprotocol/graph-ts"
 import {
   Account,
   AccountPosition,
@@ -6,6 +6,7 @@ import {
   MarketSnapshot,
   Position,
   PositionSnapshot,
+  ReceiptActions,
   Token,
   Transaction
 } from "../generated/schema"
@@ -14,57 +15,55 @@ import { PositionType, TokenStandard, TransactionType } from "./constants"
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
 
-export function getOrCreateAccount(address: Address): Account {
-  let addressHex = address.toHexString()
-  let account = Account.load(addressHex)
+export function getOrCreateAccount(_account: string): Account {
+  let account = Account.load(_account)
   if (account != null) {
     return account as Account
   }
 
-  account = new Account(addressHex)
+  account = new Account(_account)
   account.save()
   return account as Account
 }
 
-// export function getOrCreateERC20Token(event: ethereum.Event, address: Address): Token {
-//   let addressHex = address.toHexString()
-//   let token = Token.load(addressHex)
-//   if (token != null) {
-//     return token as Token
-//   }
+export function getOrCreateNEP141Token(block: near.Block, _account: string): Token {
+  let token = Token.load(_account)
+  if (token != null) {
+    return token as Token
+  }
 
-//   token = new Token(addressHex)
-//   token.tokenStandard = TokenStandard.ERC20
-//   let tokenInstance = ERC20.bind(address)
-//   let tryName = tokenInstance.try_name()
-//   if (!tryName.reverted) {
-//     token.name = tryName.value
-//   }
-//   let trySymbol = tokenInstance.try_symbol()
-//   if (!trySymbol.reverted) {
-//     token.symbol = trySymbol.value
-//   }
-//   let tryDecimals = tokenInstance.try_decimals()
-//   if (!tryDecimals.reverted) {
-//     token.decimals = tryDecimals.value
-//   }
-//   token.blockNumber = event.block.number
-//   token.timestamp = event.block.timestamp
-//   token.save()
-//   return token as Token
-// }
+  token = new Token(_account)
+  token.tokenStandard = TokenStandard.NEP141
+  // Can't implement becuase of lack of support for view function NEAR subgraphs
+  // let tokenInstance = NEP141.bind(_account)
+  // let tryName = tokenInstance.try_name()
+  // if (!tryName.reverted) {
+  //   token.name = tryName.value
+  // }
+  // let trySymbol = tokenInstance.try_symbol()
+  // if (!trySymbol.reverted) {
+  //   token.symbol = trySymbol.value
+  // }
+  // let tryDecimals = tokenInstance.try_decimals()
+  // if (!tryDecimals.reverted) {
+  //   token.decimals = tryDecimals.value
+  // }
+  token.blockNumber = BigInt.fromI64(block.header.height)
+  token.timestamp = BigInt.fromI64(block.header.timestampNanosec)
+  token.save()
+  return token as Token
+}
 
 export function getOrCreateMarket(
-  event: ethereum.Event,
-  address: Address,
+  block: near.Block,
+  _account: string,
   protocolName: string,
   protocolType: string,
   inputTokens: Token[],
   outputToken: Token,
   rewardTokens: Token[]
 ): Market {
-  let addressHex = address.toHexString()
-  let market = Market.load(addressHex)
+  let market = Market.load(_account)
   if (market != null) {
     return market as Market
   }
@@ -72,11 +71,11 @@ export function getOrCreateMarket(
   let inputTokenBalances: TokenBalance[] = []
   for (let i = 0; i < inputTokens.length; i++) {
     let token = inputTokens[i]
-    inputTokenBalances.push(new TokenBalance(token.id, addressHex, BigInt.fromI32(0)))
+    inputTokenBalances.push(new TokenBalance(token.id, _account, BigInt.fromI32(0)))
   }
 
-  market = new Market(addressHex)
-  market.account = getOrCreateAccount(address).id
+  market = new Market(_account)
+  market.account = getOrCreateAccount(_account).id
   market.protocolName = protocolName
   market.protocolType = protocolType
   market.inputTokens = inputTokens.map<string>(t => t.id)
@@ -84,47 +83,48 @@ export function getOrCreateMarket(
   market.rewardTokens = rewardTokens.map<string>(t => t.id)
   market.inputTokenTotalBalances = inputTokenBalances.map<string>(tb => tb.toString())
   market.outputTokenTotalSupply = BigInt.fromI32(0)
-  market.blockNumber = event.block.number
-  market.timestamp = event.block.timestamp
+  market.blockNumber = BigInt.fromI64(block.header.height)
+  market.timestamp = BigInt.fromI64(block.header.timestampNanosec)
   market.save()
   return market as Market
 }
 
 export function updateMarket(
-  event: ethereum.Event,
+  receipt: near.ActionReceipt,
+  block: near.Block,
   market: Market,
   inputTokenBalances: TokenBalance[],
   outputTokenTotalSupply: BigInt
 ): MarketSnapshot {
-  let transactionHash = event.transaction.hash.toHexString()
-  let id = transactionHash.concat("-").concat(event.logIndex.toHexString())
+  market.inputTokenTotalBalances = inputTokenBalances.map<string>(tb => tb.toString())
+  market.outputTokenTotalSupply = outputTokenTotalSupply
+  market.save()
+
+  let id = receipt.id.toBase58()
   let marketSnapshot = MarketSnapshot.load(id)
+  // In case of multiple actions in a receipt only first action will 
+  // store a snaoshot and market will keep updating it's value
+  // for every action handled, thus market snapshots capture states at the end of
+  // a receipt execution
   if (marketSnapshot == null) {
     marketSnapshot = new MarketSnapshot(id)
     marketSnapshot.market = market.id
     marketSnapshot.inputTokenBalances = market.inputTokenTotalBalances
     marketSnapshot.outputTokenTotalSupply = market.outputTokenTotalSupply
-    marketSnapshot.blockNumber = event.block.number
-    marketSnapshot.timestamp = event.block.timestamp
-    marketSnapshot.transactionHash = transactionHash
-    marketSnapshot.transactionIndexInBlock = event.transaction.index
-    marketSnapshot.logIndex = event.logIndex
+    marketSnapshot.blockNumber = BigInt.fromI64(block.header.height)
+    marketSnapshot.timestamp = BigInt.fromI64(block.header.timestampNanosec)
     marketSnapshot.save()
   }
-
-  market.inputTokenTotalBalances = inputTokenBalances.map<string>(tb => tb.toString())
-  market.outputTokenTotalSupply = outputTokenTotalSupply
-  market.save()
 
   return marketSnapshot as MarketSnapshot
 }
 
 export function createMarketSnapshot(
-  event: ethereum.Event,
+  receipt: near.ActionReceipt,
+  block: near.Block,
   market: Market,
 ): MarketSnapshot {
-  let transactionHash = event.transaction.hash.toHexString()
-  let id = transactionHash.concat("-").concat(event.logIndex.toHexString())
+  let id = receipt.id.toBase58()
   let marketSnapshot = MarketSnapshot.load(id)
   if (marketSnapshot != null) {
     return marketSnapshot as MarketSnapshot
@@ -134,18 +134,15 @@ export function createMarketSnapshot(
   marketSnapshot.market = market.id
   marketSnapshot.inputTokenBalances = market.inputTokenTotalBalances
   marketSnapshot.outputTokenTotalSupply = market.outputTokenTotalSupply
-  marketSnapshot.blockNumber = event.block.number
-  marketSnapshot.timestamp = event.block.timestamp
-  marketSnapshot.transactionHash = transactionHash
-  marketSnapshot.transactionIndexInBlock = event.transaction.index
-  marketSnapshot.logIndex = event.logIndex
+  marketSnapshot.blockNumber = BigInt.fromI64(block.header.height)
+  marketSnapshot.timestamp = BigInt.fromI64(block.header.timestampNanosec)
   marketSnapshot.save()
 
   return marketSnapshot as MarketSnapshot
 }
 
 export function getOrCreateOpenPosition(
-  event: ethereum.Event,
+  block: near.Block,
   account: Account,
   market: Market,
   positionType: string
@@ -174,10 +171,9 @@ export function getOrCreateOpenPosition(
     position.outputTokenBalance = BigInt.fromI32(0)
     position.inputTokenBalances = []
     position.rewardTokenBalances = []
-    position.transferredTo = []
     position.closed = false
-    position.blockNumber = event.block.number
-    position.timestamp = event.block.timestamp
+    position.blockNumber = BigInt.fromI64(block.header.height)
+    position.timestamp = BigInt.fromI64(block.header.timestampNanosec)
     position.historyCounter = BigInt.fromI32(0)
     position.save()
 
@@ -191,35 +187,35 @@ export function getOrCreateOpenPosition(
 }
 
 export class TokenBalance {
-  tokenAddress: string
-  accountAddress: string
+  tokenstring: string
+  accountstring: string
   balance: BigInt
 
-  constructor(tokenAddress: string, accountAddress: string, balance: BigInt) {
-    this.tokenAddress = tokenAddress
-    this.accountAddress = accountAddress
+  constructor(tokenstring: string, accountstring: string, balance: BigInt) {
+    this.tokenstring = tokenstring
+    this.accountstring = accountstring
     this.balance = balance
   }
 
   // Does not modify this or b TokenBalance, return new TokenBalance
   add(b: TokenBalance): TokenBalance {
-    if (this.tokenAddress == b.tokenAddress) {
-      return new TokenBalance(this.tokenAddress, this.accountAddress, this.balance.plus(b.balance))
+    if (this.tokenstring == b.tokenstring) {
+      return new TokenBalance(this.tokenstring, this.accountstring, this.balance.plus(b.balance))
     } else {
       return this
     }
   }
 
   toString(): string {
-    return this.tokenAddress.concat("|").concat(this.accountAddress).concat("|").concat(this.balance.toString())
+    return this.tokenstring.concat("|").concat(this.accountstring).concat("|").concat(this.balance.toString())
   }
 
   static fromString(tb: string): TokenBalance {
     let parts = tb.split("|")
-    let tokenAddress = parts[0]
-    let accountAddress = parts[1]
+    let tokenstring = parts[0]
+    let accountstring = parts[1]
     let balance = BigInt.fromString(parts[2])
-    return new TokenBalance(tokenAddress, accountAddress, balance)
+    return new TokenBalance(tokenstring, accountstring, balance)
   }
 }
 
@@ -242,7 +238,7 @@ function addTokenBalances(atbs: TokenBalance[], btbs: TokenBalance[]): TokenBala
     let found = false
     for (let j = 0; j < atbsLength; j = j + 1) {
       let av = atbs[j]
-      if (av.tokenAddress == bv.tokenAddress) {
+      if (av.tokenstring == bv.tokenstring) {
         found = true
         sum.push(av.add(bv))
       }
@@ -263,7 +259,6 @@ function createPostionSnapshot(position: Position, transaction: Transaction): Po
   newSnapshot.outputTokenBalance = position.outputTokenBalance
   newSnapshot.inputTokenBalances = position.inputTokenBalances
   newSnapshot.rewardTokenBalances = position.rewardTokenBalances
-  newSnapshot.transferredTo = position.transferredTo
   position.blockNumber = transaction.blockNumber
   position.timestamp = transaction.timestamp
   newSnapshot.save()
@@ -274,10 +269,25 @@ function createPostionSnapshot(position: Position, transaction: Transaction): Po
   return newSnapshot
 }
 
+function getReceiptActionCounter(receipt: near.ActionReceipt): string {
+  let receiptActionsId = receipt.id.toBase58()
+  let receiptAction = ReceiptActions.load(receiptActionsId)
+  if (receiptAction == null) {
+    receiptAction = new ReceiptActions(receiptActionsId)
+    receiptAction.actionCounter = 0
+    receiptAction.save()
+  }
+  receiptAction.actionCounter = receiptAction.actionCounter + 1
+  receiptAction.save()
+  return receiptAction.actionCounter.toString()
+}
+
 // We don't want to have any logic to calculae balance with protocol specific logic here
 // Balance should be calculated in protocol specific evennt handlers and sent here
 export function investInMarket(
-  event: ethereum.Event,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block,
   account: Account,
   market: Market,
   outputTokenAmount: BigInt,
@@ -289,18 +299,17 @@ export function investInMarket(
   transferredFrom: string | null
 ): Position {
   // Create marketSnapshot for transaction
-  let marketSnapshot = createMarketSnapshot(event, market)
+  let marketSnapshot = createMarketSnapshot(receipt, block, market)
 
   // Create transaction for given event
-  let transactionId = account.id.concat("-").concat(event.transaction.hash.toHexString()).concat("-").concat(event.logIndex.toHexString())
+  let receiptActionCounter = getReceiptActionCounter(receipt)
+  let transactionId = account.id.concat("-").concat(market.id).concat("-").concat(receipt.id.toBase58()).concat("-").concat(receiptActionCounter)
   let transaction = new Transaction(transactionId)
-  transaction.transactionHash = event.transaction.hash
+  transaction.receiptId = receipt.id.toBase58()
   transaction.market = market.id
   transaction.marketSnapshot = marketSnapshot.id
-  transaction.from = getOrCreateAccount(event.transaction.from).id
-  if (event.transaction.to) {
-    transaction.to = getOrCreateAccount(event.transaction.to as Address).id
-  }
+  transaction.from = getOrCreateAccount(receipt.signerId).id
+  transaction.to = getOrCreateAccount(receipt.receiverId).id
   if (transferredFrom == null) {
     transaction.transactionType = TransactionType.INVEST
   } else {
@@ -310,15 +319,13 @@ export function investInMarket(
   transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
   transaction.outputTokenAmount = outputTokenAmount
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasLimit
-  transaction.gasPrice = event.transaction.gasPrice
-  transaction.blockNumber = event.block.number
-  transaction.timestamp = event.block.timestamp
-  transaction.transactionIndexInBlock = event.transaction.index
+  transaction.gasUsed = BigInt.fromI64(outcome.gasBurnt)
+  transaction.gasPrice = receipt.gasPrice
+  transaction.blockNumber = BigInt.fromI64(block.header.height)
+  transaction.timestamp = BigInt.fromI64(block.header.timestampNanosec)
   transaction.save()
 
-  let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT)
-  let postionSnapshot = createPostionSnapshot(position, transaction)
+  let position = getOrCreateOpenPosition(block, account, market, PositionType.INVESTMENT)
 
   position.inputTokenBalances = inputTokenBalances.map<string>(tb => tb.toString())
   position.outputTokenBalance = outputTokenBalance
@@ -330,12 +337,15 @@ export function investInMarket(
   }
 
   position.save()
+  let postionSnapshot = createPostionSnapshot(position, transaction)
 
   return position
 }
 
 export function redeemFromMarket(
-  event: ethereum.Event,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block,
   account: Account,
   market: Market,
   outputTokenAmount: BigInt,
@@ -347,18 +357,17 @@ export function redeemFromMarket(
   transferredTo: string | null
 ): Position {
   // Create marketSnapshot for transaction
-  let marketSnapshot = createMarketSnapshot(event, market)
+  let marketSnapshot = createMarketSnapshot(receipt, block, market)
 
   // Create transaction for given event
-  let transactionId = account.id.concat("-").concat(event.transaction.hash.toHexString()).concat("-").concat(event.logIndex.toHexString())
+  let receiptActionCounter = getReceiptActionCounter(receipt)
+  let transactionId = account.id.concat("-").concat(market.id).concat("-").concat(receipt.id.toBase58()).concat("-").concat(receiptActionCounter)
   let transaction = new Transaction(transactionId)
-  transaction.transactionHash = event.transaction.hash
+  transaction.receiptId = receipt.id.toBase58()
   transaction.market = market.id
   transaction.marketSnapshot = marketSnapshot.id
-  transaction.from = getOrCreateAccount(event.transaction.from).id
-  if (event.transaction.to) {
-    transaction.to = getOrCreateAccount(event.transaction.to as Address).id
-  }
+  transaction.from = getOrCreateAccount(receipt.signerId).id
+  transaction.to = getOrCreateAccount(receipt.receiverId).id
   if (transferredTo == null) {
     transaction.transactionType = TransactionType.REDEEM
   } else {
@@ -368,43 +377,34 @@ export function redeemFromMarket(
   transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
   transaction.outputTokenAmount = outputTokenAmount
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasLimit
-  transaction.gasPrice = event.transaction.gasPrice
-  transaction.blockNumber = event.block.number
-  transaction.timestamp = event.block.timestamp
-  transaction.transactionIndexInBlock = event.transaction.index
+  transaction.gasUsed = BigInt.fromI64(outcome.gasBurnt)
+  transaction.gasPrice = receipt.gasPrice
+  transaction.blockNumber = BigInt.fromI64(block.header.height)
+  transaction.timestamp = BigInt.fromI64(block.header.timestampNanosec)
   transaction.save()
 
-  let position = getOrCreateOpenPosition(event, account, market, PositionType.INVESTMENT)
-  let postionSnapshot = createPostionSnapshot(position, transaction)
+  let position = getOrCreateOpenPosition(block, account, market, PositionType.INVESTMENT)
 
   // No change in investment amount as no new investment has been made
   position.inputTokenBalances = inputTokenBalances.map<string>(tb => tb.toString())
   position.outputTokenBalance = outputTokenBalance
   position.rewardTokenBalances = rewardTokenBalances.map<string>(tb => tb.toString())
 
-  // Check if it is transferred to some other account
-  if (transferredTo != null) {
-    let exists = position.transferredTo.includes(transferredTo)
-    if (!exists) {
-      let newTransferredTo = position.transferredTo
-      newTransferredTo.push(transferredTo)
-      position.transferredTo = newTransferredTo
-    }
-  }
-
   // Check if postion is closed
   if (position.outputTokenBalance == BigInt.fromI32(0)) {
     position.closed = true
   }
 
   position.save()
+  let postionSnapshot = createPostionSnapshot(position, transaction)
 
   return position
 }
 
 export function borrowFromMarket(
-  event: ethereum.Event,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block,
   account: Account,
   market: Market,
   outputTokenAmount: BigInt,
@@ -415,31 +415,28 @@ export function borrowFromMarket(
   rewardTokenBalances: TokenBalance[]
 ): Position {
   // Create marketSnapshot for transaction
-  let marketSnapshot = createMarketSnapshot(event, market)
+  let marketSnapshot = createMarketSnapshot(receipt, block, market)
 
   // Create transaction for given event
-  let transactionId = account.id.concat("-").concat(event.transaction.hash.toHexString()).concat("-").concat(event.logIndex.toHexString())
+  let receiptActionCounter = getReceiptActionCounter(receipt)
+  let transactionId = account.id.concat("-").concat(market.id).concat("-").concat(receipt.id.toBase58()).concat("-").concat(receiptActionCounter)
   let transaction = new Transaction(transactionId)
-  transaction.transactionHash = event.transaction.hash
+  transaction.receiptId = receipt.id.toBase58()
   transaction.market = market.id
   transaction.marketSnapshot = marketSnapshot.id
-  transaction.from = getOrCreateAccount(event.transaction.from).id
-  if (event.transaction.to) {
-    transaction.to = getOrCreateAccount(event.transaction.to as Address).id
-  }
+  transaction.from = getOrCreateAccount(receipt.signerId).id
+  transaction.to = getOrCreateAccount(receipt.receiverId).id
   transaction.transactionType = TransactionType.BORROW
   transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
   transaction.outputTokenAmount = outputTokenAmount
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasLimit
-  transaction.gasPrice = event.transaction.gasPrice
-  transaction.blockNumber = event.block.number
-  transaction.timestamp = event.block.timestamp
-  transaction.transactionIndexInBlock = event.transaction.index
+  transaction.gasUsed = BigInt.fromI64(outcome.gasBurnt)
+  transaction.gasPrice = receipt.gasPrice
+  transaction.blockNumber = BigInt.fromI64(block.header.height)
+  transaction.timestamp = BigInt.fromI64(block.header.timestampNanosec)
   transaction.save()
 
-  let position = getOrCreateOpenPosition(event, account, market, PositionType.DEBT)
-  let postionSnapshot = createPostionSnapshot(position, transaction)
+  let position = getOrCreateOpenPosition(block, account, market, PositionType.DEBT)
 
   position.inputTokenBalances = inputTokenBalances.map<string>(tb => tb.toString())
   position.outputTokenBalance = outputTokenBalance
@@ -451,12 +448,15 @@ export function borrowFromMarket(
   }
 
   position.save()
+  let postionSnapshot = createPostionSnapshot(position, transaction)
 
   return position
 }
 
 export function repayToMarket(
-  event: ethereum.Event,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block,
   account: Account,
   market: Market,
   outputTokenAmount: BigInt,
@@ -467,31 +467,28 @@ export function repayToMarket(
   rewardTokenBalances: TokenBalance[]
 ): Position {
   // Create marketSnapshot for transaction
-  let marketSnapshot = createMarketSnapshot(event, market)
+  let marketSnapshot = createMarketSnapshot(receipt, block, market)
 
   // Create transaction for given event
-  let transactionId = account.id.concat("-").concat(event.transaction.hash.toHexString()).concat("-").concat(event.logIndex.toHexString())
+  let receiptActionCounter = getReceiptActionCounter(receipt)
+  let transactionId = account.id.concat("-").concat(market.id).concat("-").concat(receipt.id.toBase58()).concat("-").concat(receiptActionCounter)
   let transaction = new Transaction(transactionId)
-  transaction.transactionHash = event.transaction.hash
+  transaction.receiptId = receipt.id.toBase58()
   transaction.market = market.id
   transaction.marketSnapshot = marketSnapshot.id
-  transaction.from = getOrCreateAccount(event.transaction.from).id
-  if (event.transaction.to) {
-    transaction.to = getOrCreateAccount(event.transaction.to as Address).id
-  }
+  transaction.from = getOrCreateAccount(receipt.signerId).id
+  transaction.to = getOrCreateAccount(receipt.receiverId).id
   transaction.transactionType = TransactionType.REPAY
   transaction.inputTokenAmounts = inputTokenAmounts.map<string>(tb => tb.toString())
   transaction.outputTokenAmount = outputTokenAmount
   transaction.rewardTokenAmounts = rewardTokenAmounts.map<string>(tb => tb.toString())
-  transaction.gasUsed = event.transaction.gasLimit
-  transaction.gasPrice = event.transaction.gasPrice
-  transaction.blockNumber = event.block.number
-  transaction.timestamp = event.block.timestamp
-  transaction.transactionIndexInBlock = event.transaction.index
+  transaction.gasUsed = BigInt.fromI64(outcome.gasBurnt)
+  transaction.gasPrice = receipt.gasPrice
+  transaction.blockNumber = BigInt.fromI64(block.header.height)
+  transaction.timestamp = BigInt.fromI64(block.header.timestampNanosec)
   transaction.save()
 
-  let position = getOrCreateOpenPosition(event, account, market, PositionType.DEBT)
-  let postionSnapshot = createPostionSnapshot(position, transaction)
+  let position = getOrCreateOpenPosition(block, account, market, PositionType.DEBT)
 
   // Loan amount is not changed on repayment
   position.inputTokenBalances = inputTokenBalances.map<string>(tb => tb.toString())
@@ -504,6 +501,7 @@ export function repayToMarket(
   }
 
   position.save()
+  let postionSnapshot = createPostionSnapshot(position, transaction)
 
   return position
 }

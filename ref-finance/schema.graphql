@@ -11,23 +11,13 @@ enum Blockchain {
 }
 
 enum TokenStandard {
-  ERC20
-  ERC721
-  ERC1155
+  NEP141
+  NEP171
+  NEP245
 }
 
 enum ProtocolName {
-  UNISWAP_V2
-  SUSHISWAP
-  QUICKSWAP
-  TRISOLARIS
-  APESWAP
-  BISWAP
-  COMETH
-  PANGOLIN
-  TRADER_JOE
-  WANNASWAP
-  PANCAKESWAP
+  REF_FINANCE
 }
 
 enum ProtocolType {
@@ -93,20 +83,22 @@ type Market @entity {
 }
 
 type MarketSnapshot @entity {
-  id: ID! # {trasactionHash}{logIndex}
+  id: ID! # {receiptId base58 encoded}
   market: Market!
   inputTokenBalances: [String!]! # TokenBalance string format
   outputTokenTotalSupply: BigInt!
   blockNumber: BigInt!
   timestamp: BigInt!
-  transactionHash: String!
-  transactionIndexInBlock: BigInt!
-  logIndex: BigInt!
+}
+
+type ReceiptActions @entity {
+  id: ID! # {receiptId}
+  actionCounter: Int!
 }
 
 type Transaction @entity {
-  id: ID! # {account}{transactionHash}{logIndex}
-  transactionHash: Bytes!
+  id: ID! # {account}{receiptId base 58 encoded}
+  receiptId: String! # {base 58 encoded}
   market: Market!
   marketSnapshot: MarketSnapshot!
   # A transaction.from is always transaction origin because outside EVM transaction.origin and msg.sender are same
@@ -123,7 +115,6 @@ type Transaction @entity {
   gasPrice: BigInt!
   blockNumber: BigInt!
   timestamp: BigInt!
-  transactionIndexInBlock: BigInt!
 }
 
 # String format for a TokenBalance

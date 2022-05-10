@@ -9,9 +9,9 @@ export namespace Blockchain {
 }
 
 export namespace TokenStandard {
-  export const ERC20 = "ERC20"
-  export const ERC721 = "ERC721"
-  export const ERC1155 = "ERC1155"
+  export const NEP141 = "NEP141"
+  export const NEP171 = "NEP171"
+  export const NEP245 = "NEP245"
 }
 
 export namespace ProtocolName {
