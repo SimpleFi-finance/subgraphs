@@ -161,6 +161,8 @@ templates:
           file: ./abis/FeeRewardForwarder.json
         - name: IERC20
           file: ./abis/IERC20.json
+        - name: ProfitSharingPool
+          file: ./abis/ProfitSharingPool.json
       eventHandlers:
         - event: TokenPoolSet(address,address)
           handler: handleTokenPoolSet
