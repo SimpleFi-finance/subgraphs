@@ -24,7 +24,7 @@ export function handleStaked(event: Staked): void {
   position.save();
 
   // update position by calling invest in market
-  let market = Market.load(rewardPool.lpToken);
+  let market = Market.load(rewardPool.id);
   let outputTokenAmount = stakedAmount;
   let inputTokenAmounts: TokenBalance[] = [
     new TokenBalance(rewardPool.lpToken, user.id, stakedAmount),
@@ -65,7 +65,7 @@ export function handleWithdrawn(event: Withdrawn): void {
   position.save();
 
   // update position by calling redeem from market
-  let market = Market.load(rewardPool.lpToken);
+  let market = Market.load(rewardPool.id);
   let outputTokenAmount = amountWithdrawn;
   let inputTokenAmounts: TokenBalance[] = [
     new TokenBalance(rewardPool.lpToken, user.id, amountWithdrawn),
@@ -103,7 +103,7 @@ export function handleRewardPaid(event: RewardPaid): void {
   let position = getOrCreatePositionInRewardPool(user, rewardPool);
 
   // update position by calling redeem from market
-  let market = Market.load(rewardPool.lpToken);
+  let market = Market.load(rewardPool.id);
   let outputTokenAmount = BigInt.fromI32(0);
   let inputTokenAmounts: TokenBalance[] = [];
   let rewardTokenAmounts = [new TokenBalance(rewardPool.rewardToken, user.id, rewardAmount)];
