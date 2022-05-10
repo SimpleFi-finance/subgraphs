@@ -12,18 +12,15 @@ import {
 } from "../generated/schema";
 import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
 import { RewardPool as RewardPoolContract } from "../generated/templates/RewardPool/RewardPool";
-
+import { ProfitSharingPool as ProfitSharingPoolContract } from "../generated/templates/ProfitSharingPool/ProfitSharingPool";
 import { HarvestEthController as ControllerContract } from "../generated/HarvestEthController1/HarvestEthController";
-
 import { FeeRewardForwarder as FeeRewardForwarderContract } from "../generated/templates/FeeRewardForwarder/FeeRewardForwarder";
-
 import {
   Vault as VaultTemplate,
   FeeRewardForwarder as FeeRewardForwarderTemplate,
   ProfitSharingPool as ProfitSharingPoolTemplate,
   RewardPool as RewardPoolTemplate,
 } from "../generated/templates";
-
 import {
   ADDRESS_ZERO,
   getOrCreateERC20Token,
@@ -102,7 +99,10 @@ export function getOrCreatePositionInVault(user: Account, vault: Vault): Positio
  * @param forwarderAddress
  * @returns
  */
-export function getOrCreateFeeRewardForwarder(forwarderAddress: string): FeeRewardForwarder {
+export function getOrCreateFeeRewardForwarder(
+  event: ethereum.Event,
+  forwarderAddress: string
+): FeeRewardForwarder {
   let forwarder = FeeRewardForwarder.load(forwarderAddress);
   if (forwarder != null) {
     return forwarder as FeeRewardForwarder;
@@ -116,8 +116,8 @@ export function getOrCreateFeeRewardForwarder(forwarderAddress: string): FeeRewa
 
   if (profitSharingPoolAddress && profitSharingPoolAddress.toHexString() != ADDRESS_ZERO) {
     let profitSharingPool = getOrCreateProfitSharingPool(
-      profitSharingPoolAddress.toHexString(),
-      feeRewarderContract.farm().toHexString()
+      event,
+      profitSharingPoolAddress.toHexString()
     );
     forwarder.profitSharingPool = profitSharingPool.id;
   }
@@ -130,25 +130,54 @@ export function getOrCreateFeeRewardForwarder(forwarderAddress: string): FeeRewa
 }
 
 /**
- * Create entity for ProfitSharingPool and start indexing it
+ * Create entity for ProfitSharingPool, create market and start indexing contract
  * @param profitSharingPoolAddress
  * @param rewardToken
  * @returns
  */
 export function getOrCreateProfitSharingPool(
-  profitSharingPoolAddress: string,
-  rewardToken: string
+  event: ethereum.Event,
+  profitSharingPoolAddress: string
 ): ProfitSharingPool {
   let profitSharingPool = ProfitSharingPool.load(profitSharingPoolAddress);
   if (profitSharingPool != null) {
     return profitSharingPool as ProfitSharingPool;
   }
 
+  let profitSharingPoolContract = ProfitSharingPoolContract.bind(
+    Address.fromString(profitSharingPoolAddress)
+  );
+
   profitSharingPool = new ProfitSharingPool(profitSharingPoolAddress);
-  profitSharingPool.rewardToken = rewardToken;
+  let rewardToken = getOrCreateERC20Token(event, profitSharingPoolContract.rewardToken());
+  profitSharingPool.rewardToken = rewardToken.id;
+  let lpToken = getOrCreateERC20Token(event, profitSharingPoolContract.lpToken());
   profitSharingPool.save();
 
-  // start indexing reward pool contract
+  // create market for this profit sharing pool
+  let marketId = profitSharingPool.id;
+  let marketAddress = Address.fromString(profitSharingPool.id);
+  let protocolName = ProtocolName.HARVEST_FINANCE_STAKING_POOL;
+  let protocolType = ProtocolType.STAKING;
+  let inputTokens: Token[] = [lpToken];
+  let outputToken: Token = getOrCreateERC20Token(
+    event,
+    Address.fromString(profitSharingPoolAddress)
+  );
+  let rewardTokens: Token[] = [rewardToken];
+
+  getOrCreateMarketWithId(
+    event,
+    marketId,
+    marketAddress,
+    protocolName,
+    protocolType,
+    inputTokens,
+    outputToken,
+    rewardTokens
+  );
+
+  // start indexing profit sharing pool contract
   ProfitSharingPoolTemplate.create(Address.fromString(profitSharingPoolAddress));
 
   return profitSharingPool;
@@ -159,7 +188,10 @@ export function getOrCreateProfitSharingPool(
  * @param controllerAddress
  * @returns
  */
-export function getOrCreateHarvestController(controllerAddress: string): HarvestController {
+export function getOrCreateHarvestController(
+  event: ethereum.Event,
+  controllerAddress: string
+): HarvestController {
   let controller = HarvestController.load(controllerAddress);
   if (controller != null) {
     return controller as HarvestController;
@@ -173,7 +205,7 @@ export function getOrCreateHarvestController(controllerAddress: string): Harvest
   let controllerContract = ControllerContract.bind(Address.fromString(controllerAddress));
   let feeRewardForwarder = controllerContract.feeRewardForwarder();
   if (feeRewardForwarder && feeRewardForwarder.toHexString() != ADDRESS_ZERO) {
-    getOrCreateFeeRewardForwarder(feeRewardForwarder.toHexString());
+    getOrCreateFeeRewardForwarder(event, feeRewardForwarder.toHexString());
   }
 
   return controller;

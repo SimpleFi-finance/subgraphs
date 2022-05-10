@@ -17,7 +17,7 @@ import {
  * @param call
  */
 export function addVaultAndStrategy(call: AddVaultAndStrategyCall): void {
-  getOrCreateHarvestController(call.to.toHexString());
+  getOrCreateHarvestController(createFakeEventFromCall(call), call.to.toHexString());
 
   getOrCreateVault(createFakeEventFromCall(call), call.inputs._vault);
 }
@@ -27,10 +27,10 @@ export function addVaultAndStrategy(call: AddVaultAndStrategyCall): void {
  * @param call
  */
 export function setFeeRewardForwarder(call: SetFeeRewardForwarderCall): void {
-  getOrCreateHarvestController(call.to.toHexString());
+  getOrCreateHarvestController(createFakeEventFromCall(call), call.to.toHexString());
 
   let feeRewardForwarder = call.inputs._feeRewardForwarder;
-  getOrCreateFeeRewardForwarder(feeRewardForwarder.toHexString());
+  getOrCreateFeeRewardForwarder(createFakeEventFromCall(call), feeRewardForwarder.toHexString());
 }
 
 /**
@@ -38,7 +38,7 @@ export function setFeeRewardForwarder(call: SetFeeRewardForwarderCall): void {
  * @param event
  */
 export function handleSharePriceChangeLog(event: SharePriceChangeLog): void {
-  getOrCreateHarvestController(event.address.toHexString());
+  getOrCreateHarvestController(event, event.address.toHexString());
 
   let market = Market.load(event.params.vault.toHexString()) as Market;
 
