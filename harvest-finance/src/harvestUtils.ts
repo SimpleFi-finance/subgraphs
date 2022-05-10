@@ -153,6 +153,8 @@ export function getOrCreateProfitSharingPool(
   let rewardToken = getOrCreateERC20Token(event, profitSharingPoolContract.rewardToken());
   profitSharingPool.rewardToken = rewardToken.id;
   let lpToken = getOrCreateERC20Token(event, profitSharingPoolContract.lpToken());
+  profitSharingPool.lpToken = lpToken.id;
+  profitSharingPool.totalSupply = profitSharingPoolContract.totalSupply();
   profitSharingPool.save();
 
   // create market for this profit sharing pool
@@ -260,6 +262,7 @@ export function getOrCreateRewardPool(
   rewardPool.rewardToken = rewardToken.id;
   let lpToken = getOrCreateERC20Token(event, rewardPoolContract.lpToken());
   rewardPool.lpToken = lpToken.id;
+  rewardPool.totalSupply = rewardPoolContract.totalSupply();
   rewardPool.save();
 
   // create market for this reward pool

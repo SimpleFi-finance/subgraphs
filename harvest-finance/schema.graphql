@@ -254,6 +254,9 @@ type ProfitSharingPool @entity {
 
   " token rewarded to stakers "
   rewardToken: Token!
+
+  " total amount of staked tokens "
+  totalSupply: BigInt!
 }
 
 type PositionInProfitSharingPool @entity {
@@ -279,6 +282,9 @@ type RewardPool @entity {
 
   " token rewarded to stakers "
   rewardToken: Token!
+
+  " total amount of staked tokens "
+  totalSupply: BigInt!
 }
 
 type PositionInRewardPool @entity {

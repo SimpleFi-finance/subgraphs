@@ -4,7 +4,13 @@ import {
   Staked,
   Withdrawn,
 } from "../generated/templates/ProfitSharingPool/ProfitSharingPool";
-import { getOrCreateAccount, investInMarket, redeemFromMarket, TokenBalance } from "./common";
+import {
+  getOrCreateAccount,
+  investInMarket,
+  redeemFromMarket,
+  TokenBalance,
+  updateMarket,
+} from "./common";
 import {
   getOrCreatePositionInProfitSharingPool,
   getOrCreateProfitSharingPool,
@@ -21,13 +27,25 @@ export function handleStaked(event: Staked): void {
   let stakedAmount = event.params.amount;
   let user = getOrCreateAccount(event.params.user);
 
+  //// update market state
+  let market = Market.load(profitSharingPool.id);
+  profitSharingPool.totalSupply = profitSharingPool.totalSupply.plus(stakedAmount);
+  profitSharingPool.save();
+  let marketInputTokeneBalances = [
+    new TokenBalance(
+      profitSharingPool.lpToken,
+      profitSharingPool.id,
+      profitSharingPool.totalSupply
+    ),
+  ];
+  updateMarket(event, market!, marketInputTokeneBalances, profitSharingPool.totalSupply);
+
   // update staked balance tracker
   let position = getOrCreatePositionInProfitSharingPool(user, profitSharingPool);
   position.stakedBalance = position.stakedBalance.plus(stakedAmount);
   position.save();
 
   // update position by calling invest in market
-  let market = Market.load(profitSharingPool.id);
   let outputTokenAmount = stakedAmount;
   let inputTokenAmounts: TokenBalance[] = [
     new TokenBalance(profitSharingPool.lpToken, user.id, stakedAmount),
@@ -60,28 +78,40 @@ export function handleStaked(event: Staked): void {
  * @param event
  */
 export function handleWithdrawn(event: Withdrawn): void {
-  let ProfitSharingPool = getOrCreateProfitSharingPool(event, event.address.toHexString());
+  let profitSharingPool = getOrCreateProfitSharingPool(event, event.address.toHexString());
   let amountWithdrawn = event.params.amount;
   let user = getOrCreateAccount(event.params.user);
 
+  //// update market state
+  let market = Market.load(profitSharingPool.id);
+  profitSharingPool.totalSupply = profitSharingPool.totalSupply.minus(amountWithdrawn);
+  profitSharingPool.save();
+  let marketInputTokeneBalances = [
+    new TokenBalance(
+      profitSharingPool.lpToken,
+      profitSharingPool.id,
+      profitSharingPool.totalSupply
+    ),
+  ];
+  updateMarket(event, market!, marketInputTokeneBalances, profitSharingPool.totalSupply);
+
   // update balance tracker
-  let position = getOrCreatePositionInProfitSharingPool(user, ProfitSharingPool);
+  let position = getOrCreatePositionInProfitSharingPool(user, profitSharingPool);
   position.stakedBalance = position.stakedBalance.minus(amountWithdrawn);
   position.save();
 
   // update position by calling redeem from market
-  let market = Market.load(ProfitSharingPool.id);
   let outputTokenAmount = amountWithdrawn;
   let inputTokenAmounts: TokenBalance[] = [
-    new TokenBalance(ProfitSharingPool.lpToken, user.id, amountWithdrawn),
+    new TokenBalance(profitSharingPool.lpToken, user.id, amountWithdrawn),
   ];
   let rewardTokenAmounts: TokenBalance[] = [];
   let outputTokenBalance = position.stakedBalance;
   let inputTokeneBalances = [
-    new TokenBalance(ProfitSharingPool.lpToken, user.id, position.stakedBalance),
+    new TokenBalance(profitSharingPool.lpToken, user.id, position.stakedBalance),
   ];
   let rewardTokenBalances = [
-    new TokenBalance(ProfitSharingPool.rewardToken, user.id, earned(user.id, ProfitSharingPool.id)),
+    new TokenBalance(profitSharingPool.rewardToken, user.id, earned(user.id, profitSharingPool.id)),
   ];
 
   redeemFromMarket(
