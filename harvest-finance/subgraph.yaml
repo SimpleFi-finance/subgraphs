@@ -85,6 +85,8 @@ dataSources:
           file: ./abis/NotifyHelper.json
         - name: RewardPool
           file: ./abis/RewardPool.json
+        - name: IERC20
+          file: ./abis/IERC20.json
       callHandlers:
         - function: notifyPools(uint256[],address[],uint256)
           handler: handleNotifyPools
@@ -157,6 +159,8 @@ templates:
           file: ./abis/Vault.json
         - name: FeeRewardForwarder
           file: ./abis/FeeRewardForwarder.json
+        - name: IERC20
+          file: ./abis/IERC20.json
       eventHandlers:
         - event: TokenPoolSet(address,address)
           handler: handleTokenPoolSet
@@ -178,6 +182,8 @@ templates:
           file: ./abis/Vault.json
         - name: ProfitSharingPool
           file: ./abis/ProfitSharingPool.json
+        - name: IERC20
+          file: ./abis/IERC20.json
       eventHandlers:
         - event: RewardPaid(indexed address,uint256)
           handler: handleRewardPaid
