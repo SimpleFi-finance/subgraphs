@@ -340,18 +340,18 @@ type PositionInRewardPool @entity {
 }
 
 type RewardClaim @entity {
-  " user-tx "
+  " tx-log "
   id: ID!
 
   " account claiming the reward "
   user: Account!
 
   " tx hash "
-  tx: String!
+  transactionHash: String!
 
   " claimed amount of reward token "
   amount: BigInt!
 
-  " source of the reward "
+  " source pool of the reward (reward pool or profit sharing pool)"
   rewardSource: String!
 }

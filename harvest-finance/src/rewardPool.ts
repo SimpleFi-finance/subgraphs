@@ -1,4 +1,4 @@
-import { Market } from "../generated/schema";
+import { Market, RewardClaim } from "../generated/schema";
 import {
   RewardPaid,
   Staked,
@@ -124,7 +124,16 @@ export function handleRewardPaid(event: RewardPaid): void {
 
   let position = getOrCreatePositionInRewardPool(user, rewardPool);
 
-  // update position by calling redeem from market
+  //// create RewardClaim entity
+  let tx = event.transaction.hash.toHexString();
+  let claim = new RewardClaim(tx + "-" + event.transaction.index.toString());
+  claim.user = user.id;
+  claim.transactionHash = tx;
+  claim.amount = rewardAmount;
+  claim.rewardSource = rewardPool.id;
+  claim.save();
+
+  //// update position by calling redeem from market
   let market = Market.load(rewardPool.id);
   let outputTokenAmount = BigInt.fromI32(0);
   let inputTokenAmounts: TokenBalance[] = [];
