@@ -87,6 +87,8 @@ dataSources:
           file: ./abis/RewardPool.json
         - name: IERC20
           file: ./abis/IERC20.json
+        - name: Vault
+          file: ./abis/Vault.json
       callHandlers:
         - function: notifyPools(uint256[],address[],uint256)
           handler: handleNotifyPools
@@ -134,6 +136,8 @@ templates:
           file: ./abis/RewardPool.json
         - name: IERC20
           file: ./abis/IERC20.json
+        - name: Vault
+          file: ./abis/Vault.json
       eventHandlers:
         - event: Staked(indexed address,uint256)
           handler: handleStaked
