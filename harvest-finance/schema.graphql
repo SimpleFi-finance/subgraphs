@@ -202,6 +202,9 @@ type Vault @entity {
 
   " used to identify manual transfers to zero address "
   lastTransferToZero: LPTokenTransferToZero
+
+  " tx in which entity is created "
+  transactionHash: String!
 }
 
 type PositionInVault @entity {
@@ -281,6 +284,9 @@ type FeeRewardForwarder @entity {
 
   " pool ref "
   profitSharingPool: ProfitSharingPool
+
+  " tx in which entity is created "
+  transactionHash: String!
 }
 
 type ProfitSharingPool @entity {
@@ -295,6 +301,9 @@ type ProfitSharingPool @entity {
 
   " total amount of staked tokens "
   totalSupply: BigInt!
+
+  " tx in which entity is created "
+  transactionHash: String!
 }
 
 type PositionInProfitSharingPool @entity {
@@ -323,6 +332,9 @@ type RewardPool @entity {
 
   " total amount of staked tokens "
   totalSupply: BigInt!
+
+  " tx in which entity is created "
+  transactionHash: String!
 }
 
 type PositionInRewardPool @entity {

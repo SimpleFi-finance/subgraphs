@@ -52,6 +52,7 @@ export function getOrCreateVault(event: ethereum.Event, vaultAddress: Address): 
   let inputToken = getOrCreateERC20Token(event, fAssetToken.underlying());
   vault.underlyingToken = inputToken.id;
   vault.pricePerShare = fAssetToken.getPricePerFullShare();
+  vault.transactionHash = event.transaction.hash.toHexString();
   vault.save();
 
   // create Market entity
@@ -110,6 +111,7 @@ export function getOrCreateFeeRewardForwarder(
   }
 
   forwarder = new FeeRewardForwarder(forwarderAddress);
+  forwarder.transactionHash = event.transaction.hash.toHexString();
 
   // get reward pool
   let feeRewarderContract = FeeRewardForwarderContract.bind(Address.fromString(forwarderAddress));
@@ -155,6 +157,7 @@ export function getOrCreateProfitSharingPool(
   let lpToken = getOrCreateERC20Token(event, profitSharingPoolContract.lpToken());
   profitSharingPool.lpToken = lpToken.id;
   profitSharingPool.totalSupply = profitSharingPoolContract.totalSupply();
+  profitSharingPool.transactionHash = event.transaction.hash.toHexString();
   profitSharingPool.save();
 
   // create market for this profit sharing pool
@@ -265,6 +268,7 @@ export function getOrCreateRewardPool(
   let lpToken = getOrCreateERC20Token(event, rewardPoolContract.lpToken());
   rewardPool.lpToken = lpToken.id;
   rewardPool.totalSupply = rewardPoolContract.totalSupply();
+  rewardPool.transactionHash = event.transaction.hash.toHexString();
   rewardPool.save();
 
   // save reward pool ref to vault
