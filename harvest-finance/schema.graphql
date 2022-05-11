@@ -215,12 +215,44 @@ type PositionInVault @entity {
   fTokenBalance: BigInt!
 }
 
-type Deposit @entity {
+type VaultDeposit @entity {
+  " tx-index "
   id: ID!
-  depositInputAmount: BigInt
-  depositedInput: Boolean!
-  depositOutputAmount: BigInt
-  depositedOutput: Boolean!
+
+  " user for whom deposit is made "
+  user: Account!
+
+  " vault being deposited in "
+  vault: Vault!
+
+  " tx "
+  transactionHash: String!
+
+  " amount of underlying assets user provided "
+  depositAmount: BigInt!
+
+  " amount of fTokens user received "
+  mintedAmount: BigInt!
+}
+
+type VaultWithdrawal @entity {
+  " tx-index "
+  id: ID!
+
+  " user for whom whitdrawal is made "
+  user: Account!
+
+  " vault being withdrawn from "
+  vault: Vault!
+
+  " tx "
+  transactionHash: String!
+
+  " amount of underlying assets user received "
+  withdrawnAmount: BigInt!
+
+  " amount of fTokens being burned "
+  burnedAmount: BigInt!
 }
 
 """

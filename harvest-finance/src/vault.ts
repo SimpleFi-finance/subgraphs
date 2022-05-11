@@ -1,4 +1,11 @@
-import { Vault, LPTokenTransferToZero, Market, Account } from "../generated/schema";
+import {
+  Vault,
+  LPTokenTransferToZero,
+  Market,
+  Account,
+  VaultDeposit,
+  VaultWithdrawal,
+} from "../generated/schema";
 import {
   ADDRESS_ZERO,
   getOrCreateAccount,
@@ -28,7 +35,7 @@ export function handleDeposit(event: DepositEvent): void {
   let vault = getOrCreateVault(event, event.address);
   checkForUnprocessedTransferToZero(event, vault);
 
-  // update vault state
+  //// update vault state
   if (vault.pricePerShare == BigInt.fromI32(0)) {
     vault.pricePerShare = VaultContract.bind(event.address).getPricePerFullShare();
   }
@@ -36,7 +43,18 @@ export function handleDeposit(event: DepositEvent): void {
   vault.totalSupply = vault.totalSupply.plus(mintedAmount);
   vault.save();
 
-  // update market state
+  //// create deposit entity
+  let deposit = new VaultDeposit(
+    event.transaction.hash.toHexString() + "-" + event.transaction.index
+  );
+  deposit.user = user.id;
+  deposit.vault = vault.id;
+  deposit.transactionHash = event.transaction.hash.toHexString();
+  deposit.depositAmount = depositedAmount;
+  deposit.mintedAmount = mintedAmount;
+  deposit.save();
+
+  //// update market state
   let market = Market.load(vault.id) as Market;
   let inputTokenBalance = vault.totalSupply.times(vault.pricePerShare).div(vault.underlyingUnit);
   let inputTokenBalances: TokenBalance[] = [
@@ -89,7 +107,7 @@ export function handleWithdraw(event: Withdraw): void {
   checkForUnprocessedTransferToZero(event, vault);
   vault.lastTransferToZero = null;
 
-  // update vault state
+  //// update vault state
   if (vault.pricePerShare == BigInt.fromI32(0)) {
     vault.pricePerShare = VaultContract.bind(event.address).getPricePerFullShare();
   }
@@ -99,7 +117,18 @@ export function handleWithdraw(event: Withdraw): void {
   vault.totalSupply = vault.totalSupply.minus(burnedAmountOfFTokens);
   vault.save();
 
-  // update market state
+  //// create withdrawal entity
+  let withdrawal = new VaultWithdrawal(
+    event.transaction.hash.toHexString() + "-" + event.transaction.index
+  );
+  withdrawal.user = receiver.id;
+  withdrawal.vault = vault.id;
+  withdrawal.transactionHash = event.transaction.hash.toHexString();
+  withdrawal.withdrawnAmount = withdrawnAmountOfUnderlying;
+  withdrawal.burnedAmount = burnedAmountOfFTokens;
+  withdrawal.save();
+
+  /// update market state
   let market = Market.load(vault.id) as Market;
   let inputTokenBalance = vault.totalSupply.times(vault.pricePerShare).div(vault.underlyingUnit);
   let inputTokenBalances: TokenBalance[] = [
