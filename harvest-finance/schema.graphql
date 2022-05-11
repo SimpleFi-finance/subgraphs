@@ -170,6 +170,9 @@ type PositionSnapshot @entity {
 type HarvestController @entity {
   " contract id "
   id: ID!
+
+  " used to forward rewards to profit sharing pool "
+  feeRewardForwarder: FeeRewardForwarder
 }
 
 type Vault @entity {

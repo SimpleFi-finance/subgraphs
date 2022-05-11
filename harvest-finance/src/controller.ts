@@ -27,10 +27,19 @@ export function addVaultAndStrategy(call: AddVaultAndStrategyCall): void {
  * @param call
  */
 export function setFeeRewardForwarder(call: SetFeeRewardForwarderCall): void {
-  getOrCreateHarvestController(createFakeEventFromCall(call), call.to.toHexString());
+  let controller = getOrCreateHarvestController(
+    createFakeEventFromCall(call),
+    call.to.toHexString()
+  );
 
-  let feeRewardForwarder = call.inputs._feeRewardForwarder;
-  getOrCreateFeeRewardForwarder(createFakeEventFromCall(call), feeRewardForwarder.toHexString());
+  let forwarderAddress = call.inputs._feeRewardForwarder;
+  let forwarder = getOrCreateFeeRewardForwarder(
+    createFakeEventFromCall(call),
+    forwarderAddress.toHexString()
+  );
+
+  controller.feeRewardForwarder = forwarder.id;
+  controller.save();
 }
 
 /**

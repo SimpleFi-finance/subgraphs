@@ -233,7 +233,9 @@ export function getOrCreateHarvestController(
   let controllerContract = ControllerContract.bind(Address.fromString(controllerAddress));
   let feeRewardForwarder = controllerContract.feeRewardForwarder();
   if (feeRewardForwarder && feeRewardForwarder.toHexString() != ADDRESS_ZERO) {
-    getOrCreateFeeRewardForwarder(event, feeRewardForwarder.toHexString());
+    let forwarder = getOrCreateFeeRewardForwarder(event, feeRewardForwarder.toHexString());
+    controller.feeRewardForwarder = forwarder.id;
+    controller.save();
   }
 
   return controller;
