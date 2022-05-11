@@ -45,7 +45,7 @@ export function handleDeposit(event: DepositEvent): void {
 
   //// create deposit entity
   let deposit = new VaultDeposit(
-    event.transaction.hash.toHexString() + "-" + event.transaction.index
+    event.transaction.hash.toHexString() + "-" + event.transaction.index.toString()
   );
   deposit.user = user.id;
   deposit.vault = vault.id;
@@ -119,7 +119,7 @@ export function handleWithdraw(event: Withdraw): void {
 
   //// create withdrawal entity
   let withdrawal = new VaultWithdrawal(
-    event.transaction.hash.toHexString() + "-" + event.transaction.index
+    event.transaction.hash.toHexString() + "-" + event.transaction.index.toString()
   );
   withdrawal.user = receiver.id;
   withdrawal.vault = vault.id;

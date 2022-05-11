@@ -197,6 +197,9 @@ type Vault @entity {
   " share price "
   pricePerShare: BigInt!
 
+  " pool where vault fTokens can be staked "
+  rewardPool: RewardPool
+
   " used to identify manual transfers to zero address "
   lastTransferToZero: LPTokenTransferToZero
 }

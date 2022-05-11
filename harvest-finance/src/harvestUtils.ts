@@ -267,6 +267,11 @@ export function getOrCreateRewardPool(
   rewardPool.totalSupply = rewardPoolContract.totalSupply();
   rewardPool.save();
 
+  // save reward pool ref to vault
+  let vault = getOrCreateVault(event, Address.fromString(rewardPool.lpToken));
+  vault.rewardPool = rewardPool.id;
+  vault.save();
+
   // create market for this reward pool
   let marketId = rewardPool.id;
   let marketAddress = Address.fromString(rewardPoolAddress);
