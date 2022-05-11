@@ -1,6 +1,112 @@
 specVersion: 0.0.2
 schema:
   file: ./schema.graphql
+
+templates:
+  - kind: ethereum/contract
+    name: Vault
+    network: mainnet
+    source:
+      abi: Vault
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: Vault
+          file: ./abis/Vault.json
+        - name: IERC20
+          file: ./abis/IERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: Deposit(indexed address,uint256)
+          handler: handleDeposit
+        - event: Withdraw(indexed address,uint256)
+          handler: handleWithdraw
+      file: ./src/vault.ts
+
+  - kind: ethereum/contract
+    name: RewardPool
+    network: mainnet
+    source:
+      abi: RewardPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: &poolEntities
+        - RewardPool
+      abis: &poolAbis
+        - name: RewardPool
+          file: ./abis/RewardPool.json
+        - name: IERC20
+          file: ./abis/IERC20.json
+        - name: Vault
+          file: ./abis/Vault.json
+      eventHandlers: &poolEvents
+        - event: Staked(indexed address,uint256)
+          handler: handleStaked
+        - event: Withdrawn(indexed address,uint256)
+          handler: handleWithdrawn
+        - event: RewardPaid(indexed address,uint256)
+          handler: handleRewardPaid
+      file: ./src/rewardPool.ts
+
+  - kind: ethereum/contract
+    name: FeeRewardForwarder
+    network: mainnet
+    source:
+      abi: FeeRewardForwarder
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - FeeRewardForwarder
+      abis:
+        - name: Vault
+          file: ./abis/Vault.json
+        - name: FeeRewardForwarder
+          file: ./abis/FeeRewardForwarder.json
+        - name: IERC20
+          file: ./abis/IERC20.json
+        - name: ProfitSharingPool
+          file: ./abis/ProfitSharingPool.json
+      eventHandlers:
+        - event: TokenPoolSet(address,address)
+          handler: handleTokenPoolSet
+      file: ./src/feeRewardForwarder.ts
+
+  - kind: ethereum/contract
+    name: ProfitSharingPool
+    network: mainnet
+    source:
+      abi: ProfitSharingPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - ProfitSharingPool
+      abis:
+        - name: Vault
+          file: ./abis/Vault.json
+        - name: ProfitSharingPool
+          file: ./abis/ProfitSharingPool.json
+        - name: IERC20
+          file: ./abis/IERC20.json
+      eventHandlers:
+        - event: Staked(indexed address,uint256)
+          handler: handleStaked
+        - event: Withdrawn(indexed address,uint256)
+          handler: handleWithdrawn
+        - event: RewardPaid(indexed address,uint256)
+          handler: handleRewardPaid
+      file: ./src/profitSharingPool.ts
+
 dataSources:
   - kind: ethereum/contract
     name: HarvestEthController1
@@ -94,107 +200,180 @@ dataSources:
           handler: handleNotifyPools
       file: ./src/notifyHelper.ts
 
-templates:
-  - kind: ethereum/contract
-    name: Vault
-    network: mainnet
-    source:
-      abi: Vault
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.5
-      language: wasm/assemblyscript
-      entities:
-        - Vault
-      abis:
-        - name: Vault
-          file: ./abis/Vault.json
-        - name: IERC20
-          file: ./abis/IERC20.json
-      eventHandlers:
-        - event: Transfer(indexed address,indexed address,uint256)
-          handler: handleTransfer
-        - event: Deposit(indexed address,uint256)
-          handler: handleDeposit
-        - event: Withdraw(indexed address,uint256)
-          handler: handleWithdraw
-      file: ./src/vault.ts
+  ################### Some reward pools are added here as data source so that subgraph can pick up every single event emitted by those contracts
 
   - kind: ethereum/contract
-    name: RewardPool
+    name: RewardPool_fWETH
     network: mainnet
     source:
+      address: "0x3DA9D911301f8144bdF5c3c67886e5373DCdff8e"
+      startBlock: 11087149
       abi: RewardPool
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.5
       language: wasm/assemblyscript
-      entities:
-        - RewardPool
-      abis:
-        - name: RewardPool
-          file: ./abis/RewardPool.json
-        - name: IERC20
-          file: ./abis/IERC20.json
-        - name: Vault
-          file: ./abis/Vault.json
-      eventHandlers:
-        - event: Staked(indexed address,uint256)
-          handler: handleStaked
-        - event: Withdrawn(indexed address,uint256)
-          handler: handleWithdrawn
-        - event: RewardPaid(indexed address,uint256)
-          handler: handleRewardPaid
+      entities: *poolEntities
+      abis: *poolAbis
+      eventHandlers: *poolEvents
       file: ./src/rewardPool.ts
 
   - kind: ethereum/contract
-    name: FeeRewardForwarder
+    name: RewardPool_fyDAI
     network: mainnet
     source:
-      abi: FeeRewardForwarder
+      address: "0x6D1b6Ea108AA03c6993d8010690264BA96D349A8"
+      startBlock: 11153147
+      abi: RewardPool
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.5
       language: wasm/assemblyscript
-      entities:
-        - FeeRewardForwarder
-      abis:
-        - name: Vault
-          file: ./abis/Vault.json
-        - name: FeeRewardForwarder
-          file: ./abis/FeeRewardForwarder.json
-        - name: IERC20
-          file: ./abis/IERC20.json
-        - name: ProfitSharingPool
-          file: ./abis/ProfitSharingPool.json
-      eventHandlers:
-        - event: TokenPoolSet(address,address)
-          handler: handleTokenPoolSet
-      file: ./src/feeRewardForwarder.ts
+      entities: *poolEntities
+      abis: *poolAbis
+      eventHandlers: *poolEvents
+      file: ./src/rewardPool.ts
 
   - kind: ethereum/contract
-    name: ProfitSharingPool
+    name: RewardPool_f3CRV
     network: mainnet
     source:
-      abi: ProfitSharingPool
+      address: "0x27F12d1a08454402175b9F0b53769783578Be7d9"
+      startBlock: 11159034
+      abi: RewardPool
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.5
       language: wasm/assemblyscript
-      entities:
-        - ProfitSharingPool
-      abis:
-        - name: Vault
-          file: ./abis/Vault.json
-        - name: ProfitSharingPool
-          file: ./abis/ProfitSharingPool.json
-        - name: IERC20
-          file: ./abis/IERC20.json
-      eventHandlers:
-        - event: Staked(indexed address,uint256)
-          handler: handleStaked
-        - event: Withdrawn(indexed address,uint256)
-          handler: handleWithdrawn
-        - event: RewardPaid(indexed address,uint256)
-          handler: handleRewardPaid
-      file: ./src/profitSharingPool.ts
+      entities: *poolEntities
+      abis: *poolAbis
+      eventHandlers: *poolEvents
+      file: ./src/rewardPool.ts
+
+  - kind: ethereum/contract
+    name: RewardPool_ftbtc
+    network: mainnet
+    source:
+      address: "0x017eC1772A45d2cf68c429A820eF374f0662C57c"
+      startBlock: 11231016
+      abi: RewardPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *poolEntities
+      abis: *poolAbis
+      eventHandlers: *poolEvents
+      file: ./src/rewardPool.ts
+
+  - kind: ethereum/contract
+    name: RewardPool_fCRVRen
+    network: mainnet
+    source:
+      address: "0xA3Cf8D1CEe996253FAD1F8e3d68BDCba7B3A3Db5"
+      startBlock: 11087179
+      abi: RewardPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *poolEntities
+      abis: *poolAbis
+      eventHandlers: *poolEvents
+      file: ./src/rewardPool.ts
+
+  - kind: ethereum/contract
+    name: RewardPool_fWBTC
+    network: mainnet
+    source:
+      address: "0x917d6480Ec60cBddd6CbD0C8EA317Bcc709EA77B"
+      startBlock: 11068190
+      abi: RewardPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *poolEntities
+      abis: *poolAbis
+      eventHandlers: *poolEvents
+      file: ./src/rewardPool.ts
+
+  - kind: ethereum/contract
+    name: RewardPool_fRENBTC
+    network: mainnet
+    source:
+      address: "0x7b8Ff8884590f44e10Ea8105730fe637Ce0cb4F6"
+      startBlock: 11087172
+      abi: RewardPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *poolEntities
+      abis: *poolAbis
+      eventHandlers: *poolEvents
+      file: ./src/rewardPool.ts
+
+  - kind: ethereum/contract
+    name: RewardPool_fUSDC
+    network: mainnet
+    source:
+      address: "0x4F7c28cCb0F1Dbd1388209C67eEc234273C878Bd"
+      startBlock: 11087160
+      abi: RewardPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *poolEntities
+      abis: *poolAbis
+      eventHandlers: *poolEvents
+      file: ./src/rewardPool.ts
+
+  - kind: ethereum/contract
+    name: RewardPool_fUSDT
+    network: mainnet
+    source:
+      address: "0x6ac4a7AB91E6fD098E13B7d347c6d4d1494994a2"
+      startBlock: 11087164
+      abi: RewardPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *poolEntities
+      abis: *poolAbis
+      eventHandlers: *poolEvents
+      file: ./src/rewardPool.ts
+
+  - kind: ethereum/contract
+    name: RewardPool_fTUSD
+    network: mainnet
+    source:
+      address: "0xeC56a21CF0D7FeB93C25587C12bFfe094aa0eCdA"
+      startBlock: 10997827
+      abi: RewardPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *poolEntities
+      abis: *poolAbis
+      eventHandlers: *poolEvents
+      file: ./src/rewardPool.ts
+
+  - kind: ethereum/contract
+    name: RewardPool_fDAI
+    network: mainnet
+    source:
+      address: "0x15d3A64B2d5ab9E152F16593Cdebc4bB165B5B4A"
+      startBlock: 11087156
+      abi: RewardPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *poolEntities
+      abis: *poolAbis
+      eventHandlers: *poolEvents
+      file: ./src/rewardPool.ts

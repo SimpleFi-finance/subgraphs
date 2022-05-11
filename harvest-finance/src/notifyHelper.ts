@@ -8,16 +8,9 @@ export function handleNotifyPools(call: NotifyPoolsCall): void {
     // get vault
     let rewardPoolContract = RewardPoolContract.bind(rewardPoolAddresses[i]);
     let vaultAddress = rewardPoolContract.lpToken();
-    let vault = getOrCreateVault(createFakeEventFromCall(call), vaultAddress);
+    getOrCreateVault(createFakeEventFromCall(call), vaultAddress);
 
     // create reward pool if it doesn't exist
-    let rewardPool = getOrCreateRewardPool(
-      createFakeEventFromCall(call),
-      rewardPoolAddresses[i].toHexString()
-    );
-
-    // save reward pool ref
-    vault.rewardPool = rewardPool.id;
-    vault.save();
+    getOrCreateRewardPool(createFakeEventFromCall(call), rewardPoolAddresses[i].toHexString());
   }
 }
