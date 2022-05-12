@@ -11,6 +11,7 @@ import {
   getOrCreateHarvestController,
   getOrCreateVault,
 } from "./harvestUtils";
+import { Vault as VaultContract } from "../generated/templates/Vault/Vault";
 
 /**
  * Call handler used to listen for new vaults
@@ -19,7 +20,16 @@ import {
 export function addVaultAndStrategy(call: AddVaultAndStrategyCall): void {
   getOrCreateHarvestController(createFakeEventFromCall(call), call.to.toHexString());
 
-  getOrCreateVault(createFakeEventFromCall(call), call.inputs._vault);
+  let vaultAddress = call.inputs._vault;
+
+  // quick check if contract implements IVault interface
+  let vaultContract = VaultContract.bind(vaultAddress);
+  if (vaultContract.try_getPricePerFullShare().reverted) {
+    return;
+  }
+
+  // create new vault
+  getOrCreateVault(createFakeEventFromCall(call), vaultAddress);
 }
 
 /**
