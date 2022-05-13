@@ -24,7 +24,10 @@ export function addVaultAndStrategy(call: AddVaultAndStrategyCall): void {
 
   // quick check if contract implements IVault interface
   let vaultContract = VaultContract.bind(vaultAddress);
-  if (vaultContract.try_getPricePerFullShare().reverted) {
+  if (
+    vaultContract.try_getPricePerFullShare().reverted ||
+    vaultContract.try_underlyingUnit().reverted
+  ) {
     return;
   }
 
