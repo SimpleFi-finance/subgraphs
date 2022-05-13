@@ -3,8 +3,8 @@ schema:
   file: ./schema.graphql
 
 graft:
-  base: QmZxvq6jh9G85gbZobza7ArtVRMbS4ytNTj9VVLTqk9Zya
-  block: 12608000 # Block number
+  base: QmSZAfieXo3bo395oE3jAAWP6exxEpX5ZGYZSvPnUGXjKs
+  block: 12605000 # Block number
 
 templates:
   - kind: ethereum/contract

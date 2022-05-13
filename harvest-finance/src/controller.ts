@@ -62,12 +62,22 @@ export function setFeeRewardForwarder(call: SetFeeRewardForwarderCall): void {
 export function handleSharePriceChangeLog(event: SharePriceChangeLog): void {
   getOrCreateHarvestController(event, event.address.toHexString());
 
-  let market = Market.load(event.params.vault.toHexString()) as Market;
+  // quick check if contract implements IVault interface
+  let vaultContract = VaultContract.bind(event.params.vault);
+  if (
+    vaultContract.try_getPricePerFullShare().reverted ||
+    vaultContract.try_underlyingUnit().reverted
+  ) {
+    return;
+  }
 
+  // update vault's pricePerShare
   let vault = getOrCreateVault(event, event.params.vault);
   vault.pricePerShare = event.params.newSharePrice;
   vault.save();
 
+  // update market state
+  let market = Market.load(event.params.vault.toHexString()) as Market;
   let outputTokenBalance = market.outputTokenTotalSupply;
   let inputTokenBalance = outputTokenBalance.times(vault.pricePerShare).div(vault.underlyingUnit);
   let inputTokenBalances: TokenBalance[] = [
