@@ -3,8 +3,8 @@ schema:
   file: ./schema.graphql
 
 graft:
-  base: QmSZAfieXo3bo395oE3jAAWP6exxEpX5ZGYZSvPnUGXjKs
-  block: 12605000 # Block number
+  base: QmQM3oR1zMPVsxfhhrrrUNDCPEXqZWHqbxrRdxrZvREvha
+  block: 12652000 # Block number
 
 templates:
   - kind: ethereum/contract
@@ -174,7 +174,7 @@ dataSources:
           handler: addVaultAndStrategy
         - function: setFeeRewardForwarder(address)
           handler: setFeeRewardForwarder
-      file: ./src/vault.ts
+      file: ./src/controller.ts
 
   - kind: ethereum/contract
     name: NotifyHelper
