@@ -162,6 +162,15 @@ type PositionSnapshot @entity {
   rewardTokenBalances: [String!]! # TokenBalance string format
 }
 
+type Deployment @entity {
+  id: ID!
+  accountId: String!
+  receiptId: String!
+  codeHash: Bytes!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+}
+
 # END - Common entities for all protocols
 
 # Ref Finance protocol entities
