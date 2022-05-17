@@ -355,7 +355,7 @@ type RewardClaim @entity {
 helper entity used to identify manual transfers to zero address (which are not part of burn event)
 """
 type LPTokenTransferToZero @entity {
-  " TX hash"
+  " TX-vaultId "
   id: ID!
 
   " account sending vault (LP) token to zero address  "
@@ -372,7 +372,7 @@ type LPTokenTransferToZero @entity {
 helper entity used to mark amount of minted fTokens
 """
 type LPTokenTransferFromZero @entity {
-  " TX "
+  " TX-vaultId "
   id: ID!
 
   " zero address  "

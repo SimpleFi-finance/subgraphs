@@ -40,7 +40,9 @@ export function handleDeposit(event: DepositEvent): void {
   //// update vault state
 
   // get amount of minted fTokens by fetching value of preceding Transfer event
-  let precedingTransfer = LPTokenTransferFromZero.load(tx) as LPTokenTransferFromZero;
+  let precedingTransfer = LPTokenTransferFromZero.load(
+    tx + "-" + vault.id
+  ) as LPTokenTransferFromZero;
   let mintedAmount = precedingTransfer.value;
   vault.totalSupply = vault.totalSupply.plus(mintedAmount);
   vault.save();
@@ -95,8 +97,8 @@ export function handleDeposit(event: DepositEvent): void {
     null
   );
 
-  // remove helper entity, so that more mint transfers can be createdin same TX
-  store.remove("LPTokenTransferFromZero", tx);
+  // remove helper entity, so that more mint transfers can be created in same TX
+  store.remove("LPTokenTransferFromZero", precedingTransfer.id);
 }
 
 /**
@@ -116,7 +118,7 @@ export function handleWithdraw(event: Withdraw): void {
   //// update vault state
 
   // get amount of burned fTokens by fetching value of preceding Transfer event
-  let precedingTransfer = LPTokenTransferToZero.load(tx) as LPTokenTransferToZero;
+  let precedingTransfer = LPTokenTransferToZero.load(tx + "-" + vault.id) as LPTokenTransferToZero;
   let burnedAmountOfFTokens = precedingTransfer.value;
   vault.totalSupply = vault.totalSupply.minus(burnedAmountOfFTokens);
   vault.save();
@@ -174,7 +176,7 @@ export function handleWithdraw(event: Withdraw): void {
   );
 
   // remove helper entity, so that more burn transfers can be created in same TX
-  store.remove("LPTokenTransferToZero", tx);
+  store.remove("LPTokenTransferToZero", precedingTransfer.id);
 }
 
 /**
@@ -183,9 +185,12 @@ export function handleWithdraw(event: Withdraw): void {
  * @returns
  */
 export function handleTransfer(event: Transfer): void {
+  let tx = event.transaction.hash.toHexString();
+  let vaultAddress = event.address.toHexString();
+
   if (event.params.from.toHexString() == ADDRESS_ZERO) {
     // minting, create LPTokenTransferFromZero which will be processed further in handleDeposit
-    let transfer = new LPTokenTransferFromZero(event.transaction.hash.toHexString());
+    let transfer = new LPTokenTransferFromZero(tx + "-" + vaultAddress);
     transfer.from = event.params.from;
     transfer.to = event.params.to;
     transfer.value = event.params.value;
@@ -193,7 +198,7 @@ export function handleTransfer(event: Transfer): void {
     return;
   } else if (event.params.to.toHexString() == ADDRESS_ZERO) {
     // store TransferToZero entity. later we check if it's part of Withdraw event, or manual transfer to zero
-    let transfer = new LPTokenTransferToZero(event.transaction.hash.toHexString());
+    let transfer = new LPTokenTransferToZero(tx + "-" + vaultAddress);
     transfer.from = event.params.from;
     transfer.to = event.params.to;
     transfer.value = event.params.value;
@@ -308,7 +313,10 @@ function checkForUnprocessedTransferToZero(event: ethereum.Event, vault: Vault):
   }
 
   // This LP token transfer to zero address is part of burn event, don't handle it here
-  if (vault.lastTransferToZero == event.transaction.hash.toHexString()) {
+  if (
+    vault.lastTransferToZero ==
+    event.transaction.hash.toHexString() + "-" + event.address.toHexString()
+  ) {
     return;
   }
 
