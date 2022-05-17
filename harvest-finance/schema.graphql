@@ -261,23 +261,6 @@ type VaultWithdrawal @entity {
   burnedAmount: BigInt!
 }
 
-"""
-helper entity used to identify manual transfers to zero address (which are not part of burn event)
-"""
-type LPTokenTransferToZero @entity {
-  " TX hash"
-  id: ID!
-
-  " account sending vault (LP) token to zero address  "
-  from: Bytes!
-
-  " receiver - zero address "
-  to: Bytes!
-
-  " amount of vault tokens sent to zero "
-  value: BigInt!
-}
-
 type FeeRewardForwarder @entity {
   " contract address "
   id: ID!
@@ -366,4 +349,38 @@ type RewardClaim @entity {
 
   " source pool of the reward (reward pool or profit sharing pool)"
   rewardSource: String!
+}
+
+"""
+helper entity used to identify manual transfers to zero address (which are not part of burn event)
+"""
+type LPTokenTransferToZero @entity {
+  " TX hash"
+  id: ID!
+
+  " account sending vault (LP) token to zero address  "
+  from: Bytes!
+
+  " receiver - zero address "
+  to: Bytes!
+
+  " amount of vault tokens sent to zero "
+  value: BigInt!
+}
+
+"""
+helper entity used to mark amount of minted fTokens
+"""
+type LPTokenTransferFromZero @entity {
+  " TX "
+  id: ID!
+
+  " zero address  "
+  from: Bytes!
+
+  " receiver of minted fTokens "
+  to: Bytes!
+
+  " amount of minted "
+  value: BigInt!
 }

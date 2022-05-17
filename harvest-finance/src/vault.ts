@@ -5,6 +5,7 @@ import {
   Account,
   VaultDeposit,
   VaultWithdrawal,
+  LPTokenTransferFromZero,
 } from "../generated/schema";
 import {
   ADDRESS_ZERO,
@@ -21,7 +22,7 @@ import {
   Vault as VaultContract,
 } from "../generated/templates/Vault/Vault";
 import { getOrCreatePositionInVault, getOrCreateVault } from "./harvestUtils";
-import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum, store } from "@graphprotocol/graph-ts";
 
 /**
  * Handle user deposits to vault
@@ -30,16 +31,17 @@ import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 export function handleDeposit(event: DepositEvent): void {
   let depositedAmount = event.params.amount;
   let user = getOrCreateAccount(event.params.beneficiary);
+  let tx = event.transaction.hash.toHexString();
 
   // check if there's a pending tx to zero
   let vault = getOrCreateVault(event, event.address);
   checkForUnprocessedTransferToZero(event, vault);
 
   //// update vault state
-  if (vault.pricePerShare == BigInt.fromI32(0)) {
-    vault.pricePerShare = VaultContract.bind(event.address).getPricePerFullShare();
-  }
-  let mintedAmount = depositedAmount.times(vault.underlyingUnit).div(vault.pricePerShare);
+
+  // get amount of minted fTokens by fetching value of preceding Transfer event
+  let precedingTransfer = LPTokenTransferFromZero.load(tx) as LPTokenTransferFromZero;
+  let mintedAmount = precedingTransfer.value;
   vault.totalSupply = vault.totalSupply.plus(mintedAmount);
   vault.save();
 
@@ -92,6 +94,9 @@ export function handleDeposit(event: DepositEvent): void {
     rewardTokensBalance,
     null
   );
+
+  // remove helper entity, so that more mint transfers can be createdin same TX
+  store.remove("LPTokenTransferFromZero", tx);
 }
 
 /**
@@ -177,7 +182,12 @@ export function handleWithdraw(event: Withdraw): void {
  */
 export function handleTransfer(event: Transfer): void {
   if (event.params.from.toHexString() == ADDRESS_ZERO) {
-    // minting, processed in handleDeposit
+    // minting, create LPTokenTransferFromZero which will be processed further in handleDeposit
+    let transfer = new LPTokenTransferFromZero(event.transaction.hash.toHexString());
+    transfer.from = event.params.from;
+    transfer.to = event.params.to;
+    transfer.value = event.params.value;
+    transfer.save();
     return;
   } else if (event.params.from.toHexString() == ADDRESS_ZERO) {
     // store txToZero entity. later we check if it's part of burn event, or manual transfer to zero
