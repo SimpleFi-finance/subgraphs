@@ -191,7 +191,7 @@ export function handleTransfer(event: Transfer): void {
     transfer.value = event.params.value;
     transfer.save();
     return;
-  } else if (event.params.from.toHexString() == ADDRESS_ZERO) {
+  } else if (event.params.to.toHexString() == ADDRESS_ZERO) {
     // store TransferToZero entity. later we check if it's part of Withdraw event, or manual transfer to zero
     let transfer = new LPTokenTransferToZero(event.transaction.hash.toHexString());
     transfer.from = event.params.from;
