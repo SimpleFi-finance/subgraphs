@@ -15,17 +15,7 @@ export namespace TokenStandard {
 }
 
 export namespace ProtocolName {
-  export const UNISWAP_V2 = "UNISWAP_V2"
-  export const SUSHISWAP = "SUSHISWAP"
-  export const QUICKSWAP = "QUICKSWAP"
-  export const TRISOLARIS = "TRISOLARIS"
-  export const PANCAKESWAP = "PANCAKESWAP"
-  export const APESWAP = "APESWAP"
-  export const BISWAP = "BISWAP"
-  export const COMETH = "COMETH"
-  export const PANGOLIN = "PANGOLIN"
-  export const TRADER_JOE = "TRADER_JOE"
-  export const WANNASWAP = "WANNASWAP"
+  export const REF_FINANCE = "REF_FINANCE"
 }
 
 export namespace ProtocolType {

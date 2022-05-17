@@ -1,4 +1,6 @@
-import { near } from "@graphprotocol/graph-ts";
+import { BigInt, json, JSONValue, near } from "@graphprotocol/graph-ts";
+import { Market, Pool, RefAccount, SimplePool } from "../../generated/schema";
+import { redeemSimplePoolShares } from "./exchange";
 
 /**
 pub fn set_owner(&mut self, owner_id: ValidAccountId)
@@ -33,7 +35,14 @@ export function modifyAdminFee(
   outcome: near.ExecutionOutcome,
   block: near.Block
 ): void {
+  const args = json.fromBytes(functionCall.args).toObject();
+  const exchangeFee = (args.get("exchange_fee") as JSONValue).toBigInt();
+  const referralFee = (args.get("referral_fee") as JSONValue).toBigInt();
 
+  const refAccount = RefAccount.load(receipt.receiverId) as RefAccount;
+  refAccount.exchangeFee = exchangeFee;
+  refAccount.referralFee = referralFee;
+  refAccount.save();
 }
 
 /**
@@ -45,7 +54,41 @@ export function removeExchangeFeeLiquidity(
   outcome: near.ExecutionOutcome,
   block: near.Block
 ): void {
+  const args = json.fromBytes(functionCall.args).toObject();
+  const poolId = (args.get("pool_id") as JSONValue).toBigInt();
+  const shares = BigInt.fromString((args.get("shares") as JSONValue).toString());
 
+  const marketId = receipt.receiverId.concat("-").concat(poolId.toString());
+
+  // Update pool and calculate LP token amount
+  // TODO handle stable swap pool as well
+  const pool = Pool.load(marketId) as Pool;
+  if (pool.poolType != "SIMPLE_POOL") {
+    return;
+  }
+
+  const simplePool = SimplePool.load(marketId) as SimplePool;
+  const tokensLength = simplePool.tokens.length;
+  const oldPoolAmounts = simplePool.amounts;
+  const amounts: BigInt[] = [];
+
+  for (let i = 0; i < tokensLength; i++) {
+    const amount = oldPoolAmounts[i].times(shares).div(simplePool.totalSupply);
+    amounts.push(amount);
+  }
+
+  let market = Market.load(marketId) as Market;
+
+  redeemSimplePoolShares(
+    simplePool,
+    market,
+    receipt.receiverId,
+    shares,
+    amounts,
+    receipt,
+    outcome,
+    block
+  );
 }
 
 /**

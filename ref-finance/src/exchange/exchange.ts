@@ -1,5 +1,13 @@
-import { BigInt, json, JSONValue, near } from "@graphprotocol/graph-ts";
-import { Pool, RefAccount, SimplePool, StableSwapPool } from "../../generated/schema";
+import { BigInt, json, JSONValue, log, near } from "@graphprotocol/graph-ts";
+import { Market, Pool, RefAccount, Share, SimplePool, StableSwapPool, Token } from "../../generated/schema";
+import { getOrCreateAccount, getOrCreateMarket, getOrCreateNEP141Token, investInMarket, parseNullableJSONAtrribute, redeemFromMarket, TokenBalance, updateMarket } from "../common";
+import { ProtocolName, ProtocolType } from "../constants";
+
+
+const ZERO = BigInt.fromI32(0);
+const ONE_E_18 = BigInt.fromString("1000000000000000000000000");
+const UINT_256_MAX = BigInt.fromString("115792089237316195423570985008687907853269984665640564039457584007913129639935");
+const FEE_DEVISOR = BigInt.fromI32(10000);
 
 /**
 pub fn new(owner_id: ValidAccountId, exchange_fee: u32, referral_fee: u32) -> Self
@@ -36,14 +44,14 @@ export function addSimplePool(
   const fee = (args.get("fee") as JSONValue).toBigInt();
 
   const returnBytes = outcome.status.toValue();
-  const number = json.fromBytes(returnBytes).toBigInt()
-  const poolId = number.toString();
-  const pool = new Pool(poolId);
+  const poolId = json.fromBytes(returnBytes).toBigInt()
+  const marketId = receipt.receiverId.concat("-").concat(poolId.toString());
+  const pool = new Pool(marketId);
   pool.poolType = "SIMPLE_POOL";
   pool.receiptId = receipt.id;
   pool.save();
 
-  const simplePool = new SimplePool(poolId);
+  const simplePool = new SimplePool(marketId);
   simplePool.tokens = tokens;
   simplePool.amounts = tokens.map<BigInt>(t => BigInt.fromI32(0));
   simplePool.totalFee = fee;
@@ -51,6 +59,26 @@ export function addSimplePool(
   simplePool.referralFee = BigInt.fromI32(0);
   simplePool.totalSupply = BigInt.fromI32(0);
   simplePool.save();
+
+  const inputTokens: Token[] = []
+  for (let i = 0; i < tokens.length; i++) {
+    const token = getOrCreateNEP141Token(block, tokens[i]);
+    inputTokens.push(token);
+  };
+  const outputToken = getOrCreateNEP141Token(block, poolId.toString());
+
+  const market = getOrCreateMarket(
+    block,
+    marketId,
+    ProtocolName.REF_FINANCE,
+    ProtocolType.EXCHANGE,
+    inputTokens,
+    outputToken,
+    []
+  );
+
+  outputToken.mintedByMarket = market.id;
+  outputToken.save();
 }
 
 /**
@@ -75,14 +103,14 @@ export function addStableSwapPool(
   const ampFactor = (args.get("amp_factor") as JSONValue).toBigInt();
 
   const returnBytes = outcome.status.toValue();
-  const number = json.fromBytes(returnBytes).toBigInt()
-  const poolId = number.toString();
-  const pool = new Pool(poolId);
+  const poolId = json.fromBytes(returnBytes).toBigInt()
+  const marketId = receipt.receiverId.concat("-").concat(poolId.toString());
+  const pool = new Pool(marketId);
   pool.poolType = "STABLE_SWAP";
   pool.receiptId = receipt.id;
   pool.save();
 
-  const stableSwapPool = new StableSwapPool(poolId);
+  const stableSwapPool = new StableSwapPool(marketId);
   stableSwapPool.tokens = tokens;
   stableSwapPool.decimals = decimals;
   stableSwapPool.cAmounts = tokens.map<BigInt>(t => BigInt.fromI32(0));
@@ -93,6 +121,26 @@ export function addStableSwapPool(
   stableSwapPool.initAmpTime = BigInt.fromI32(0);
   stableSwapPool.stopAmptTime = BigInt.fromI32(0);
   stableSwapPool.save();
+
+  const inputTokens: Token[] = []
+  for (let i = 0; i < tokens.length; i++) {
+    const token = getOrCreateNEP141Token(block, tokens[i]);
+    inputTokens.push(token);
+  };
+  const outputToken = getOrCreateNEP141Token(block, poolId.toString());
+
+  const market = getOrCreateMarket(
+    block,
+    marketId,
+    ProtocolName.REF_FINANCE,
+    ProtocolType.EXCHANGE,
+    inputTokens,
+    outputToken,
+    []
+  )
+
+  outputToken.mintedByMarket = market.id;
+  outputToken.save();
 }
 
 /**
@@ -125,7 +173,93 @@ export function addLiquidity(
   outcome: near.ExecutionOutcome,
   block: near.Block
 ): void {
+  const args = json.fromBytes(functionCall.args).toObject();
+  const poolId = (args.get("pool_id") as JSONValue).toBigInt();
+  const amounts = (args.get("amounts") as JSONValue).toArray().map<BigInt>(jv => BigInt.fromString(jv.toString()));
 
+  const marketId = receipt.receiverId.concat("-").concat(poolId.toString());
+
+  // Update pool and calculate LP token amount
+  const pool = Pool.load(marketId) as Pool;
+  if (pool.poolType != "SIMPLE_POOL") {
+    return;
+  }
+
+  const simplePool = SimplePool.load(marketId) as SimplePool;
+  const tokensLength = simplePool.tokens.length;
+  const oldPoolAmounts = simplePool.amounts;
+  const newPoolAmounts: BigInt[] = [];
+  let shares = UINT_256_MAX;
+
+  if (simplePool.totalSupply == BigInt.fromI32(0)) {
+    shares = ONE_E_18;
+  } else {
+    for (let i = 0; i < tokensLength; i++) {
+      shares = min(shares, amounts[i].times(simplePool.totalSupply).div(oldPoolAmounts[i]));
+    }
+
+    for (let i = 0; i < tokensLength; i++) {
+      amounts[i] = oldPoolAmounts[i].times(shares).div(simplePool.totalSupply);
+    }
+  }
+
+  let market = Market.load(marketId) as Market;
+
+  mintSimplePoolShares(
+    simplePool,
+    market,
+    receipt.predecessorId,
+    shares,
+    amounts,
+    receipt,
+    outcome,
+    block
+  );
+}
+
+/**
+remove_liquidity(&mut self, pool_id: u64, shares: U128, min_amounts: Vec<U128>)
+ */
+export function removeLiquidity(
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
+): void {
+  const args = json.fromBytes(functionCall.args).toObject();
+  const poolId = (args.get("pool_id") as JSONValue).toBigInt();
+  const shares = BigInt.fromString((args.get("shares") as JSONValue).toString());
+
+  const marketId = receipt.receiverId.concat("-").concat(poolId.toString());
+
+  // Update pool and calculate LP token amount
+  const pool = Pool.load(marketId) as Pool;
+  if (pool.poolType != "SIMPLE_POOL") {
+    return;
+  }
+
+  const simplePool = SimplePool.load(marketId) as SimplePool;
+  const tokensLength = simplePool.tokens.length;
+  const oldPoolAmounts = simplePool.amounts;
+  const amounts: BigInt[] = [];
+
+  for (let i = 0; i < tokensLength; i++) {
+    const amount = oldPoolAmounts[i].times(shares).div(simplePool.totalSupply);
+    amounts.push(amount);
+  }
+
+  let market = Market.load(marketId) as Market;
+
+  redeemSimplePoolShares(
+    simplePool,
+    market,
+    receipt.predecessorId,
+    shares,
+    amounts,
+    receipt,
+    outcome,
+    block
+  );
 }
 
 /**
@@ -137,18 +271,6 @@ add_stable_liquidity(
 ) -> U128
  */
 export function addStableLiquidity(
-  functionCall: near.FunctionCallAction,
-  receipt: near.ActionReceipt,
-  outcome: near.ExecutionOutcome,
-  block: near.Block
-): void {
-
-}
-
-/**
-remove_liquidity(&mut self, pool_id: u64, shares: U128, min_amounts: Vec<U128>)
- */
-export function removeLiquidity(
   functionCall: near.FunctionCallAction,
   receipt: near.ActionReceipt,
   outcome: near.ExecutionOutcome,
@@ -182,5 +304,324 @@ export function swap(
   outcome: near.ExecutionOutcome,
   block: near.Block
 ): void {
+  const args = json.fromBytes(functionCall.args).toObject();
+  const actions = (args.get("actions") as JSONValue).toArray().map<SwapAction>(jv => new SwapAction(jv));
+  const referralId: string | null = parseNullableJSONAtrribute<string>(
+    args, 
+    "referral_id",
+    (jv) => jv.toString()
+  );
+  let result: BigInt | null = null;
 
+  for (let i = 0; i < actions.length; i++) {
+    actions[i].amountIn = actions[i].amountIn ? actions[i].amountIn : result;
+    actions[i].referralId = referralId;
+    result = executeSwapAction(actions[i], receipt, outcome, block);
+  }
 }
+
+// min function as implemented in Rust std::cmp::min
+function min(a: BigInt, b: BigInt): BigInt {
+  if (a.le(b)) {
+    return a;
+  } else {
+    return b;
+  }
+}
+
+function getOrCreateShare(accountId: string, poolId: string): Share {
+  const sahreId = accountId.concat("-").concat(poolId);
+  let share = Share.load(sahreId);
+  if (share == null) {
+    share = new Share(sahreId);
+    share.accountId = accountId;
+    share.poolId = poolId;
+    share.amount = ZERO;
+    share.save();
+  }
+
+  return share as Share;
+}
+
+class SwapAction {
+  poolId: BigInt
+  tokenIn: string
+  amountIn: BigInt | null
+  tokenOut: string
+  referralId: string | null
+
+  constructor(jv: JSONValue) {
+    const obj = jv.toObject();
+    this.poolId = (obj.get("pool_id") as JSONValue).toBigInt();
+    this.tokenIn = (obj.get("token_in") as JSONValue).toString();
+    this.amountIn = parseNullableJSONAtrribute<BigInt>(
+      obj, 
+      "amount_in", 
+      (jv) => BigInt.fromString(jv.toString())
+    );
+    this.tokenOut = (obj.get("token_out") as JSONValue).toString();
+    this.referralId = null;
+  }
+
+  toString(): string {
+    const ai = this.amountIn;
+    const as = ai ? ai.toString() : "null";
+    const ri = this.referralId;
+    const rs = ri ? ri : "null";
+    return this.poolId.toString().concat("|").concat(this.tokenIn).concat("|").concat(as).concat("|").concat(this.tokenOut).concat("|").concat(rs);
+  }
+}
+
+function executeSwapAction(
+  swapAction: SwapAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
+): BigInt {
+  const marketId = receipt.receiverId.concat("-").concat(swapAction.poolId.toString());
+
+  // Update pool and calculate LP token amount
+  const pool = Pool.load(marketId) as Pool;
+  if (pool.poolType == "SIMPLE_POOL") {
+    return executeSimplePoolSwapAction(swapAction, receipt, outcome, block);
+  } else {
+    return executeStableSwapAction(swapAction, receipt, outcome, block);
+  }
+}
+
+function executeSimplePoolSwapAction(
+  swapAction: SwapAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
+): BigInt {
+  const amountIn = swapAction.amountIn as BigInt;
+  const marketId = receipt.receiverId.concat("-").concat(swapAction.poolId.toString());
+  const simplePool = SimplePool.load(marketId) as SimplePool;
+  const tokens = simplePool.tokens;
+  const oldPoolAmounts = simplePool.amounts;
+  const amounts: BigInt[] = [];
+
+  let tokenInIndex = 0;
+  let tokenOutIndex = 0;
+  for (let i = 0; i < tokens.length; i++) {
+    if (tokens[i] == swapAction.tokenIn) {
+      tokenInIndex = i;
+    }
+
+    if (tokens[i] == swapAction.tokenOut) {
+      tokenOutIndex = i;
+    }
+    amounts.push(ZERO);
+  }
+
+  // Calculate amountOut
+  const inBalance = simplePool.amounts[tokenInIndex];
+  const outBalance = simplePool.amounts[tokenOutIndex];
+  const amountWithFee = amountIn.times(FEE_DEVISOR.minus(simplePool.totalFee));
+  const amountOut = amountWithFee.times(outBalance).div(FEE_DEVISOR.times(inBalance).plus(amountWithFee));
+
+  // Update simplePool and Market
+  const newPoolAmounts: BigInt[] = oldPoolAmounts.map<BigInt>(a => a);
+  newPoolAmounts[tokenInIndex] = newPoolAmounts[tokenInIndex].plus(amountIn);
+  newPoolAmounts[tokenOutIndex] = newPoolAmounts[tokenOutIndex].minus(amountOut);
+  simplePool.amounts = newPoolAmounts;
+  simplePool.save();
+
+  let market = Market.load(marketId) as Market;
+  const marketInputTokenBalances: TokenBalance[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    marketInputTokenBalances.push(new TokenBalance(simplePool.tokens[i], receipt.receiverId, newPoolAmounts[i]));
+  }
+  market = updateMarket(receipt, block, market, marketInputTokenBalances, simplePool.totalSupply);
+
+  // Calculate fees to mint LP tokens for exchange and referral id
+  const prevInvariant = oldPoolAmounts[tokenInIndex].times(oldPoolAmounts[tokenOutIndex]).sqrt();
+  const newInvariant = newPoolAmounts[tokenInIndex].times(newPoolAmounts[tokenOutIndex]).sqrt();
+
+  const refAccount = RefAccount.load(receipt.receiverId) as RefAccount;
+  const numerator = newInvariant.minus(prevInvariant).times(simplePool.totalSupply);
+
+  if (refAccount.exchangeFee.gt(ZERO) && numerator.gt(ZERO)) {
+    const denominator = newInvariant.times(FEE_DEVISOR).div(refAccount.exchangeFee);
+    const exchangeFeeShares = numerator.div(denominator);
+    mintSimplePoolShares(
+      simplePool,
+      market,
+      receipt.receiverId,
+      exchangeFeeShares,
+      amounts,
+      receipt,
+      outcome,
+      block
+    );
+  }
+
+  if (swapAction.referralId != null && refAccount.referralFee.gt(ZERO) && numerator.gt(ZERO)) {
+    // TODO Handle cases where referral account does not exists
+    const denominator = newInvariant.times(FEE_DEVISOR).div(refAccount.referralFee);
+    const referralFeeShares = numerator.div(denominator);
+    mintSimplePoolShares(
+      simplePool,
+      market,
+      swapAction.referralId as string,
+      referralFeeShares,
+      amounts,
+      receipt,
+      outcome,
+      block
+    );
+  }
+
+
+  return amountOut;
+}
+
+// TODO implement it
+function executeStableSwapAction(
+  swapAction: SwapAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
+): BigInt {
+  return BigInt.fromI32(0);
+}
+
+export function mintSimplePoolShares(
+  simplePool: SimplePool,
+  market: Market,
+  accountId: string,
+  shares: BigInt,
+  amounts: BigInt[],
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
+): void {
+  const tokensLength = simplePool.tokens.length;
+  const oldPoolAmounts = simplePool.amounts;
+  const newPoolAmounts: BigInt[] = [];
+
+  for (let i = 0; i < tokensLength; i++) {
+    newPoolAmounts.push(oldPoolAmounts[i].plus(amounts[i]));
+  }
+
+  simplePool.totalSupply = simplePool.totalSupply.plus(shares);
+  simplePool.amounts = newPoolAmounts;
+  simplePool.save();
+
+  const account = getOrCreateAccount(accountId);
+  const accountShare = getOrCreateShare(account.id, market.id);
+  accountShare.amount = accountShare.amount.plus(shares);
+  accountShare.save();
+
+  const outputTokenAmount = shares;
+  const outputTokenBalance = accountShare.amount;
+  const inputTokenAmounts: TokenBalance[] = [];
+  const inputTokenBalances: TokenBalance[] = [];
+  const marketInputTokenBalances: TokenBalance[] = [];
+
+  for (let i = 0; i < tokensLength; i++) {
+    inputTokenAmounts.push(new TokenBalance(simplePool.tokens[i], account.id, amounts[i]));
+    let inputTokenBalance = simplePool.totalSupply.equals(ZERO) ? ZERO : newPoolAmounts[i].times(outputTokenBalance).div(simplePool.totalSupply);
+    inputTokenBalances.push(new TokenBalance(simplePool.tokens[i], account.id, inputTokenBalance));
+    marketInputTokenBalances.push(new TokenBalance(simplePool.tokens[i], receipt.receiverId, newPoolAmounts[i]));
+  }
+
+  market = updateMarket(receipt, block, market, marketInputTokenBalances, simplePool.totalSupply);
+
+  investInMarket(
+    receipt,
+    outcome,
+    block,
+    account,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    [],
+    outputTokenBalance,
+    inputTokenBalances,
+    [],
+    null
+  )
+}
+
+export function redeemSimplePoolShares(
+  simplePool: SimplePool,
+  market: Market,
+  accountId: string,
+  shares: BigInt,
+  amounts: BigInt[],
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
+): void {
+  const tokensLength = simplePool.tokens.length;
+  const oldPoolAmounts = simplePool.amounts;
+  const newPoolAmounts: BigInt[] = [];
+
+  for (let i = 0; i < tokensLength; i++) {
+    newPoolAmounts.push(oldPoolAmounts[i].minus(amounts[i]));
+  }
+
+  simplePool.totalSupply = simplePool.totalSupply.minus(shares);
+  simplePool.amounts = newPoolAmounts;
+  simplePool.save();
+
+  const account = getOrCreateAccount(accountId);
+  const accountShare = getOrCreateShare(account.id, market.id);
+  accountShare.amount = accountShare.amount.minus(shares);
+  accountShare.save();
+
+  const outputTokenAmount = shares;
+  const outputTokenBalance = accountShare.amount;
+  const inputTokenAmounts: TokenBalance[] = [];
+  const inputTokenBalances: TokenBalance[] = [];
+  const marketInputTokenBalances: TokenBalance[] = [];
+
+  for (let i = 0; i < tokensLength; i++) {
+    inputTokenAmounts.push(new TokenBalance(simplePool.tokens[i], account.id, amounts[i]));
+    let inputTokenBalance = simplePool.totalSupply.equals(ZERO) ? ZERO : newPoolAmounts[i].times(outputTokenBalance).div(simplePool.totalSupply);
+    inputTokenBalances.push(new TokenBalance(simplePool.tokens[i], account.id, inputTokenBalance));
+    marketInputTokenBalances.push(new TokenBalance(simplePool.tokens[i], receipt.receiverId, newPoolAmounts[i]));
+  }
+
+  market = updateMarket(receipt, block, market, marketInputTokenBalances, simplePool.totalSupply);
+
+  redeemFromMarket(
+    receipt,
+    outcome,
+    block,
+    account,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    [],
+    outputTokenBalance,
+    inputTokenBalances,
+    [],
+    null
+  )
+}
+/**
+ * 
+ {
+  transactions(where: {
+    market: "v2.ref-finance.near-0"
+  }, orderBy: blockNumber){
+    id
+    receiptId,
+    transactionType,
+    inputTokenAmounts
+    outputTokenAmount
+    marketSnapshot{
+      id
+      market{id}
+      inputTokenBalances
+      outputTokenTotalSupply
+    }
+    blockNumber
+    timestamp
+  }
+}
+ */
+

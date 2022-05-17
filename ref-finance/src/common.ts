@@ -1,4 +1,4 @@
-import { BigInt, near } from "@graphprotocol/graph-ts"
+import { BigInt, JSONValue, near, TypedMap } from "@graphprotocol/graph-ts"
 import {
   Account,
   AccountPosition,
@@ -95,28 +95,14 @@ export function updateMarket(
   market: Market,
   inputTokenBalances: TokenBalance[],
   outputTokenTotalSupply: BigInt
-): MarketSnapshot {
+): Market {
   market.inputTokenTotalBalances = inputTokenBalances.map<string>(tb => tb.toString())
   market.outputTokenTotalSupply = outputTokenTotalSupply
   market.save()
 
-  let id = receipt.id.toBase58()
-  let marketSnapshot = MarketSnapshot.load(id)
-  // In case of multiple actions in a receipt only first action will 
-  // store a snaoshot and market will keep updating it's value
-  // for every action handled, thus market snapshots capture states at the end of
-  // a receipt execution
-  if (marketSnapshot == null) {
-    marketSnapshot = new MarketSnapshot(id)
-    marketSnapshot.market = market.id
-    marketSnapshot.inputTokenBalances = market.inputTokenTotalBalances
-    marketSnapshot.outputTokenTotalSupply = market.outputTokenTotalSupply
-    marketSnapshot.blockNumber = BigInt.fromI64(block.header.height)
-    marketSnapshot.timestamp = BigInt.fromI64(block.header.timestampNanosec)
-    marketSnapshot.save()
-  }
+  createMarketSnapshot(receipt, block, market);
 
-  return marketSnapshot as MarketSnapshot
+  return market;
 }
 
 export function createMarketSnapshot(
@@ -126,12 +112,11 @@ export function createMarketSnapshot(
 ): MarketSnapshot {
   let id = receipt.id.toBase58()
   let marketSnapshot = MarketSnapshot.load(id)
-  if (marketSnapshot != null) {
-    return marketSnapshot as MarketSnapshot
+  if (marketSnapshot == null) {
+    marketSnapshot = new MarketSnapshot(id)
+    marketSnapshot.market = market.id
   }
-
-  marketSnapshot = new MarketSnapshot(id)
-  marketSnapshot.market = market.id
+    
   marketSnapshot.inputTokenBalances = market.inputTokenTotalBalances
   marketSnapshot.outputTokenTotalSupply = market.outputTokenTotalSupply
   marketSnapshot.blockNumber = BigInt.fromI64(block.header.height)
@@ -506,3 +491,17 @@ export function repayToMarket(
   return position
 }
 
+export function parseNullableJSONAtrribute<T>(
+  obj: TypedMap<string, JSONValue>, 
+  key: string, 
+  parser: (jv: JSONValue) => T
+): T | null {
+  if (!obj.isSet(key)) {
+    return null;
+  }
+  const value = obj.get(key) as JSONValue;
+  if (value.isNull()) {
+    return null;
+  }
+  return parser(value);
+}
