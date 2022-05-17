@@ -106,6 +106,7 @@ export function handleDeposit(event: DepositEvent): void {
 export function handleWithdraw(event: Withdraw): void {
   let withdrawnAmountOfUnderlying = event.params.amount;
   let receiver = getOrCreateAccount(event.params.beneficiary);
+  let tx = event.transaction.hash.toHexString();
 
   // check if there's a pending tx to zero
   let vault = getOrCreateVault(event, event.address);
@@ -113,12 +114,10 @@ export function handleWithdraw(event: Withdraw): void {
   vault.lastTransferToZero = null;
 
   //// update vault state
-  if (vault.pricePerShare == BigInt.fromI32(0)) {
-    vault.pricePerShare = VaultContract.bind(event.address).getPricePerFullShare();
-  }
-  let burnedAmountOfFTokens = withdrawnAmountOfUnderlying
-    .times(vault.underlyingUnit)
-    .div(vault.pricePerShare);
+
+  // get amount of burned fTokens by fetching value of preceding Transfer event
+  let precedingTransfer = LPTokenTransferToZero.load(tx) as LPTokenTransferToZero;
+  let burnedAmountOfFTokens = precedingTransfer.value;
   vault.totalSupply = vault.totalSupply.minus(burnedAmountOfFTokens);
   vault.save();
 
@@ -173,6 +172,9 @@ export function handleWithdraw(event: Withdraw): void {
     rewardTokensBalance,
     null
   );
+
+  // remove helper entity, so that more burn transfers can be created in same TX
+  store.remove("LPTokenTransferToZero", tx);
 }
 
 /**
@@ -190,15 +192,15 @@ export function handleTransfer(event: Transfer): void {
     transfer.save();
     return;
   } else if (event.params.from.toHexString() == ADDRESS_ZERO) {
-    // store txToZero entity. later we check if it's part of burn event, or manual transfer to zero
-    let txToZero = new LPTokenTransferToZero(event.transaction.hash.toHexString());
-    txToZero.from = event.params.from;
-    txToZero.to = event.params.to;
-    txToZero.value = event.params.value;
-    txToZero.save();
+    // store TransferToZero entity. later we check if it's part of Withdraw event, or manual transfer to zero
+    let transfer = new LPTokenTransferToZero(event.transaction.hash.toHexString());
+    transfer.from = event.params.from;
+    transfer.to = event.params.to;
+    transfer.value = event.params.value;
+    transfer.save();
 
     let vault = getOrCreateVault(event, event.address);
-    vault.lastTransferToZero = txToZero.id;
+    vault.lastTransferToZero = transfer.id;
     vault.save();
 
     return;
