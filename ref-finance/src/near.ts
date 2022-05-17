@@ -1,4 +1,5 @@
-import { log, near } from "@graphprotocol/graph-ts";
+import { BigInt, log, near } from "@graphprotocol/graph-ts";
+import { Deployment } from "../generated/schema";
 import { callbakPostWithdraw, withdraw } from "./exchange/accountDeposit";
 import { addLiquidity, addSimplePool, addStableLiquidity, addStableSwapPool, executeActions, initRefV2, removeLiquidity, removeLiquidityByTokens, swap } from "./exchange/exchange";
 import { mftResolveTransfer, mftTransfer, mftTransferCall } from "./exchange/mft";
@@ -123,6 +124,13 @@ function handleDeployContract(
   block: near.Block
 ): void {
   log.info("Handle deploy contract -> id: {}", [receipt.id.toBase58()]);
+  const deployment = new Deployment(receipt.id.toBase58());
+  deployment.accountId = receipt.receiverId;
+  deployment.receiptId = receipt.id.toBase58();
+  deployment.codeHash = deployContract.codeHash;
+  deployment.blockNumber = BigInt.fromU64(block.header.height);
+  deployment.timestamp = BigInt.fromU64(block.header.timestampNanosec);
+  deployment.save();
 }
 
 function handleTransfer(

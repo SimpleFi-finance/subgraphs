@@ -51,12 +51,16 @@ export function addSimplePool(
   pool.receiptId = receipt.id;
   pool.save();
 
+  const refAccount = RefAccount.load(receipt.receiverId) as RefAccount;
+
   const simplePool = new SimplePool(marketId);
   simplePool.tokens = tokens;
   simplePool.amounts = tokens.map<BigInt>(t => BigInt.fromI32(0));
-  simplePool.totalFee = fee;
-  simplePool.exchangeFee = BigInt.fromI32(0);
-  simplePool.referralFee = BigInt.fromI32(0);
+  // TODO handle case when after contract upgrade to version 1.4.0
+  // the fee arugment is supposed to be total_fee instead of only pool swap fee
+  simplePool.totalFee = fee.plus(refAccount.exchangeFee).plus(refAccount.referralFee);
+  simplePool.exchangeFee = refAccount.exchangeFee;
+  simplePool.referralFee = refAccount.referralFee;
   simplePool.totalSupply = BigInt.fromI32(0);
   simplePool.save();
 
@@ -442,13 +446,14 @@ function executeSimplePoolSwapAction(
   const refAccount = RefAccount.load(receipt.receiverId) as RefAccount;
   const numerator = newInvariant.minus(prevInvariant).times(simplePool.totalSupply);
 
+  // TODO handle upgrade to 1.4.0 AdminFee and exchange fee receiver change
   if (refAccount.exchangeFee.gt(ZERO) && numerator.gt(ZERO)) {
-    const denominator = newInvariant.times(FEE_DEVISOR).div(refAccount.exchangeFee);
+    const denominator = newInvariant.times(simplePool.totalFee).div(refAccount.exchangeFee);
     const exchangeFeeShares = numerator.div(denominator);
     mintSimplePoolShares(
       simplePool,
       market,
-      receipt.receiverId,
+      refAccount.ownerId,
       exchangeFeeShares,
       amounts,
       receipt,
@@ -459,7 +464,7 @@ function executeSimplePoolSwapAction(
 
   if (swapAction.referralId != null && refAccount.referralFee.gt(ZERO) && numerator.gt(ZERO)) {
     // TODO Handle cases where referral account does not exists
-    const denominator = newInvariant.times(FEE_DEVISOR).div(refAccount.referralFee);
+    const denominator = newInvariant.times(simplePool.totalFee).div(refAccount.referralFee);
     const referralFeeShares = numerator.div(denominator);
     mintSimplePoolShares(
       simplePool,
