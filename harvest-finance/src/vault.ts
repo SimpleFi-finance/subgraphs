@@ -269,7 +269,7 @@ function transferLPToken(
 
   investInMarket(
     event,
-    sender,
+    receiver,
     market,
     outputTokenAmount,
     inputTokenAmounts,

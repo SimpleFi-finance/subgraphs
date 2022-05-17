@@ -2,10 +2,6 @@ specVersion: 0.0.2
 schema:
   file: ./schema.graphql
 
-graft:
-  base: QmQM3oR1zMPVsxfhhrrrUNDCPEXqZWHqbxrRdxrZvREvha
-  block: 12652000 # Block number
-
 templates:
   - kind: ethereum/contract
     name: Vault
