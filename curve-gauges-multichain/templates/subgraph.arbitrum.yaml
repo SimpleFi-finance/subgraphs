@@ -1,0 +1,165 @@
+specVersion: 0.0.2
+
+schema:
+  file: ./schema.graphql
+
+templates:
+  # Measures the amount of liquidity provided by each user
+  - kind: ethereum/contract
+    name: LiquidityGauge
+    network: arbitrum-one
+    source:
+      abi: LiquidityGauge
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: &gauge_entities
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Gauge
+        - GaugeSnapshot
+      abis: &gauge_abis
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGauge.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers: &gauge_events
+        - event: Deposit(indexed address,uint256)
+          handler: handleDeposit
+        - event: UpdateLiquidityLimit(address,uint256,uint256,uint256,uint256)
+          handler: handleUpdateLiquidityLimit
+        - event: UpdateLiquidityLimit(indexed address,uint256,uint256,uint256,uint256)
+          handler: handleUpdateLiquidityLimitIndexed
+        - event: Withdraw(indexed address,uint256)
+          handler: handleWithdraw
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleGaugeTokenTransfer
+      file: ./src/gauge.ts
+
+  - kind: ethereum/contract
+    name: RewardToken
+    network: arbitrum-one
+    source:
+      abi: ERC20
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Block
+        - Account
+        - Token
+        - Market
+        - Transaction
+        - Transfer
+        - Position
+        - PositionSnapshot
+        - Gauge
+        - GaugeSnapshot
+      abis:
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGauge.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleRewardTokenTransfer
+      file: ./src/gauge.ts
+
+dataSources:
+  ############################ Hardcoded metapool factory
+  - kind: ethereum/contract
+    name: Factory
+    network: arbitrum-one
+    source:
+      address: "0xb17b674D9c5CB2e441F8e196a2f048A81355d031"
+      startBlock: 1413161
+      abi: MetaPoolFactory
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - MetaPoolFactory
+        - Market
+      abis:
+        - name: MetaPoolFactory
+          file: ./abis/MetaPoolFactory.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: LiquidityGaugeDeployed(address,address)
+          handler: handleLiquidityGaugeDeployed
+      file: ./src/metaPoolFactory.ts
+
+  ############################ Hardcoded gauges
+  - kind: ethereum/contract
+    name: A2PoolGauge
+    network: arbitrum-one
+    source:
+      address: "0xbF7E49483881C76487b0989CD7d9A8239B20CA41"
+      startBlock: 555934
+      abi: LiquidityGauge
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *gauge_entities
+      abis: *gauge_abis
+      eventHandlers: *gauge_events
+      file: ./src/gauge.ts
+
+  - kind: ethereum/contract
+    name: TriCryptoGauge
+    network: arbitrum-one
+    source:
+      address: "0x97E2768e8E73511cA874545DC5Ff8067eB19B787"
+      startBlock: 752292
+      abi: LiquidityGauge
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *gauge_entities
+      abis: *gauge_abis
+      eventHandlers: *gauge_events
+      file: ./src/gauge.ts
+
+  - kind: ethereum/contract
+    name: RenGauge
+    network: arbitrum-one
+    source:
+      address: "0xC2b1DF84112619D190193E48148000e3990Bf627"
+      startBlock: 820265
+      abi: LiquidityGauge
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *gauge_entities
+      abis: *gauge_abis
+      eventHandlers: *gauge_events
+      file: ./src/gauge.ts
+
+  - kind: ethereum/contract
+    name: EurSusdGauge
+    network: arbitrum-one
+    source:
+      address: "0x37C7ef6B0E23C9bd9B620A6daBbFEC13CE30D824"
+      startBlock: 2739756
+      abi: LiquidityGauge
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities: *gauge_entities
+      abis: *gauge_abis
+      eventHandlers: *gauge_events
+      file: ./src/gauge.ts
