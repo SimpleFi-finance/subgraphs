@@ -335,8 +335,14 @@ export function handleMinted(event: Minted): void {
   // get gauge
   let gauge = Gauge.load(event.params.gauge.toHexString()) as Gauge;
 
+  if (gauge == null) {
+    return;
+  }
+
   // only handle CRV minting for mainnet gauges
-  if (gauge.type != GAUGE_TYPE_ETHEREUM_MAINNET) return;
+  if (gauge.type != GAUGE_TYPE_ETHEREUM_MAINNET) {
+    return;
+  }
 
   // Load UpdateLiquidityLimit event which preceded minting
   let transactionHash = event.transaction.hash.toHexString();
