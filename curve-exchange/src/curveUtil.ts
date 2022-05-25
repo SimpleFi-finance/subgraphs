@@ -165,7 +165,7 @@ export function getOrCreatePoolViaFactory(
   let coins: Address[];
 
   // old factory returns 2 values - number of coins, number of underlying coins
-  if (factoryAddress.toHexString() == OLD_FACTORY_ADDRESS) {
+  if (factoryAddress.toHexString().toLowerCase() == OLD_FACTORY_ADDRESS) {
     let n_coins = factoryContract.try_get_n_coins1(curvePoolAddress);
     if (!n_coins.reverted) {
       numOfCoins = n_coins.value.value0;
@@ -390,7 +390,7 @@ export function getPoolBalances(pool: PoolEntity, block: BigInt): BigInt[] {
     let factoryContract = FactoryContract.bind(factoryAddress);
     let balances: BigInt[];
 
-    if (factoryAddress.toHexString() == OLD_FACTORY_ADDRESS) {
+    if (factoryAddress.toHexString().toLowerCase() == OLD_FACTORY_ADDRESS) {
       // old factory contract uses BigInt[2] instead of BigInt[4]
       balances = factoryContract.get_balances1(poolAddress);
     } else {

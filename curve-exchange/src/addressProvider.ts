@@ -50,7 +50,7 @@ function addNewSource(event: ethereum.Event, id: BigInt, newAddress: Address): v
       poolRegistry.save();
 
       // don't use this address as that registry is not functioning
-      if (poolRegistry.id != "0xe2470c5e330a34d706f93d50658ba52d18512f7a") {
+      if (poolRegistry.id.toLowerCase() != "0xe2470c5e330a34d706f93d50658ba52d18512f7a") {
         addressProvider.registry = poolRegistry.id;
         addressProvider.save();
       }
