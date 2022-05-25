@@ -1,6 +1,14 @@
 {
   "name": "simplefi-harvest-finance",
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SimpleFi-finance/subgraphs.git"
+  },
+  "author": "SimpleFi",
+  "bugs": {
+    "url": "https://github.com/SimpleFi-finance/subgraphs.git/issues"
+  },
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
