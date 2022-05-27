@@ -56,9 +56,14 @@ export function addSimplePool(
   const simplePool = new SimplePool(marketId);
   simplePool.tokens = tokens;
   simplePool.amounts = tokens.map<BigInt>(t => BigInt.fromI32(0));
-  // TODO handle case when after contract upgrade to version 1.4.0
+  // Version 1.4.1 deployed at block number - 55263102
   // the fee arugment is supposed to be total_fee instead of only pool swap fee
-  simplePool.totalFee = fee.plus(refAccount.exchangeFee).plus(refAccount.referralFee);
+  // after this 1.4.1 deployment
+  if (block.header.height > 55263102) {
+    simplePool.totalFee = fee;
+  } else {
+    simplePool.totalFee = fee.plus(refAccount.exchangeFee).plus(refAccount.referralFee);
+  }
   simplePool.exchangeFee = refAccount.exchangeFee;
   simplePool.referralFee = refAccount.referralFee;
   simplePool.totalSupply = BigInt.fromI32(0);
