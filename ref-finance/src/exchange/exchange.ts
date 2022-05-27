@@ -8,6 +8,7 @@ const ZERO = BigInt.fromI32(0);
 const ONE_E_18 = BigInt.fromString("1000000000000000000000000");
 const UINT_256_MAX = BigInt.fromString("115792089237316195423570985008687907853269984665640564039457584007913129639935");
 const FEE_DEVISOR = BigInt.fromI32(10000);
+const ADMIN_FEE_UPGRADE_BLOCK: u64 = 55263102;
 
 /**
 pub fn new(owner_id: ValidAccountId, exchange_fee: u32, referral_fee: u32) -> Self
@@ -59,7 +60,7 @@ export function addSimplePool(
   // Version 1.4.1 deployed at block number - 55263102
   // the fee arugment is supposed to be total_fee instead of only pool swap fee
   // after this 1.4.1 deployment
-  if (block.header.height > 55263102) {
+  if (block.header.height > ADMIN_FEE_UPGRADE_BLOCK) {
     simplePool.totalFee = fee;
   } else {
     simplePool.totalFee = fee.plus(refAccount.exchangeFee).plus(refAccount.referralFee);
@@ -451,9 +452,13 @@ function executeSimplePoolSwapAction(
   const refAccount = RefAccount.load(receipt.receiverId) as RefAccount;
   const numerator = newInvariant.minus(prevInvariant).times(simplePool.totalSupply);
 
-  // TODO handle upgrade to 1.4.0 AdminFee and exchange fee receiver change
   if (refAccount.exchangeFee.gt(ZERO) && numerator.gt(ZERO)) {
-    const denominator = newInvariant.times(simplePool.totalFee).div(refAccount.exchangeFee);
+    let denominator: BigInt;
+    if (block.header.height > ADMIN_FEE_UPGRADE_BLOCK) {
+      denominator = newInvariant.times(FEE_DEVISOR).div(refAccount.exchangeFee);
+    } else {
+      denominator = newInvariant.times(simplePool.totalFee).div(refAccount.exchangeFee);
+    }
     const exchangeFeeShares = numerator.div(denominator);
     mintSimplePoolShares(
       simplePool,
@@ -469,7 +474,12 @@ function executeSimplePoolSwapAction(
 
   if (swapAction.referralId != null && refAccount.referralFee.gt(ZERO) && numerator.gt(ZERO)) {
     // TODO Handle cases where referral account does not exists
-    const denominator = newInvariant.times(simplePool.totalFee).div(refAccount.referralFee);
+    let denominator: BigInt;
+    if (block.header.height > ADMIN_FEE_UPGRADE_BLOCK) {
+      denominator = newInvariant.times(FEE_DEVISOR).div(refAccount.referralFee);
+    } else {
+      denominator = newInvariant.times(simplePool.totalFee).div(refAccount.referralFee);
+    }
     const referralFeeShares = numerator.div(denominator);
     mintSimplePoolShares(
       simplePool,
