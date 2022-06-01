@@ -1,4 +1,4 @@
-import { BigInt, json, JSONValue, log, near } from "@graphprotocol/graph-ts";
+import { BigInt, json, JSONValue, near } from "@graphprotocol/graph-ts";
 import { Market, Pool, RefAccount, Share, SimplePool, StableSwapPool, Token } from "../../generated/schema";
 import { getOrCreateAccount, getOrCreateMarket, getOrCreateNEP141Token, investInMarket, parseNullableJSONAtrribute, redeemFromMarket, TokenBalance, updateMarket } from "../common";
 import { ProtocolName, ProtocolType } from "../constants";
@@ -339,7 +339,7 @@ function min(a: BigInt, b: BigInt): BigInt {
   }
 }
 
-function getOrCreateShare(accountId: string, poolId: string): Share {
+export function getOrCreateShare(accountId: string, poolId: string): Share {
   const sahreId = accountId.concat("-").concat(poolId);
   let share = Share.load(sahreId);
   if (share == null) {
@@ -622,6 +622,86 @@ export function redeemSimplePoolShares(
     null
   )
 }
+
+export function transferSimplePoolShares(
+  simplePool: SimplePool,
+  from: string,
+  to: string,
+  shares: BigInt,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
+): void {
+  const market = Market.load(simplePool.id) as Market;
+
+  const tokensLength = simplePool.tokens.length;
+  const poolAmounts = simplePool.amounts;
+  
+  // Redeem from sender account
+  const fromAccount = getOrCreateAccount(from);
+  const fromAccountShare = getOrCreateShare(fromAccount.id, market.id);
+  fromAccountShare.amount = fromAccountShare.amount.minus(shares);
+  fromAccountShare.save();
+
+  const fromOutputTokenAmount = shares;
+  const fromOutputTokenBalance = fromAccountShare.amount;
+  const fromInputTokenAmounts: TokenBalance[] = [];
+  const fromInputTokenBalances: TokenBalance[] = [];
+
+  for (let i = 0; i < tokensLength; i++) {
+    fromInputTokenAmounts.push(new TokenBalance(simplePool.tokens[i], fromAccount.id, ZERO));
+    let inputTokenBalance = simplePool.totalSupply.equals(ZERO) ? ZERO : poolAmounts[i].times(fromOutputTokenBalance).div(simplePool.totalSupply);
+    fromInputTokenBalances.push(new TokenBalance(simplePool.tokens[i], fromAccount.id, inputTokenBalance));
+  }
+
+  redeemFromMarket(
+    receipt,
+    outcome,
+    block,
+    fromAccount,
+    market,
+    fromOutputTokenAmount,
+    fromInputTokenAmounts,
+    [],
+    fromOutputTokenBalance,
+    fromInputTokenBalances,
+    [],
+    to
+  )
+
+  // Invest to receiver account
+  const toAccount = getOrCreateAccount(to);
+  const toAccountShare = getOrCreateShare(toAccount.id, market.id);
+  toAccountShare.amount = toAccountShare.amount.plus(shares);
+  toAccountShare.save();
+
+  const toOutputTokenAmount = shares;
+  const toOutputTokenBalance = toAccountShare.amount;
+  const toInputTokenAmounts: TokenBalance[] = [];
+  const toInputTokenBalances: TokenBalance[] = [];
+
+  for (let i = 0; i < tokensLength; i++) {
+    toInputTokenAmounts.push(new TokenBalance(simplePool.tokens[i], toAccount.id, ZERO));
+    let inputTokenBalance = simplePool.totalSupply.equals(ZERO) ? ZERO : poolAmounts[i].times(toOutputTokenBalance).div(simplePool.totalSupply);
+    toInputTokenBalances.push(new TokenBalance(simplePool.tokens[i], toAccount.id, inputTokenBalance));
+  }
+
+  investInMarket(
+    receipt,
+    outcome,
+    block,
+    toAccount,
+    market,
+    toOutputTokenAmount,
+    toInputTokenAmounts,
+    [],
+    toOutputTokenBalance,
+    toInputTokenBalances,
+    [],
+    from
+  )
+}
+
 /**
  * 
  {
