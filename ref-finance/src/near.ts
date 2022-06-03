@@ -193,7 +193,7 @@ function handleFunctionCall(
 
   handlersMapping.set("withdraw", withdraw);
   handlersMapping.set("exchange_callback_post_withdraw", callbakPostWithdraw);
-  // End of protocol specific protocol handler adding
+  // End of protocol specific method handlers setup
 
   const handler = handlersMapping.has(functionCall.methodName) ? handlersMapping.get(functionCall.methodName) : missingFunctionCallHandler;
   handler(functionCall, receipt, outcome, block);

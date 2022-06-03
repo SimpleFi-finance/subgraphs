@@ -166,7 +166,7 @@ export function executeActions(
   outcome: near.ExecutionOutcome,
   block: near.Block
 ): void {
-
+  swap(functionCall, receipt, outcome, block);
 }
 
 /**
