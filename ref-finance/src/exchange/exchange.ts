@@ -353,7 +353,7 @@ export function getOrCreateShare(accountId: string, poolId: string): Share {
   return share as Share;
 }
 
-class SwapAction {
+export class SwapAction {
   poolId: BigInt
   tokenIn: string
   amountIn: BigInt | null
@@ -382,7 +382,7 @@ class SwapAction {
   }
 }
 
-function executeSwapAction(
+export function executeSwapAction(
   swapAction: SwapAction,
   receipt: near.ActionReceipt,
   outcome: near.ExecutionOutcome,
