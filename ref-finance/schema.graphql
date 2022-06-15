@@ -208,7 +208,7 @@ type StableSwapPool @entity {
   initAmpFactor: BigInt!
   targetAmpFactor: BigInt!
   initAmpTime: BigInt!
-  stopAmptTime: BigInt!
+  stopAmpTime: BigInt!
 }
 
 type Share @entity {

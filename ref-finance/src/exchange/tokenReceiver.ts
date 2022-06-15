@@ -18,6 +18,7 @@ export function ftOnTransfer(
 ): void {
   const args = json.fromBytes(functionCall.args).toObject();
   const msg = (args.get("msg") as JSONValue).toString();
+  const amount = BigInt.fromString((args.get("amount") as JSONValue).toString());
 
   if (msg == "") {
     return
@@ -30,7 +31,7 @@ export function ftOnTransfer(
     "referral_id",
     (jv) => jv.toString()
   );
-  let result: BigInt | null = null;
+  let result: BigInt = amount;
 
   for (let i = 0; i < actions.length; i++) {
     actions[i].amountIn = actions[i].amountIn ? actions[i].amountIn : result;

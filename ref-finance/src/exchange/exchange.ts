@@ -9,6 +9,7 @@ const ONE_E_18 = BigInt.fromString("1000000000000000000000000");
 const UINT_256_MAX = BigInt.fromString("115792089237316195423570985008687907853269984665640564039457584007913129639935");
 const FEE_DEVISOR = BigInt.fromI32(10000);
 const ADMIN_FEE_UPGRADE_BLOCK: u64 = 55263102;
+const MIN_RESERVE = BigInt.fromString("1000000000000000000");
 
 /**
 pub fn new(owner_id: ValidAccountId, exchange_fee: u32, referral_fee: u32) -> Self
@@ -129,7 +130,7 @@ export function addStableSwapPool(
   stableSwapPool.initAmpFactor = ampFactor;
   stableSwapPool.targetAmpFactor = ampFactor;
   stableSwapPool.initAmpTime = BigInt.fromI32(0);
-  stableSwapPool.stopAmptTime = BigInt.fromI32(0);
+  stableSwapPool.stopAmpTime = BigInt.fromI32(0);
   stableSwapPool.save();
 
   const inputTokens: Token[] = []
@@ -286,6 +287,23 @@ export function addStableLiquidity(
   outcome: near.ExecutionOutcome,
   block: near.Block
 ): void {
+  const args = json.fromBytes(functionCall.args).toObject();
+  const poolId = (args.get("pool_id") as JSONValue).toBigInt();
+  const amounts = (args.get("amounts") as JSONValue).toArray().map<BigInt>(jv => BigInt.fromString(jv.toString()));
+
+  const marketId = receipt.receiverId.concat("-").concat(poolId.toString());
+
+  // Update pool and calculate LP token amount
+  const pool = Pool.load(marketId) as Pool;
+  if (pool.poolType != "STABLE_SWAP") {
+    return;
+  }
+
+  // Ref account exchange fee is used while adding or removing liquidity
+  const refAccount = RefAccount.load(receipt.receiverId) as RefAccount;
+  const adminFee = refAccount.exchangeFee;
+
+  const stableSwapPool = StableSwapPool.load(marketId) as StableSwapPool;
 
 }
 
@@ -702,26 +720,15 @@ export function transferSimplePoolShares(
   )
 }
 
-/**
- * 
- {
-  transactions(where: {
-    market: "v2.ref-finance.near-0"
-  }, orderBy: blockNumber){
-    id
-    receiptId,
-    transactionType,
-    inputTokenAmounts
-    outputTokenAmount
-    marketSnapshot{
-      id
-      market{id}
-      inputTokenBalances
-      outputTokenTotalSupply
-    }
-    blockNumber
-    timestamp
-  }
+function amountToCAmount(stableSwapPool: StableSwapPool, amount: BigInt, index: u64): BigInt {
+  const decimal = stableSwapPool.decimals[index];
+  const factor = BigInt.fromI32(10).pow(18 - decimal.toI32());
+  return amount.times(factor);
 }
- */
+
+function cAmountToAmount(stableSwapPool: StableSwapPool, cAmount: BigInt, index: u64): BigInt {
+  const decimal = stableSwapPool.decimals[index];
+  const factor = BigInt.fromI32(10).pow(18 - decimal.toI32());
+  return cAmount.div(factor);
+}
 
