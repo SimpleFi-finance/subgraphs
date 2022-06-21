@@ -1,6 +1,6 @@
 import { BigInt, json, JSONValue, near } from "@graphprotocol/graph-ts";
-import { Pool, SimplePool } from "../../generated/schema";
-import { getOrCreateShare, transferSimplePoolShares } from "./exchange";
+import { Pool, SimplePool, StableSwapPool } from "../../generated/schema";
+import { getOrCreateShare, transferSimplePoolShares, transferStablePoolShares } from "./exchange";
 
 /**
 pub fn mft_transfer(
@@ -45,7 +45,16 @@ export function mftTransfer(
       block
     );
   } else {
-    // TODO handle stable swap pool share transfer
+    const stableSwapPool = StableSwapPool.load(pool.id) as StableSwapPool;
+    transferStablePoolShares(
+      stableSwapPool,
+      senderId,
+      receiverId,
+      amount,
+      receipt,
+      outcome,
+      block
+    );
   }
 }
 
@@ -93,7 +102,16 @@ export function mftTransferCall(
       block
     );
   } else {
-    // TODO handle stable swap pool share transfer
+    const stableSwapPool = StableSwapPool.load(pool.id) as StableSwapPool;
+    transferStablePoolShares(
+      stableSwapPool,
+      senderId,
+      receiverId,
+      amount,
+      receipt,
+      outcome,
+      block
+    );
   }
 }
 
@@ -160,6 +178,15 @@ export function mftResolveTransfer(
       block
     );
   } else {
-    // TODO handle stable swap pool share transfer
+    const stableSwapPool = StableSwapPool.load(pool.id) as StableSwapPool;
+    transferStablePoolShares(
+      stableSwapPool,
+      senderId,
+      receiverId,
+      refundAmount,
+      receipt,
+      outcome,
+      block
+    );
   }
 }

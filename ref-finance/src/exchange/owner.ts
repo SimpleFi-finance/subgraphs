@@ -1,6 +1,7 @@
 import { BigInt, json, JSONValue, near } from "@graphprotocol/graph-ts";
-import { Market, Pool, RefAccount, SimplePool } from "../../generated/schema";
-import { redeemSimplePoolShares } from "./exchange";
+import { Market, Pool, RefAccount, SimplePool, StableSwapPool } from "../../generated/schema";
+import { redeemSimplePoolShares, redeemStablePoolShares } from "./exchange";
+import { StableSwap } from "./stableSwap";
 
 /**
 pub fn set_owner(&mut self, owner_id: ValidAccountId)
@@ -61,34 +62,54 @@ export function removeExchangeFeeLiquidity(
   const marketId = receipt.receiverId.concat("-").concat(poolId.toString());
 
   // Update pool and calculate LP token amount
-  // TODO handle stable swap pool as well
   const pool = Pool.load(marketId) as Pool;
-  if (pool.poolType != "SIMPLE_POOL") {
-    return;
+  if (pool.poolType == "SIMPLE_POOL") {
+    const simplePool = SimplePool.load(marketId) as SimplePool;
+    const tokensLength = simplePool.tokens.length;
+    const oldPoolAmounts = simplePool.amounts;
+    const amounts: BigInt[] = [];
+
+    for (let i = 0; i < tokensLength; i++) {
+      const amount = oldPoolAmounts[i].times(shares).div(simplePool.totalSupply);
+      amounts.push(amount);
+    }
+
+    let market = Market.load(marketId) as Market;
+
+    redeemSimplePoolShares(
+      simplePool,
+      market,
+      receipt.receiverId,
+      shares,
+      amounts,
+      receipt,
+      outcome,
+      block
+    );
+  } else {
+    const stableSwapPool = StableSwapPool.load(marketId) as StableSwapPool;
+    const tokensLength = stableSwapPool.tokens.length;
+    const oldPoolCAmounts = stableSwapPool.cAmounts;
+    const cAmounts: BigInt[] = [];
+
+    for (let i = 0; i < tokensLength; i++) {
+      const amount = oldPoolCAmounts[i].times(shares).div(stableSwapPool.totalSupply);
+      cAmounts.push(amount);
+    }
+
+    let market = Market.load(marketId) as Market;
+
+    redeemStablePoolShares(
+      stableSwapPool,
+      market,
+      receipt.receiverId,
+      shares,
+      cAmounts,
+      receipt,
+      outcome,
+      block
+    );
   }
-
-  const simplePool = SimplePool.load(marketId) as SimplePool;
-  const tokensLength = simplePool.tokens.length;
-  const oldPoolAmounts = simplePool.amounts;
-  const amounts: BigInt[] = [];
-
-  for (let i = 0; i < tokensLength; i++) {
-    const amount = oldPoolAmounts[i].times(shares).div(simplePool.totalSupply);
-    amounts.push(amount);
-  }
-
-  let market = Market.load(marketId) as Market;
-
-  redeemSimplePoolShares(
-    simplePool,
-    market,
-    receipt.receiverId,
-    shares,
-    amounts,
-    receipt,
-    outcome,
-    block
-  );
 }
 
 /**
@@ -105,7 +126,24 @@ export function stableSwapRampAmp(
   outcome: near.ExecutionOutcome,
   block: near.Block
 ): void {
+  const args = json.fromBytes(functionCall.args).toObject();
+  const poolId = (args.get("pool_id") as JSONValue).toBigInt();
+  const futureAmpFactor = (args.get("future_amp_factor") as JSONValue).toBigInt();
+  const futureAmpTime = BigInt.fromString((args.get("future_amp_time") as JSONValue).toString());
 
+  const marketId = receipt.receiverId.concat("-").concat(poolId.toString());
+  const pool = StableSwapPool.load(marketId);
+  if (pool == null) {
+    return;
+  }
+
+  const stableSwap = new StableSwap(block, pool);
+  const ampFactor = stableSwap.computeAmpFactor();
+  pool.initAmpFactor = ampFactor;
+  pool.initAmpTime = BigInt.fromU64(block.header.timestampNanosec);
+  pool.targetAmpFactor = futureAmpFactor;
+  pool.stopAmpTime = futureAmpTime;
+  pool.save();
 }
 
 /**
@@ -117,5 +155,21 @@ export function stableSwapStopRampAmp(
   outcome: near.ExecutionOutcome,
   block: near.Block
 ): void {
+  const args = json.fromBytes(functionCall.args).toObject();
+  const poolId = (args.get("pool_id") as JSONValue).toBigInt();
+  
+  const marketId = receipt.receiverId.concat("-").concat(poolId.toString());
+  const pool = StableSwapPool.load(marketId);
+  if (pool == null) {
+    return;
+  }
 
+  const stableSwap = new StableSwap(block, pool);
+  const ampFactor = stableSwap.computeAmpFactor();
+  const currentTime = BigInt.fromU64(block.header.timestampNanosec);
+  pool.initAmpFactor = ampFactor;
+  pool.initAmpTime = currentTime;
+  pool.targetAmpFactor = ampFactor;
+  pool.stopAmpTime = currentTime;
+  pool.save();
 }

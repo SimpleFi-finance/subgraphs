@@ -14,11 +14,15 @@ function sumReducer(sum: BigInt, v: BigInt, i: i32, a: BigInt[]): BigInt {
 
 export class Fees {
   tradeFee: BigInt
+  exchangeFee: BigInt
+  referralFee: BigInt
   adminFee: BigInt
 
-  constructor(tradeFee: BigInt, adminFee: BigInt) {
+  constructor(tradeFee: BigInt, exchangeFee: BigInt, referralFee: BigInt) {
     this.tradeFee = tradeFee;
-    this.adminFee = adminFee;
+    this.exchangeFee = exchangeFee;
+    this.referralFee = referralFee;
+    this.adminFee = exchangeFee.plus(referralFee);
   }
 
   computeTradeFee(amount: BigInt): BigInt {
@@ -115,7 +119,7 @@ export class StableSwap {
       }
 
       dPrev = d;
-      const ann = ampFactor.times(N_COINS.pow(N_COINS.toU32()));
+      const ann = ampFactor.times(N_COINS.pow(u8(N_COINS.toU32())));
       const leverage = sumX.times(ann);
       // d = (ann * sum_x + d_prod * n_coins) * d_prev / ((ann - 1) * d_prev + (n_coins + 1) * d_prod)
       const numerator = dPrev.times(dProd.times(N_COINS).plus(leverage));
@@ -135,7 +139,7 @@ export class StableSwap {
   computeY(xCAmount: BigInt, currentCAmounts: BigInt[], indexX: u32, indexY: u32): BigInt {
     const N_COINS = BigInt.fromI32(currentCAmounts.length);
     const ampFactor = this.computeAmpFactor();
-    const ann = ampFactor.times(N_COINS.pow(N_COINS.toU32()));
+    const ann = ampFactor.times(N_COINS.pow(u8(N_COINS.toU32())));
 
     // Invariant
     const d = this.computeD(currentCAmounts);
@@ -147,7 +151,7 @@ export class StableSwap {
         c = c.times(d).div(currentCAmounts[i]);
       }
     }
-    c = c.times(d).div(ann.times(N_COINS.pow(N_COINS.toU32())));
+    c = c.times(d).div(ann.times(N_COINS.pow(u8(N_COINS.toU32()))));
     const b = d.div(ann).plus(s); // d will be subtracted later
 
     // Solve for y by approximating: y**2 + b*y = c
