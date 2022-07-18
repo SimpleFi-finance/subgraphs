@@ -27,6 +27,9 @@ dataSources:
       eventHandlers:
         - event: PairCreated(indexed address,indexed address,address,uint256)
           handler: handlePairCreated
+      callHandlers:
+        - function: setFeeTo(address)
+          handler: handleSetFeeTo
       file: ./src/factories/{{factoryMappingPath}}
 templates:
   - kind: ethereum/contract

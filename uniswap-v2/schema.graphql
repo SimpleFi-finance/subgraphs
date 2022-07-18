@@ -186,6 +186,7 @@ type Pair @entity {
   reserve0: BigInt!
   reserve1: BigInt!
   totalSupply: BigInt!
+  feeTo: String
   blockNumber: BigInt!
   timestamp: BigInt!
   lastIncompleteBurn: Burn

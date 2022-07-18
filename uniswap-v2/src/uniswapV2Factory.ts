@@ -1,7 +1,7 @@
 import { BigInt, DataSourceContext } from "@graphprotocol/graph-ts"
 import { Pair as PairEntity } from "../generated/schema"
 import { UniswapV2Pair } from "../generated/templates"
-import { PairCreated } from "../generated/UniswapV2Factory/UniswapV2Factory"
+import { PairCreated, SetFeeToCall } from "../generated/UniswapV2Factory/UniswapV2Factory"
 import { getOrCreateAccount, getOrCreateERC20Token, getOrCreateMarket } from "./common"
 import { FEE_30_BASE_POINTS, protocolToFee, ProtocolType } from "./constants"
 
@@ -56,4 +56,14 @@ function getProtocolFee(address: string): BigInt {
   }
 
   return fee as BigInt
+}
+
+export function handleSetFeeTo(call: SetFeeToCall): void {
+  let pair = PairEntity.load(call.to.toHexString())
+  if (pair == null) {
+    return
+  }
+
+  pair.feeTo = call.inputs._feeTo.toHexString()
+  pair.save()
 }
