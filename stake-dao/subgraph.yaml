@@ -1,6 +1,9 @@
 specVersion: 0.0.2
 schema:
   file: ./schema.graphql
+graft:
+  base: QmPVp59XG3uHJUT8RF4w4YoyESAfDeH69HCsaHJ27wEZ9A
+  block: 14544048
 dataSources:
   - kind: ethereum/contract
     name: StakeDAOController
