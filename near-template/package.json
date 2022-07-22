@@ -1,0 +1,16 @@
+{
+  "name": "NEAT template subgraph",
+  "license": "UNLICENSED",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ simplefi-finance/near-template",
+    "create-local": "graph create --node http://localhost:8020/ simplefi-finance/near-template",
+    "remove-local": "graph remove --node http://localhost:8020/ simplefi-finance/near-template",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 simplefi-finance/near-template"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.26.0",
+    "@graphprotocol/graph-ts": "0.24.1"
+  }
+}
