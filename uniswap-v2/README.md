@@ -46,3 +46,7 @@ and start a MintTransaction or BurnTransaction accordingly and then -
 Because we can not rely on ordering of event triggers in graph node we need to implement reverse order of events as well in which - 
 * Mint event starts a MintTransaction and then Transfer event completes it
 * Burn event starts a BurnTransaction and then Transfer event completes it
+
+### Trisolaris fee enabled at
+
+Fee enabled in block 67156413 with https://aurorascan.dev/tx/0x32d8f20b087f8d0854b774b5cb2ab0a793c78a7ecf76222b46311ea488154a57
