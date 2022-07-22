@@ -6,7 +6,8 @@ import {
   Market as MarketEntity,
   MarketDayData,
   Mint as MintEntity,
-  Pair as PairEntity
+  Pair as PairEntity,
+  PairFactory as PairFactoryEntity
 } from "../generated/schema"
 import {
   Burn,
@@ -256,8 +257,8 @@ function checkIncompleteBurnFromLastTransaction(event: ethereum.Event, pair: Pai
   pair.save()
 }
 
-function mintFee(event: ethereum.Event, pair: PairEntity, amount: BigInt): void {
-  let feeTo = pair.feeTo as string
+function mintFee(event: ethereum.Event, pair: PairEntity, amount: BigInt, pairFactory: PairFactoryEntity): void {
+  let feeTo = pairFactory.feeTo as string
   let accountAddress = Address.fromString(feeTo)
   let account = new AccountEntity(feeTo)
   let market = MarketEntity.load(pair.id) as MarketEntity
@@ -344,12 +345,13 @@ export function handleTransfer(event: Transfer): void {
     }
 
     // Check if it's minting fee
-    if (pair.feeTo != null && toHex == pair.feeTo) {
+    let pairFactory = PairFactoryEntity.load(pair.factory) as PairFactoryEntity
+    if (pairFactory != null && pairFactory.feeTo != null && toHex == pairFactory.feeTo) {
       // Mint amount to feeTo address
       pair.totalSupply = pair.totalSupply.plus(event.params.value)
       pair.save()
       
-      mintFee(event, pair, event.params.value)
+      mintFee(event, pair, event.params.value, pairFactory)
     }
 
     let mint = getOrCreateMint(event, pair)

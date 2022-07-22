@@ -176,8 +176,12 @@ type PositionSnapshot @entity {
 
 # UniswapV2 protocol entities
 
+type PairFactory @entity {
+  id: ID! #{factory Address}
+  feeTo: String
+}
+
 # Created on PairCreated event on UniswapV2Factory.sol
-# feeTo is not part of Pair contract. We need to fetch it from factory contract
 type Pair @entity {
   id: ID! # {pairAddress}
   factory: Account!
@@ -186,7 +190,6 @@ type Pair @entity {
   reserve0: BigInt!
   reserve1: BigInt!
   totalSupply: BigInt!
-  feeTo: String
   blockNumber: BigInt!
   timestamp: BigInt!
   lastIncompleteBurn: Burn

@@ -1,11 +1,20 @@
 import { BigInt, DataSourceContext } from "@graphprotocol/graph-ts"
-import { Pair as PairEntity } from "../generated/schema"
+import { 
+  Pair as PairEntity,
+  PairFactory as PairFactoryEntity 
+} from "../generated/schema"
 import { UniswapV2Pair } from "../generated/templates"
 import { PairCreated, SetFeeToCall } from "../generated/UniswapV2Factory/UniswapV2Factory"
 import { getOrCreateAccount, getOrCreateERC20Token, getOrCreateMarket } from "./common"
 import { FEE_30_BASE_POINTS, protocolToFee, ProtocolType } from "./constants"
 
 export function handlePairCreated(event: PairCreated, protocolName: string): void {
+  let pairFactory = PairFactoryEntity.load(event.address.toHexString())
+  if (pairFactory == null) {
+    pairFactory = new PairFactoryEntity(event.address.toHexString())
+    pairFactory.save()
+  }
+
   // Create a tokens and market entity
   let token0 = getOrCreateERC20Token(event, event.params.token0)
   let token1 = getOrCreateERC20Token(event, event.params.token1)
@@ -59,11 +68,12 @@ function getProtocolFee(address: string): BigInt {
 }
 
 export function handleSetFeeTo(call: SetFeeToCall): void {
-  let pair = PairEntity.load(call.to.toHexString())
-  if (pair == null) {
-    return
+  let pairFactory = PairFactoryEntity.load(call.to.toHexString())
+  if (pairFactory == null) {
+    pairFactory = new PairFactoryEntity(call.to.toHexString())
+    pairFactory.save()
   }
 
-  pair.feeTo = call.inputs._feeTo.toHexString()
-  pair.save()
+  pairFactory.feeTo = call.inputs._feeTo.toHexString()
+  pairFactory.save()
 }
