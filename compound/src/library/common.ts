@@ -273,7 +273,6 @@ export function getOrCreateOpenPosition(
     position.outputTokenBalance = BigInt.fromI32(0);
     position.inputTokenBalances = [];
     position.rewardTokenBalances = [];
-    position.transferredTo = [];
     position.closed = false;
     position.blockNumber = event.block.number;
     position.timestamp = event.block.timestamp;
@@ -347,7 +346,6 @@ function createPositionSnapshot(position: Position, transaction: Transaction): P
   newSnapshot.outputTokenBalance = position.outputTokenBalance;
   newSnapshot.inputTokenBalances = position.inputTokenBalances;
   newSnapshot.rewardTokenBalances = position.rewardTokenBalances;
-  newSnapshot.transferredTo = position.transferredTo;
   position.blockNumber = transaction.blockNumber;
   position.timestamp = transaction.timestamp;
   newSnapshot.save();
@@ -510,16 +508,6 @@ export function redeemFromMarket(
   position.inputTokenBalances = inputTokenBalances.map<string>((tb) => tb.toString());
   position.outputTokenBalance = outputTokenBalance;
   position.rewardTokenBalances = rewardTokenBalances.map<string>((tb) => tb.toString());
-
-  // Check if it is transferred to some other account
-  if (transferredTo != null) {
-    let exists = position.transferredTo.includes(transferredTo as string);
-    if (!exists) {
-      let newTransferredTo = position.transferredTo;
-      newTransferredTo.push(transferredTo as string);
-      position.transferredTo = newTransferredTo;
-    }
-  }
 
   // Check if postion is closed
   if (position.outputTokenBalance == BigInt.fromI32(0)) {
