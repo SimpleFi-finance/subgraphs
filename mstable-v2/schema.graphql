@@ -145,7 +145,6 @@ type Position @entity {
   outputTokenBalance: BigInt!
   inputTokenBalances: [String!]!    # TokenBalance string format
   rewardTokenBalances: [String!]!   # TokenBalance string format
-  transferredTo: [String!]!
   closed: Boolean!
   blockNumber: BigInt!
   timestamp: BigInt!
@@ -161,7 +160,6 @@ type PositionSnapshot @entity {
   outputTokenBalance: BigInt!
   inputTokenBalances: [String!]!    # TokenBalance string format
   rewardTokenBalances: [String!]!   # TokenBalance string format
-  transferredTo: [String!]!         # TokenBalance string format
 }
 
 # MStable protocol entities
