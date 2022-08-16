@@ -76,62 +76,26 @@ export class PoolStaticInfo {
 
 /////////////////////////////////
 
-//// FANTOM
+//// OPTIMISM
 
 /////////////////////////////////
 export let addressToPool = new TypedMap<string, PoolStaticInfo>();
 export let lpTokenToPool = new TypedMap<string, string>();
 
-// 2 pool
-export const A2POOL_FANTOM = "0x27e611fd27b276acbd5ffd632e5eaebec9761e40";
-export const A2POOL_FANTOM_LP_TOKEN = "0x27e611fd27b276acbd5ffd632e5eaebec9761e40";
+// 3pool
+export const TRI_POOL_OPTIMISM = "0x1337bedc9d22ecbe766df105c9623922a27963ec";
+export const TRI_OPTIMISM_LP_TOKEN = "0x1337bedc9d22ecbe766df105c9623922a27963ec";
 addressToPool.set(
-  A2POOL_FANTOM,
-  new PoolStaticInfo(A2POOL_FANTOM, A2POOL_FANTOM_LP_TOKEN, 2, "PLAIN", false, [])
+  TRI_POOL_OPTIMISM,
+  new PoolStaticInfo(TRI_POOL_OPTIMISM, TRI_OPTIMISM_LP_TOKEN, 3, "PLAIN", false, [])
 );
-lpTokenToPool.set(A2POOL_FANTOM_LP_TOKEN, A2POOL_FANTOM);
+lpTokenToPool.set(TRI_OPTIMISM_LP_TOKEN, TRI_POOL_OPTIMISM);
 
-// fUSTD
-export const FUSDT_FANTOM = "0x92d5ebf3593a92888c25c0abef126583d4b5312e";
-export const FUSDT_FANTOM_LP_TOKEN = "0x92d5ebf3593a92888c25c0abef126583d4b5312e";
+// SUSD
+export const SUSD_OPTIMISM = "0x061b87122ed14b9526a813209c8a59a633257bab";
+export const SUSD_OPTIMISM_LP_TOKEN = "0x061b87122ed14b9526a813209c8a59a633257bab";
 addressToPool.set(
-  FUSDT_FANTOM,
-  new PoolStaticInfo(FUSDT_FANTOM, FUSDT_FANTOM_LP_TOKEN, 2, "META", false, [])
+  SUSD_OPTIMISM,
+  new PoolStaticInfo(SUSD_OPTIMISM, SUSD_OPTIMISM_LP_TOKEN, 2, "META", false, [])
 );
-lpTokenToPool.set(FUSDT_FANTOM_LP_TOKEN, FUSDT_FANTOM);
-
-// REN
-export const REN_FANTOM = "0x3ef6a01a0f81d6046290f3e2a8c5b843e738e604";
-export const REN_FANTOM_LP_TOKEN = "0x5b5cfe992adac0c9d48e05854b2d91c73a003858";
-addressToPool.set(
-  REN_FANTOM,
-  new PoolStaticInfo(REN_FANTOM, REN_FANTOM_LP_TOKEN, 2, "PLAIN", false, [])
-);
-lpTokenToPool.set(REN_FANTOM_LP_TOKEN, REN_FANTOM);
-
-// 3 crypto
-export const TRI_FANTOM = "0x3a1659ddcf2339be3aea159ca010979fb49155ff";
-export const TRI_FANTOM_LP_TOKEN = "0x58e57ca18b7a47112b877e31929798cd3d703b0f";
-addressToPool.set(
-  TRI_FANTOM,
-  new PoolStaticInfo(TRI_FANTOM, TRI_FANTOM_LP_TOKEN, 3, "PLAIN", false, [])
-);
-lpTokenToPool.set(TRI_FANTOM_LP_TOKEN, TRI_FANTOM);
-
-// Iron Bank
-export const IB_FANTOM = "0x4fc8d635c3cb1d0aa123859e2b2587d0ff2707b1";
-export const IB_FANTOM_LP_TOKEN = "0xdf38ec60c0ec001142a33eaa039e49e9b84e64ed";
-addressToPool.set(
-  IB_FANTOM,
-  new PoolStaticInfo(IB_FANTOM, IB_FANTOM_LP_TOKEN, 3, "LENDING", false, [])
-);
-lpTokenToPool.set(IB_FANTOM_LP_TOKEN, IB_FANTOM);
-
-// Gesit
-export const GEIST_FANTOM = "0x0fa949783947bf6c1b171db13aeacbb488845b3f";
-export const GEIST_FANTOM_LP_TOKEN = "0xd02a30d33153877bc20e5721ee53dedee0422b2f";
-addressToPool.set(
-  GEIST_FANTOM,
-  new PoolStaticInfo(GEIST_FANTOM, GEIST_FANTOM_LP_TOKEN, 3, "LENDING", false, [])
-);
-lpTokenToPool.set(GEIST_FANTOM_LP_TOKEN, GEIST_FANTOM);
+lpTokenToPool.set(SUSD_OPTIMISM_LP_TOKEN, SUSD_OPTIMISM);
