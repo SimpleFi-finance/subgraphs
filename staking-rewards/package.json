@@ -1,0 +1,23 @@
+{
+  "name": "staking-rewards",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SimpleFi-finance/subgraphs.git"
+  },
+  "author": "SimpleFi",
+  "bugs": {
+    "url": "https://github.com/SimpleFi-finance/subgraphs.git/issues"
+  },
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/staking-rewards",
+    "create-local": "graph create --node http://localhost:8020/ staking-rewards",
+    "remove-local": "graph remove --node http://localhost:8020/ staking-rewards",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 staking-rewards"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.23.2",
+    "@graphprotocol/graph-ts": "0.23.1"
+  }
+}
