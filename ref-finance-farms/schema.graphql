@@ -1,0 +1,240 @@
+# Common entities for all protocols
+
+enum Blockchain {
+  ETHEREUM
+  BSC
+  XDAI
+  POLYGON
+  OPTIMISM
+  AVALANCHE
+  NEAR
+}
+
+enum TokenStandard {
+  NEP141
+  NEP171
+  NEP245
+}
+
+enum ProtocolName {
+  REF_FINANCE
+}
+
+enum ProtocolType {
+  STAKING
+  LENDING
+  EXCHANGE
+  INSURANCE
+  STABLECOIN
+  DERIVATIVE
+  SYNTHETIC_TOKEN
+  TOKEN_MANAGEMENT # Meta LP vaults
+  PREDICTION_MARKET
+}
+
+enum PositionType {
+  INVESTMENT
+  DEBT
+}
+
+enum TransactionType {
+  INVEST
+  REDEEM
+  BORROW
+  REPAY
+  TRANSFER_IN
+  TRANSFER_OUT
+}
+
+type Account @entity {
+  id: ID! # {accountAddress}
+  positions: [Position!]! @derivedFrom(field: "account")
+}
+
+type Token @entity {
+  id: ID! # {tokenAddress}
+  tokenStandard: TokenStandard!
+  name: String
+  symbol: String
+  decimals: Int
+  mintedByMarket: Market
+  blockNumber: BigInt! # could be block at which we got first event on this token
+  timestamp: BigInt!
+}
+
+type Market @entity {
+  id: ID! # {protocol pair/pool/vault address}
+  account: Account!
+  protocolName: ProtocolName!
+  protocolType: ProtocolType!
+  # Generally protocols accept one or multiple tokens and mint tokens to the depositor to track ownership
+  # Some protocols reward DAO tokens or other incentivisation tokens to holders of LP tokens
+  # Some protocols don't mint any tokens to track ownership, in that case outputToken is null
+  # and inputToken balances are used to calculate returns
+  inputTokens: [Token!]! # Tokens that need to be deposited to take a position in protocol
+  outputToken: Token # Token that is minted to track ownership of position in protocol
+  rewardTokens: [Token!] # Aditional tokens that are given as reward for position in a protocol
+  inputTokenTotalBalances: [String!]! # Total balance of this market contract of all input tokens in TokenBalance string format
+  outputTokenTotalSupply: BigInt! # Total supply of output token
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  positions: [Position!]! @derivedFrom(field: "market")
+  history: [MarketSnapshot!]! @derivedFrom(field: "market")
+}
+
+type MarketSnapshot @entity {
+  id: ID! # {receiptId base58 encoded}
+  market: Market!
+  inputTokenBalances: [String!]! # TokenBalance string format
+  outputTokenTotalSupply: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+}
+
+type ReceiptActions @entity {
+  id: ID! # {receiptId}
+  actionCounter: Int!
+}
+
+type Transaction @entity {
+  id: ID! # {account}{receiptId base 58 encoded}
+  receiptId: String! # {base 58 encoded}
+  market: Market!
+  marketSnapshot: MarketSnapshot!
+  # A transaction.from is always transaction origin because outside EVM transaction.origin and msg.sender are same
+  from: Account!
+  to: Account
+  # token amounts will always be positive here, Their credit or debit status will change based on transaction type
+  transactionType: TransactionType!
+  inputTokenAmounts: [String!]!
+  outputTokenAmount: BigInt!
+  rewardTokenAmounts: [String!]!
+  transferredFrom: String
+  transferredTo: String
+  gasUsed: BigInt!
+  gasPrice: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+}
+
+# String format for a TokenBalance
+# tokenAddress|accountAddress|tokenAmountBigInt
+
+# It is required because we want to keep track of closed positions as well
+# We can not use same ID for a user's new position after existing one has been closed
+# To be able to fetch current open position for a user + market + position type we need
+# ID to be dependent on only these three things. There three things will be same for all positions
+# of a specific user in specfic market therefore we need this AccountPosition entity
+type AccountPosition @entity {
+  id: ID! # {userAddress}{marketAddress}{positionType}
+  positionCounter: BigInt!
+  positions: [Position!]! @derivedFrom(field: "accountPosition")
+}
+
+# We can not keep balances and roi updated all the time.
+# We can update these only when the account of the position makes some changes in the position
+# at others time when market variables are changing because of other's actions then we won't update these
+type Position @entity {
+  id: ID! # {accountPositionId}{autoIncrement}
+  accountPosition: AccountPosition!
+  account: Account!
+  accountAddress: String!
+  market: Market!
+  marketAddress: String!
+  positionType: PositionType!
+  outputTokenBalance: BigInt!
+  inputTokenBalances: [String!]! # TokenBalance string format
+  rewardTokenBalances: [String!]! # TokenBalance string format
+  closed: Boolean!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  historyCounter: BigInt!
+  history: [PositionSnapshot!]! @derivedFrom(field: "position")
+}
+
+# Created before every update (transaction) to Position
+type PositionSnapshot @entity {
+  id: ID! # {positionId}{autoIncrement}
+  position: Position!
+  transaction: Transaction!
+  outputTokenBalance: BigInt!
+  inputTokenBalances: [String!]! # TokenBalance string format
+  rewardTokenBalances: [String!]! # TokenBalance string format
+}
+
+type Deployment @entity {
+  id: ID!
+  accountId: String!
+  receiptId: String!
+  codeHash: Bytes!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+}
+
+# END - Common entities for all protocols
+
+# Ref Finance protocol entities
+
+type RefFarmAccount @entity {
+  id: ID! # farm contract id
+  ownerId: String!
+  farmCount: BigInt!
+}
+
+type Farm @entity {
+  id: ID! # farm id
+  farmType: String!
+  receiptId: Bytes!
+}
+
+type SimpleFarm @entity {
+  id: ID! # farm id
+  
+  # terms
+  seedId: String!
+  reardToken: String!
+  startAt: BigInt!
+  rewardPerSession: BigInt!
+  sessionInterval: BigInt!
+  
+  # last distribution
+  undistributed: BigInt!
+  unclaimed: BigInt!
+  rps: BigInt!
+  rr: BigInt!
+  
+  # farm
+  status: String!
+  amountOfReward: BigInt!
+  amountOfClaimed: BigInt!
+  amountOfBeneficiary: BigInt!
+}
+
+type FarmSeed @entity {
+  id: ID! # seed id
+  # seed type can be FT or MFT
+  seedType: String!
+  # all farms that accepted this seed
+  farms: [String!]!
+  nextIndex: BigInt!
+  # total (staked) balance of this seed (Farming Token)
+  amount: BigInt!
+  minDeposit: BigInt!
+}
+
+type FarmerReward @entity {
+  id: ID! # {user id}|{reward token id}
+  amount: BigInt!
+}
+
+type FarmerSeed @entity {
+  id: ID! # {user id}|{seed id}
+  amount: BigInt!
+}
+
+type FarmerRPS @entity {
+  id: ID! # {user id}|{farm id}
+  rps: BigInt!
+}
+
+# END - Ref Finance protocol entities
