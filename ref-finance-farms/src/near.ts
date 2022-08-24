@@ -1,6 +1,7 @@
 import { BigInt, log, near } from "@graphprotocol/graph-ts";
 import { Deployment } from "../generated/schema";
-import { createSimpleFarm, initFarm } from "./farm/farm";
+import { callbackPostWithdrawFTSeed, callbackPostWithdrawMFTSeed, claimRewardByFarm, claimRewardBySeed, createSimpleFarm, initFarm, removeUserRPSByFarm, withdrawSeed } from "./farm/farm";
+import { ftOnTransfer, mftOnTransfer } from "./farm/tokenReceiver";
 
 
 export function handleReceipt(
@@ -167,7 +168,15 @@ function handleFunctionCall(
   // Add protocol specific method handlers here
   handlersMapping.set("new", initFarm);
   handlersMapping.set("create_simple_farm", createSimpleFarm);
-  
+  handlersMapping.set("withdraw_seed", withdrawSeed);
+  handlersMapping.set("callback_post_withdraw_ft_seed", callbackPostWithdrawFTSeed);
+  handlersMapping.set("callback_post_withdraw_mft_seed", callbackPostWithdrawMFTSeed);
+  handlersMapping.set("remove_user_rps_by_farm", removeUserRPSByFarm);
+  handlersMapping.set("claim_reward_by_farm", claimRewardByFarm);
+  handlersMapping.set("claim_reward_by_seed", claimRewardBySeed);
+
+  handlersMapping.set("ft_on_transfer", ftOnTransfer);
+  handlersMapping.set("mft_on_transfer", mftOnTransfer);
   // End of protocol specific method handlers setup
 
   const handler = handlersMapping.has(functionCall.methodName) ? handlersMapping.get(functionCall.methodName) : missingFunctionCallHandler;

@@ -1,8 +1,8 @@
-import { BigInt, json, JSONValue, near } from "@graphprotocol/graph-ts";
+import { BigInt, json, JSONValue, near, store } from "@graphprotocol/graph-ts";
 import { Farm, FarmerReward, FarmerRPS, FarmerSeed, FarmSeed, Market, RefFarmAccount, SimpleFarm, Token } from "../../generated/schema";
-import { getOrCreateAccount, getOrCreateMarket, getOrCreateNEP141Token, investInMarket, parseNullableJSONAtrribute, TokenBalance, updateMarket } from "../common";
+import { getOrCreateAccount, getOrCreateMarket, getOrCreateNEP141Token, investInMarket, parseNullableJSONAtrribute, redeemFromMarket, TokenBalance, updateMarket } from "../common";
 import { ProtocolName, ProtocolType } from "../constants";
-import { parseSeedId, toNanoSec, toSec } from "./util";
+import { parseFarmId, parseSeedId, toNanoSec, toSec } from "./util";
 
 const ZERO = BigInt.fromI32(0);
 const MIN_SEED_DEPOSIT = BigInt.fromString("1000000000000000000");
@@ -67,11 +67,11 @@ export function createSimpleFarm(
   }
 
   // Parse terms attributes
-  const seedId = (args.get("seed_id") as JSONValue).toString();
-  const rewardToken = (args.get("reward_token") as JSONValue).toString();
-  const startAt = (args.get("start_at") as JSONValue).toBigInt();
-  const rewardPerSession = BigInt.fromString((args.get("reward_per_session") as JSONValue).toString());
-  const sessionInterval = (args.get("session_interval") as JSONValue).toBigInt();
+  const seedId = (terms.get("seed_id") as JSONValue).toString();
+  const rewardToken = (terms.get("reward_token") as JSONValue).toString();
+  const startAt = (terms.get("start_at") as JSONValue).toBigInt();
+  const rewardPerSession = BigInt.fromString((terms.get("reward_per_session") as JSONValue).toString());
+  const sessionInterval = (terms.get("session_interval") as JSONValue).toBigInt();
 
   const returnBytes = outcome.status.toValue();
   const farmId = json.fromBytes(returnBytes).toString();
@@ -218,6 +218,336 @@ export function depositSeedSimpleFarm(
     rewardTokenBalances.push(new TokenBalance(simpleFarm.reardToken, senderId, ZERO));
     
     investInMarket(
+      receipt,
+      outcome,
+      block,
+      account,
+      market,
+      amount,
+      inputTokenAmounts,
+      rewardTokenAmounts,
+      farmerSeed.amount,
+      inputTokenBalances,
+      rewardTokenBalances,
+      null
+    );
+  }
+}
+
+/**
+pub fun withdraw_seed(&mut self, seed_id: SeedId, amount: U128)
+ */
+export function withdrawSeed(
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
+): void {
+  const args = json.fromBytes(functionCall.args).toObject();
+  const seedId = (args.get("seed_id") as JSONValue).toString();
+  const amount = BigInt.fromString((args.get("amount") as JSONValue).toString());
+  const senderId = receipt.predecessorId;
+
+  withdrawSeedSimpleFarm(
+    receipt,
+    outcome,
+    block,
+    seedId,
+    senderId,
+    amount
+  );
+}
+
+/**
+pub fn callback_post_withdraw_ft_seed(
+        &mut self,
+        seed_id: SeedId,
+        sender_id: AccountId,
+        amount: U128,
+    ) -> U128 
+*/
+export function callbackPostWithdrawFTSeed(
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
+): void {
+  const args = json.fromBytes(functionCall.args).toObject();
+  const seedId = (args.get("seed_id") as JSONValue).toString();
+  const senderId = (args.get("sender_id") as JSONValue).toString();
+  const amount = BigInt.fromString((args.get("amount") as JSONValue).toString());
+
+  let revert = false;
+  const returnBytes = outcome.status.toValue();
+  if (returnBytes.length == 0) {
+    const logs = outcome.logs;
+    const logMessage = logs[0].toString();
+    if (logMessage.includes("Failed")) {
+      revert = true;
+    }
+  } else {
+    const returnAmount = BigInt.fromString(json.fromBytes(returnBytes).toString());
+    if (returnAmount == ZERO) {
+      revert = true;
+    }
+  }
+
+  // Revert changes done in withdraw_seed if return amount it zero
+  if (revert) {
+    depositSeedSimpleFarm(
+      receipt,
+      outcome,
+      block,
+      seedId,
+      senderId,
+      amount,
+      "FT"
+    );
+  }
+}
+
+/**
+pub fn callback_post_withdraw_mft_seed(
+        &mut self,
+        seed_id: SeedId,
+        sender_id: AccountId,
+        amount: U128,
+    ) -> U128
+*/
+export function callbackPostWithdrawMFTSeed(
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
+): void {
+  const args = json.fromBytes(functionCall.args).toObject();
+  const seedId = (args.get("seed_id") as JSONValue).toString();
+  const senderId = (args.get("sender_id") as JSONValue).toString();
+  const amount = BigInt.fromString((args.get("amount") as JSONValue).toString());
+
+  let revert = false;
+  const returnBytes = outcome.status.toValue();
+  if (returnBytes.length == 0) {
+    const logs = outcome.logs;
+    const logMessage = logs[0].toString();
+    if (logMessage.includes("Failed")) {
+      revert = true;
+    }
+  } else {
+    const returnAmount = BigInt.fromString(json.fromBytes(returnBytes).toString());
+    if (returnAmount == ZERO) {
+      revert = true;
+    }
+  }
+
+  // Revert changes done in withdraw_seed if return amount it zero
+  if (revert) {
+    depositSeedSimpleFarm(
+      receipt,
+      outcome,
+      block,
+      seedId,
+      senderId,
+      amount,
+      "MFT"
+    );
+  }
+}
+
+/**
+pub fn remove_user_rps_by_farm(&mut self, farm_id: FarmId) -> bool
+*/
+export function removeUserRPSByFarm(
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
+): void {
+  const args = json.fromBytes(functionCall.args).toObject();
+  const farmId = (args.get("farm_id") as JSONValue).toString();
+  const senderId = receipt.predecessorId;
+
+  const returnBytes = outcome.status.toValue();
+  const rpsInvalid = json.fromBytes(returnBytes).toBool();
+
+  if (rpsInvalid) {
+    const farmerRPSId = senderId.concat("|").concat(farmId);
+    store.remove("FarmerRPS", farmerRPSId);
+  }
+}
+
+/**
+pub fn claim_reward_by_farm(&mut self, farm_id: FarmId)
+*/
+export function claimRewardByFarm(
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
+): void {
+  const args = json.fromBytes(functionCall.args).toObject();
+  const farmId = (args.get("farm_id") as JSONValue).toString();
+  const senderId = receipt.predecessorId;
+
+  const farmIdParsed = parseFarmId(farmId);
+  const seedId = farmIdParsed[0];
+
+  const farmSeed = FarmSeed.load(seedId);
+  if (farmSeed == null) {
+    return;
+  }
+
+  const simpleFarm = SimpleFarm.load(farmId);
+  if (simpleFarm == null) {
+    return;
+  }
+  
+  const claimed = claimUserRewardFromSimpleFarm(
+    simpleFarm,
+    farmSeed.amount,
+    senderId,
+    block
+  );
+
+  const farmerSeed = getOrCreateFarmerSeed(senderId, seedId);
+  const market = Market.load(simpleFarm.id) as Market;
+  const amount = ZERO;
+
+  const account = getOrCreateAccount(senderId);
+  const inputTokenAmounts: TokenBalance[] = [];
+  const rewardTokenAmounts: TokenBalance[] = [];
+  const inputTokenBalances: TokenBalance[] = [];
+  const rewardTokenBalances: TokenBalance[] = [];
+  inputTokenAmounts.push(new TokenBalance(seedId, senderId, amount));
+  rewardTokenAmounts.push(new TokenBalance(simpleFarm.reardToken, senderId, claimed));
+  inputTokenBalances.push(new TokenBalance(seedId, simpleFarm.id, farmerSeed.amount));
+  rewardTokenBalances.push(new TokenBalance(simpleFarm.reardToken, senderId, ZERO));
+  
+  redeemFromMarket(
+    receipt,
+    outcome,
+    block,
+    account,
+    market,
+    amount,
+    inputTokenAmounts,
+    rewardTokenAmounts,
+    farmerSeed.amount,
+    inputTokenBalances,
+    rewardTokenBalances,
+    null
+  );
+}
+
+/**
+pub fn claim_reward_by_seed(&mut self, seed_id: SeedId)
+*/
+export function claimRewardBySeed(
+  functionCall: near.FunctionCallAction,
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block
+): void {
+  const args = json.fromBytes(functionCall.args).toObject();
+  const seedId = (args.get("seed_id") as JSONValue).toString();
+  const senderId = receipt.predecessorId;
+
+  const farmSeed = FarmSeed.load(seedId) as FarmSeed;
+  const farmerSeed = getOrCreateFarmerSeed(senderId, seedId);
+  const farms = farmSeed.farms;
+  const length = farms.length;
+
+  const claimed = claimUserRewardsBySeedId(farmSeed, senderId, block);
+
+  for (let i=0; i < length; i++) {
+    const simpleFarm = SimpleFarm.load(farms[i]) as SimpleFarm;
+    const market = Market.load(simpleFarm.id) as Market;
+    const amount = ZERO;
+
+    const account = getOrCreateAccount(senderId);
+    const inputTokenAmounts: TokenBalance[] = [];
+    const rewardTokenAmounts: TokenBalance[] = [];
+    const inputTokenBalances: TokenBalance[] = [];
+    const rewardTokenBalances: TokenBalance[] = [];
+    inputTokenAmounts.push(new TokenBalance(seedId, senderId, amount));
+    rewardTokenAmounts.push(new TokenBalance(simpleFarm.reardToken, senderId, claimed[i]));
+    inputTokenBalances.push(new TokenBalance(seedId, simpleFarm.id, farmerSeed.amount));
+    rewardTokenBalances.push(new TokenBalance(simpleFarm.reardToken, senderId, ZERO));
+    
+    redeemFromMarket(
+      receipt,
+      outcome,
+      block,
+      account,
+      market,
+      amount,
+      inputTokenAmounts,
+      rewardTokenAmounts,
+      farmerSeed.amount,
+      inputTokenBalances,
+      rewardTokenBalances,
+      null
+    );
+  }
+}
+
+function withdrawSeedSimpleFarm(
+  receipt: near.ActionReceipt,
+  outcome: near.ExecutionOutcome,
+  block: near.Block,
+  seedId: string, 
+  senderId: string, 
+  amount: BigInt
+): void {
+  const farmSeed = FarmSeed.load(seedId) as FarmSeed;
+  const farms = farmSeed.farms;
+  const length = farms.length;
+
+  const claimed: BigInt[] = claimUserRewardsBySeedId(farmSeed, senderId, block);
+
+  // Update farmSeed for this seedId
+  farmSeed.amount = farmSeed.amount.minus(amount);
+  farmSeed.save();
+
+  // Update farmerSeed and if it becomes zero 
+  // then remove FarmerSeed and FarmerRPS for all farms of this seed
+  const farmerSeed = getOrCreateFarmerSeed(senderId, seedId);
+  farmerSeed.amount = farmerSeed.amount.minus(amount);
+  if (farmerSeed.amount == ZERO) {
+    store.remove("FarmerSeed", farmerSeed.id);
+
+    for (let i=0; i < length; i++) {
+      const farmerRPSID = senderId.concat("|").concat(farms[i]);
+      store.remove("FarmerRPS", farmerRPSID);
+    }
+  }
+
+  // Update market and position entities
+  for (let i=0; i < length; i++) {
+    const simpleFarm = SimpleFarm.load(farms[i]) as SimpleFarm;
+    const market = Market.load(simpleFarm.id) as Market;
+    
+    const marketInputTokenBalances: TokenBalance[] = [];
+    marketInputTokenBalances.push(new TokenBalance(seedId, simpleFarm.id, farmSeed.amount));
+    updateMarket(
+      receipt,
+      block,
+      market,
+      marketInputTokenBalances,
+      farmSeed.amount
+    );
+
+    const account = getOrCreateAccount(senderId);
+    const inputTokenAmounts: TokenBalance[] = [];
+    const rewardTokenAmounts: TokenBalance[] = [];
+    const inputTokenBalances: TokenBalance[] = [];
+    const rewardTokenBalances: TokenBalance[] = [];
+    inputTokenAmounts.push(new TokenBalance(seedId, senderId, amount));
+    rewardTokenAmounts.push(new TokenBalance(simpleFarm.reardToken, senderId, claimed[i]));
+    inputTokenBalances.push(new TokenBalance(seedId, simpleFarm.id, farmerSeed.amount));
+    rewardTokenBalances.push(new TokenBalance(simpleFarm.reardToken, senderId, ZERO));
+    
+    redeemFromMarket(
       receipt,
       outcome,
       block,

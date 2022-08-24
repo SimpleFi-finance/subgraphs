@@ -3,11 +3,11 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: near
-    name: RefFinanceV2
+    name: RefFarmingV2
     network: near-mainnet
     source:
-      account: "v2.ref-finance.near"
-      startBlock: 45752812
+      account: "v2.ref-farming.near"
+      startBlock: 46746775
     mapping:
       apiVersion: 0.0.5
       language: wasm/assemblyscript

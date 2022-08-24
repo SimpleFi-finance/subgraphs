@@ -10,6 +10,10 @@ export function parseSeedId(seedId: string): string[] {
   return parsedSeed;
 }
 
+export function parseFarmId(farmId: string): string[] {
+  return farmId.split("#");
+}
+
 export function toSec(timestamp: BigInt): BigInt {
   return timestamp.div(NANO);
 }
