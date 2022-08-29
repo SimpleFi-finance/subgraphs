@@ -452,7 +452,10 @@ export function claimRewardBySeed(
   const seedId = (args.get("seed_id") as JSONValue).toString();
   const senderId = receipt.predecessorId;
 
-  const farmSeed = FarmSeed.load(seedId) as FarmSeed;
+  const farmSeed = FarmSeed.load(seedId);
+  if (farmSeed == null) {
+    return;
+  }
   const farmerSeed = getOrCreateFarmerSeed(senderId, seedId);
   const farms = farmSeed.farms;
   const length = farms.length;
@@ -499,7 +502,10 @@ function withdrawSeedSimpleFarm(
   senderId: string, 
   amount: BigInt
 ): void {
-  const farmSeed = FarmSeed.load(seedId) as FarmSeed;
+  const farmSeed = FarmSeed.load(seedId);
+  if (farmSeed == null) {
+    return;
+  }
   const farms = farmSeed.farms;
   const length = farms.length;
 
