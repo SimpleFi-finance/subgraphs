@@ -164,3 +164,26 @@ type PositionSnapshot @entity {
   rewardTokenBalances: [String!]! # TokenBalance string format
   transferredTo: [String!]! # TokenBalance string format
 }
+
+#### StakingRewards stuff
+
+type StakingPool @entity {
+  id: ID! # {contract address}
+  stakingToken: Token!
+  rewardsToken: Token!
+  totalSupply: BigInt!
+}
+
+type PositionInStakingPool @entity {
+  " userAddress-poolAddress "
+  id: ID!
+
+  " stakingPool where user provided assets "
+  stakingPool: StakingPool!
+
+  " account providing assets "
+  user: Account!
+
+  " amount of provided tokens "
+  stakedBalance: BigInt!
+}
