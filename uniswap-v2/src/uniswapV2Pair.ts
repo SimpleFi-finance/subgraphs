@@ -6,7 +6,8 @@ import {
   Market as MarketEntity,
   MarketDayData,
   Mint as MintEntity,
-  Pair as PairEntity
+  Pair as PairEntity,
+  PairFactory as PairFactoryEntity
 } from "../generated/schema"
 import {
   Burn,
@@ -256,6 +257,52 @@ function checkIncompleteBurnFromLastTransaction(event: ethereum.Event, pair: Pai
   pair.save()
 }
 
+function mintFee(event: ethereum.Event, pair: PairEntity, amount: BigInt, pairFactory: PairFactoryEntity): void {
+  let feeTo = pairFactory.feeTo as string
+  let accountAddress = Address.fromString(feeTo)
+  let account = new AccountEntity(feeTo)
+  let market = MarketEntity.load(pair.id) as MarketEntity
+  let accountLiquidity = getOrCreateLiquidity(pair, accountAddress)
+
+  let outputTokenAmount = amount as BigInt
+  let inputTokenAmounts: TokenBalance[] = []
+  inputTokenAmounts.push(new TokenBalance(pair.token0, feeTo, BigInt.fromI32(0)))
+  inputTokenAmounts.push(new TokenBalance(pair.token1, feeTo, BigInt.fromI32(0)))
+
+  let outputTokenBalance = accountLiquidity.balance
+  let token0Balance = outputTokenBalance.times(pair.reserve0).div(pair.totalSupply)
+  let token1Balance = outputTokenBalance.times(pair.reserve1).div(pair.totalSupply)
+  let inputTokenBalances: TokenBalance[] = []
+  inputTokenBalances.push(new TokenBalance(pair.token0, feeTo, token0Balance))
+  inputTokenBalances.push(new TokenBalance(pair.token1, feeTo, token1Balance))
+
+  investInMarket(
+    event,
+    account,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    [],
+    outputTokenBalance,
+    inputTokenBalances,
+    [],
+    null
+  )
+
+  // update market
+  let marketInputTokenBalances: TokenBalance[] = []
+  marketInputTokenBalances.push(new TokenBalance(pair.token0, pair.id, pair.reserve0))
+  marketInputTokenBalances.push(new TokenBalance(pair.token1, pair.id, pair.reserve1))
+
+  // Update market
+  updateMarket(
+    event,
+    market,
+    marketInputTokenBalances,
+    pair.totalSupply
+  )
+}
+
 export function handleTransfer(event: Transfer): void {
   if (event.params.value == BigInt.fromI32(0)) {
     return
@@ -295,6 +342,16 @@ export function handleTransfer(event: Transfer): void {
         event.params.value
       )
       marketDayData.save()
+    }
+
+    // Check if it's minting fee
+    let pairFactory = PairFactoryEntity.load(pair.factory) as PairFactoryEntity
+    if (pairFactory != null && pairFactory.feeTo != null && toHex == pairFactory.feeTo) {
+      // Mint amount to feeTo address
+      pair.totalSupply = pair.totalSupply.plus(event.params.value)
+      pair.save()
+      
+      mintFee(event, pair, event.params.value, pairFactory)
     }
 
     let mint = getOrCreateMint(event, pair)
