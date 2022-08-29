@@ -55,7 +55,13 @@ export function handleStaked(event: Staked): void {
   let userInputTokenBalances = [
     new TokenBalance(stakingPool.stakingToken, user.id, position.stakedBalance),
   ];
-  let rewardTokensBalance: TokenBalance[] = getPendingRewards();
+  let rewardTokensBalance: TokenBalance[] = [
+    new TokenBalance(
+      stakingPool.rewardsToken,
+      user.id,
+      getPendingRewards(event.address, event.params.user)
+    ),
+  ];
 
   investInMarket(
     event,
@@ -242,6 +248,6 @@ function getOrCreatePositionInStakingPool(
  * Get pending rewards
  * @returns
  */
-function getPendingRewards(): TokenBalance[] {
-  return [];
+function getPendingRewards(stakingPool: Address, user: Address): BigInt {
+  return StakingRewards.bind(stakingPool).earned(user);
 }
