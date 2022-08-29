@@ -12,7 +12,12 @@ import {
   updateMarket,
 } from "./lib/common";
 
-import { Staked, StakingRewards, Withdrawn } from "../generated/StakingRewards/StakingRewards";
+import {
+  RewardPaid,
+  Staked,
+  StakingRewards,
+  Withdrawn,
+} from "../generated/StakingRewards/StakingRewards";
 import { ProtocolType } from "./lib/constants";
 
 /**
@@ -103,6 +108,47 @@ export function handleWithdrawn(event: Withdrawn): void {
   ];
   let rewardTokensBalance: TokenBalance[] = getPendingRewards();
 
+  redeemFromMarket(
+    event,
+    user,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokensAmounts,
+    outputTokenBalance,
+    userInputTokenBalances,
+    rewardTokensBalance,
+    null
+  );
+}
+
+/**
+ * Handle user claiming reward tokens
+ * @param event
+ */
+export function handleRewardPaid(event: RewardPaid): void {
+  let stakingPoolAddress = event.address.toHexString();
+  let rewardAmount = event.params.reward;
+  let user = getOrCreateAccount(event.params.user);
+  let stakingPool = getOrCreateStakingPool(event, stakingPoolAddress);
+
+  //// update user's position
+  let outputTokenAmount = BigInt.fromI32(0);
+  let inputTokenAmounts = [];
+  let rewardTokensAmounts: TokenBalance[] = [
+    new TokenBalance(stakingPool.rewardsToken, user.id, rewardAmount),
+  ];
+
+  let position = getOrCreatePositionInStakingPool(user, stakingPoolAddress);
+  let outputTokenBalance = position.stakedBalance;
+  let userInputTokenBalances = [
+    new TokenBalance(stakingPool.stakingToken, user.id, position.stakedBalance),
+  ];
+  let rewardTokensBalance: TokenBalance[] = [
+    new TokenBalance(stakingPool.rewardsToken, user.id, BigInt.fromI32(0)),
+  ];
+
+  let market = Market.load(stakingPool.id) as Market;
   redeemFromMarket(
     event,
     user,
