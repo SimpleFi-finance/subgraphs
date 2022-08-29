@@ -11,6 +11,7 @@ const UINT_256_MAX = BigInt.fromString("1157920892373161954235709850086879078532
 const FEE_DEVISOR = BigInt.fromI32(10000);
 const ADMIN_FEE_UPGRADE_BLOCK: u64 = 55263102;
 const MIN_RESERVE = BigInt.fromString("1000000000000000000");
+const TARGET_DECIMAL = u32(18);
 
 /**
 pub fn new(owner_id: ValidAccountId, exchange_fee: u32, referral_fee: u32) -> Self
@@ -1007,14 +1008,24 @@ export function transferSimplePoolShares(
 
 function amountToCAmount(stableSwapPool: StableSwapPool, amount: BigInt, index: i32): BigInt {
   const decimal = stableSwapPool.decimals[index];
-  const factor = BigInt.fromI32(10).pow(18 - u8(decimal.toU32()));
-  return amount.times(factor);
+  if (decimal.toU32() < TARGET_DECIMAL) {
+    const factor = BigInt.fromI32(10).pow(u8(TARGET_DECIMAL - decimal.toU32()));
+    return amount.times(factor);
+  } else {
+    const factor = BigInt.fromI32(10).pow(u8(decimal.toU32() - TARGET_DECIMAL));
+    return amount.div(factor);
+  }
 }
 
 function cAmountToAmount(stableSwapPool: StableSwapPool, cAmount: BigInt, index: i32): BigInt {
   const decimal = stableSwapPool.decimals[index];
-  const factor = BigInt.fromI32(10).pow(18 - u8(decimal.toU32()));
-  return cAmount.div(factor);
+  if (decimal.toU32() < TARGET_DECIMAL) {
+    const factor = BigInt.fromI32(10).pow(u8(TARGET_DECIMAL - decimal.toU32()));
+    return cAmount.div(factor);
+  } else {
+    const factor = BigInt.fromI32(10).pow(u8(decimal.toU32() - TARGET_DECIMAL));
+    return cAmount.times(factor);
+  }
 }
 
 export function mintStableSwapPoolShares(
