@@ -7,11 +7,12 @@ import {
   getOrCreateERC20Token,
   getOrCreateMarketWithId,
   investInMarket,
+  redeemFromMarket,
   TokenBalance,
   updateMarket,
 } from "./lib/common";
 
-import { Staked, StakingRewards } from "../generated/StakingRewards/StakingRewards";
+import { Staked, StakingRewards, Withdrawn } from "../generated/StakingRewards/StakingRewards";
 import { ProtocolType } from "./lib/constants";
 
 /**
@@ -52,6 +53,57 @@ export function handleStaked(event: Staked): void {
   let rewardTokensBalance: TokenBalance[] = getPendingRewards();
 
   investInMarket(
+    event,
+    user,
+    market,
+    outputTokenAmount,
+    inputTokenAmounts,
+    rewardTokensAmounts,
+    outputTokenBalance,
+    userInputTokenBalances,
+    rewardTokensBalance,
+    null
+  );
+}
+
+/**
+ * Handle user withdrawing tokens from staking pool
+ * @param event
+ */
+export function handleWithdrawn(event: Withdrawn): void {
+  let stakingPoolAddress = event.address.toHexString();
+  let withdrawnAmount = event.params.amount;
+  let user = getOrCreateAccount(event.params.user);
+
+  //// update StakingPool balance
+  let stakingPool = getOrCreateStakingPool(event, stakingPoolAddress);
+  stakingPool.totalSupply = stakingPool.totalSupply.minus(withdrawnAmount);
+  stakingPool.save();
+
+  //// update Market balance
+  let market = Market.load(stakingPool.id) as Market;
+  let inputTokenBalances: TokenBalance[] = [
+    new TokenBalance(stakingPool.stakingToken, stakingPoolAddress, stakingPool.totalSupply),
+  ];
+  updateMarket(event, market, inputTokenBalances, stakingPool.totalSupply);
+
+  //// update user's balance tracker
+  let position = getOrCreatePositionInStakingPool(user, stakingPoolAddress);
+  position.stakedBalance = position.stakedBalance.minus(withdrawnAmount);
+  position.save();
+
+  //// update user's position
+  let outputTokenAmount = withdrawnAmount;
+  let inputTokenAmounts = [new TokenBalance(stakingPool.stakingToken, user.id, withdrawnAmount)];
+  let rewardTokensAmounts: TokenBalance[] = [];
+
+  let outputTokenBalance = position.stakedBalance;
+  let userInputTokenBalances = [
+    new TokenBalance(stakingPool.stakingToken, user.id, position.stakedBalance),
+  ];
+  let rewardTokensBalance: TokenBalance[] = getPendingRewards();
+
+  redeemFromMarket(
     event,
     user,
     market,
