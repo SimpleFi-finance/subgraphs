@@ -120,7 +120,13 @@ export function handleWithdrawn(event: Withdrawn): void {
   let userInputTokenBalances = [
     new TokenBalance(stakingPool.stakingToken, user.id, position.stakedBalance),
   ];
-  let rewardTokensBalance: TokenBalance[] = getPendingRewards();
+  let rewardTokensBalance: TokenBalance[] = [
+    new TokenBalance(
+      stakingPool.rewardsToken,
+      user.id,
+      getPendingRewards(event.address, event.params.user)
+    ),
+  ];
 
   redeemFromMarket(
     event,
@@ -148,7 +154,7 @@ export function handleRewardPaid(event: RewardPaid): void {
 
   //// update user's position
   let outputTokenAmount = BigInt.fromI32(0);
-  let inputTokenAmounts = [];
+  let inputTokenAmounts: TokenBalance[] = [];
   let rewardTokensAmounts: TokenBalance[] = [
     new TokenBalance(stakingPool.rewardsToken, user.id, rewardAmount),
   ];
