@@ -25,7 +25,7 @@ import { ProtocolType } from "./lib/constants";
  * @param event
  */
 export function handleStaked(event: Staked): void {
-  let stakingPoolAddress = event.address.toHexString();
+  let stakingPoolAddress = event.address;
   let depositedAmount = event.params.amount;
   let user = getOrCreateAccount(event.params.user);
 
@@ -37,12 +37,16 @@ export function handleStaked(event: Staked): void {
   //// update Market balance
   let market = Market.load(stakingPool.id) as Market;
   let inputTokenBalances: TokenBalance[] = [
-    new TokenBalance(stakingPool.stakingToken, stakingPoolAddress, stakingPool.totalSupply),
+    new TokenBalance(
+      stakingPool.stakingToken,
+      stakingPoolAddress.toHexString(),
+      stakingPool.totalSupply
+    ),
   ];
   updateMarket(event, market, inputTokenBalances, stakingPool.totalSupply);
 
   //// update user's balance tracker
-  let position = getOrCreatePositionInStakingPool(user, stakingPoolAddress);
+  let position = getOrCreatePositionInStakingPool(user, stakingPoolAddress.toHexString());
   position.stakedBalance = position.stakedBalance.plus(depositedAmount);
   position.save();
 
@@ -82,7 +86,7 @@ export function handleStaked(event: Staked): void {
  * @param event
  */
 export function handleWithdrawn(event: Withdrawn): void {
-  let stakingPoolAddress = event.address.toHexString();
+  let stakingPoolAddress = event.address;
   let withdrawnAmount = event.params.amount;
   let user = getOrCreateAccount(event.params.user);
 
@@ -94,12 +98,16 @@ export function handleWithdrawn(event: Withdrawn): void {
   //// update Market balance
   let market = Market.load(stakingPool.id) as Market;
   let inputTokenBalances: TokenBalance[] = [
-    new TokenBalance(stakingPool.stakingToken, stakingPoolAddress, stakingPool.totalSupply),
+    new TokenBalance(
+      stakingPool.stakingToken,
+      stakingPoolAddress.toHexString(),
+      stakingPool.totalSupply
+    ),
   ];
   updateMarket(event, market, inputTokenBalances, stakingPool.totalSupply);
 
   //// update user's balance tracker
-  let position = getOrCreatePositionInStakingPool(user, stakingPoolAddress);
+  let position = getOrCreatePositionInStakingPool(user, stakingPoolAddress.toHexString());
   position.stakedBalance = position.stakedBalance.minus(withdrawnAmount);
   position.save();
 
@@ -133,7 +141,7 @@ export function handleWithdrawn(event: Withdrawn): void {
  * @param event
  */
 export function handleRewardPaid(event: RewardPaid): void {
-  let stakingPoolAddress = event.address.toHexString();
+  let stakingPoolAddress = event.address;
   let rewardAmount = event.params.reward;
   let user = getOrCreateAccount(event.params.user);
   let stakingPool = getOrCreateStakingPool(event, stakingPoolAddress);
@@ -145,7 +153,7 @@ export function handleRewardPaid(event: RewardPaid): void {
     new TokenBalance(stakingPool.rewardsToken, user.id, rewardAmount),
   ];
 
-  let position = getOrCreatePositionInStakingPool(user, stakingPoolAddress);
+  let position = getOrCreatePositionInStakingPool(user, stakingPoolAddress.toHexString());
   let outputTokenBalance = position.stakedBalance;
   let userInputTokenBalances = [
     new TokenBalance(stakingPool.stakingToken, user.id, position.stakedBalance),
@@ -177,27 +185,27 @@ export function handleRewardPaid(event: RewardPaid): void {
  */
 export function getOrCreateStakingPool(
   event: ethereum.Event,
-  stakingPoolAddress: string
+  stakingPoolAddress: Address
 ): StakingPool {
-  let stakingPool = StakingPool.load(stakingPoolAddress);
+  let stakingPool = StakingPool.load(stakingPoolAddress.toHexString());
 
   if (stakingPool != null) {
     return stakingPool as StakingPool;
   }
 
-  let contract = StakingRewards.bind(Address.fromHexString(stakingPoolAddress));
+  let contract = StakingRewards.bind(stakingPoolAddress);
   let stakingToken = getOrCreateERC20Token(event, contract.stakingToken());
   let outputToken = getOrCreateERC20Token(event, contract._address);
   let rewardsToken = getOrCreateERC20Token(event, contract.rewardsToken());
 
-  stakingPool = new StakingPool(stakingPoolAddress);
+  stakingPool = new StakingPool(stakingPoolAddress.toHexString());
   stakingPool.stakingToken = stakingToken.id;
   stakingPool.rewardsToken = rewardsToken.id;
   stakingPool.save();
 
   //// create Market entity
   let marketId = stakingPool.id;
-  let marketAddress = Address.fromHexString(stakingPoolAddress);
+  let marketAddress = stakingPoolAddress;
   // TODO - use proper protocol naming
   let protocolName = "StakingRewards";
   let protocolType = ProtocolType.STAKING;
