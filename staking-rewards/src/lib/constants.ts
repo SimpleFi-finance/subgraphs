@@ -16,6 +16,11 @@ export namespace TokenStandard {
   export const ERC1155 = "ERC1155";
 }
 
+export namespace ProtocolName {
+  export const UNISWAP_V2 = "UNISWAP_V2";
+  export const SYNTHETIX_STAKING_REWARDS = "SYNTHETIX_STAKING_REWARDS";
+}
+
 export namespace ProtocolType {
   export const STAKING = "STAKING";
   export const LENDING = "LENDING";

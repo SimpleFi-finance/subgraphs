@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
+import { Address, BigInt, dataSource, ethereum, log } from "@graphprotocol/graph-ts";
 
 import { Market, Account, Token, StakingPool, PositionInStakingPool } from "../generated/schema";
 
@@ -17,8 +17,8 @@ import {
   Staked,
   StakingRewards,
   Withdrawn,
-} from "../generated/StakingRewards/StakingRewards";
-import { ProtocolType } from "./lib/constants";
+} from "../generated/SynthetixStakingRewardsETH/StakingRewards";
+import { ProtocolName, ProtocolType } from "./lib/constants";
 
 /**
  * Handle user staking his tokens in staking pool
@@ -212,8 +212,7 @@ export function getOrCreateStakingPool(
   //// create Market entity
   let marketId = stakingPool.id;
   let marketAddress = stakingPoolAddress;
-  // TODO - use proper protocol naming
-  let protocolName = "StakingRewards";
+  let protocolName = ProtocolName.SYNTHETIX_STAKING_REWARDS;
   let protocolType = ProtocolType.STAKING;
   let inputTokens: Token[] = [stakingToken];
   let rewardTokens: Token[] = [rewardsToken];
