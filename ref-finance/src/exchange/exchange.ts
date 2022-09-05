@@ -193,7 +193,10 @@ export function addLiquidity(
   const marketId = receipt.receiverId.concat("-").concat(poolId.toString());
 
   // Update pool and calculate LP token amount
-  const pool = Pool.load(marketId) as Pool;
+  const pool = Pool.load(marketId);
+  if (pool == null) {
+    return;
+  }
   if (pool.poolType != "SIMPLE_POOL") {
     return;
   }
@@ -245,7 +248,10 @@ export function removeLiquidity(
   const marketId = receipt.receiverId.concat("-").concat(poolId.toString());
 
   // Update pool and calculate LP token amount
-  const pool = Pool.load(marketId) as Pool;
+  const pool = Pool.load(marketId);
+  if (pool == null) {
+    return;
+  }
   if (pool.poolType == "SIMPLE_POOL") {
     const simplePool = SimplePool.load(marketId) as SimplePool;
     const tokensLength = simplePool.tokens.length;
@@ -313,7 +319,10 @@ export function addStableLiquidity(
   const marketId = receipt.receiverId.concat("-").concat(poolId.toString());
 
   // Update pool and calculate LP token amount
-  const pool = Pool.load(marketId) as Pool;
+  const pool = Pool.load(marketId);
+  if (pool == null) {
+    return;
+  }
   if (pool.poolType != "STABLE_SWAP") {
     return;
   }
@@ -410,7 +419,10 @@ export function removeLiquidityByTokens(
   const marketId = receipt.receiverId.concat("-").concat(poolId.toString());
 
   // Update pool and calculate LP token amount
-  const pool = Pool.load(marketId) as Pool;
+  const pool = Pool.load(marketId);
+  if (pool == null) {
+    return;
+  }
   if (pool.poolType != "STABLE_SWAP") {
     return;
   }

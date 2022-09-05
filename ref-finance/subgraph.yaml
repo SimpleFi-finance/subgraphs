@@ -1,6 +1,6 @@
 specVersion: 0.0.4
 graft:
-  base: QmXVE3itszjEfF4gtLRmmdViU4RHg5LHt4SDcdiUATMBKd
+  base: QmS2RKSUm23u3sHMc9sLPtEtDeu2CnhW5LaNvLPtv3eJf3
   block: 66102300
 features:
   - grafting
@@ -12,6 +12,7 @@ dataSources:
     network: near-mainnet
     source:
       account: "v2.ref-finance.near"
+      startBlock: 45753042
     mapping:
       apiVersion: 0.0.5
       language: wasm/assemblyscript
