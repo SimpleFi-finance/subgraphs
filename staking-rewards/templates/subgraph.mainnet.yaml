@@ -1,0 +1,206 @@
+specVersion: 0.0.2
+schema:
+  file: ./schema.graphql
+
+dataSources:
+  - kind: ethereum/contract
+    name: SynthetixStakingRewardsETH
+    network: mainnet
+    source:
+      address: "0x3f27c540ADaE3a9E8c875C61e3B970b559d7F65d"
+      abi: StakingRewards
+      startBlock: 11781285
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: &staking_rewards_entities
+        - Vault
+      abis: &staking_rewards_abis
+        - name: StakingRewards
+          file: ./abis/StakingRewards.json
+        - name: IERC20
+          file: ./abis/IERC20.json
+      eventHandlers: &staking_rewards_events
+        - event: Staked(indexed address,uint256)
+          handler: handleStaked
+        - event: Withdrawn(indexed address,uint256)
+          handler: handleWithdrawn
+        - event: RewardPaid(indexed address,uint256)
+          handler: handleRewardPaid
+      file: ./src/stakingRewards.ts
+
+  - kind: ethereum/contract
+    name: StakingRewardsiBTC
+    network: mainnet
+    source:
+      address: "0x167009dcDA2e49930a71712D956f02cc980DcC1b"
+      abi: StakingRewards
+      startBlock: 11617455
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *staking_rewards_entities
+      abis: *staking_rewards_abis
+      eventHandlers: *staking_rewards_events
+      file: ./src/stakingRewards.ts
+
+  - kind: ethereum/contract
+    name: StakingRewardssAAPLBalancer
+    network: mainnet
+    source:
+      address: "0x7af65f1740c0eB816A27FD808EaF6Ab09F6Fa646"
+      abi: StakingRewards
+      startBlock: 12290875
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *staking_rewards_entities
+      abis: *staking_rewards_abis
+      eventHandlers: *staking_rewards_events
+      file: ./src/stakingRewards.ts
+
+  - kind: ethereum/contract
+    name: StakingRewardssAMZNBalancer
+    network: mainnet
+    source:
+      address: "0xDC338C7544654c7dadFEb7E44076E457963113B0"
+      abi: StakingRewards
+      startBlock: 12290902
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *staking_rewards_entities
+      abis: *staking_rewards_abis
+      eventHandlers: *staking_rewards_events
+      file: ./src/stakingRewards.ts
+
+  - kind: ethereum/contract
+    name: StakingRewardssCOINBalancer
+    network: mainnet
+    source:
+      address: "0x1C1D97f6338759AB814a5A717aE359573Ab5D5d4"
+      abi: StakingRewards
+      startBlock: 12335887
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *staking_rewards_entities
+      abis: *staking_rewards_abis
+      eventHandlers: *staking_rewards_events
+      file: ./src/stakingRewards.ts
+
+  - kind: ethereum/contract
+    name: StakingRewardssEURCurve
+    network: mainnet
+    source:
+      address: "0xc0d8994Cd78eE1980885DF1A0C5470fC977b5cFe"
+      abi: StakingRewards
+      startBlock: 11631373
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *staking_rewards_entities
+      abis: *staking_rewards_abis
+      eventHandlers: *staking_rewards_events
+      file: ./src/stakingRewards.ts
+
+  - kind: ethereum/contract
+    name: StakingRewardssFBBalancer
+    network: mainnet
+    source:
+      address: "0x26Fa0665660c1D3a3666584669511d3c66Ad37Cb"
+      abi: StakingRewards
+      startBlock: 12290862
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *staking_rewards_entities
+      abis: *staking_rewards_abis
+      eventHandlers: *staking_rewards_events
+      file: ./src/stakingRewards.ts
+
+  - kind: ethereum/contract
+    name: StakingRewardssGOOGBalancer
+    network: mainnet
+    source:
+      address: "0x6fB7F0E78582746bd01BcB6dfbFE62cA5F4F9175"
+      abi: StakingRewards
+      startBlock: 12290946
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *staking_rewards_entities
+      abis: *staking_rewards_abis
+      eventHandlers: *staking_rewards_events
+      file: ./src/stakingRewards.ts
+
+  - kind: ethereum/contract
+    name: StakingRewardssMSFTBalancer
+    network: mainnet
+    source:
+      address: "0x9D003Cc298E7Ea141A809C241C0a703176DA3ba3"
+      abi: StakingRewards
+      startBlock: 12335892
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *staking_rewards_entities
+      abis: *staking_rewards_abis
+      eventHandlers: *staking_rewards_events
+      file: ./src/stakingRewards.ts
+
+  - kind: ethereum/contract
+    name: StakingRewardssNFLXBalancer
+    network: mainnet
+    source:
+      address: "0x8Ef8cA2AcAaAfEc19fB366C11561718357F780F2"
+      abi: StakingRewards
+      startBlock: 12290932
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *staking_rewards_entities
+      abis: *staking_rewards_abis
+      eventHandlers: *staking_rewards_events
+      file: ./src/stakingRewards.ts
+
+  - kind: ethereum/contract
+    name: StakingRewardssTSLABalancer
+    network: mainnet
+    source:
+      address: "0xF0de877F2F9E7A60767f9BA662F10751566AD01c"
+      abi: StakingRewards
+      startBlock: 11837207
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *staking_rewards_entities
+      abis: *staking_rewards_abis
+      eventHandlers: *staking_rewards_events
+      file: ./src/stakingRewards.ts
+
+templates:
+  - kind: ethereum/contract
+    name: StakingRewards
+    network: mainnet
+    source:
+      abi: StakingRewards
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities: *staking_rewards_entities
+      abis: *staking_rewards_abis
+      eventHandlers: *staking_rewards_events
+      file: ./src/stakingRewards.ts

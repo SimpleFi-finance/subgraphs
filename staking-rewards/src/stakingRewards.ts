@@ -1,4 +1,4 @@
-import { Address, BigInt, dataSource, ethereum, log } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 
 import { Market, Account, Token, StakingPool, PositionInStakingPool } from "../generated/schema";
 
@@ -17,7 +17,7 @@ import {
   Staked,
   StakingRewards,
   Withdrawn,
-} from "../generated/SynthetixStakingRewardsETH/StakingRewards";
+} from "../generated/templates/StakingRewards/StakingRewards";
 import { ProtocolName, ProtocolType } from "./lib/constants";
 
 /**

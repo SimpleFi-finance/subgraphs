@@ -9,7 +9,7 @@ import {
   Token,
   Transaction,
 } from "../../generated/schema";
-import { IERC20 } from "../../generated/SynthetixStakingRewardsETH/IERC20";
+import { IERC20 } from "../../generated/templates/StakingRewards/IERC20";
 import { PositionType, TokenStandard, TransactionType } from "./constants";
 
 export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
