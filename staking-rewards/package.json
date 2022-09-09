@@ -1,0 +1,27 @@
+{
+  "name": "staking-rewards",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SimpleFi-finance/subgraphs.git"
+  },
+  "author": "SimpleFi",
+  "bugs": {
+    "url": "https://github.com/SimpleFi-finance/subgraphs.git/issues"
+  },
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "clean": "rm -rf ./build && rm -rf ./generated",
+    "prepare-mainnet": "cp templates/subgraph.mainnet.yaml subgraph.yaml && npm run codegen",
+    "prepare-optimism": "cp templates/subgraph.optimism.yaml subgraph.yaml && npm run codegen",
+    "deploy-mainnet": "npm run clean && npm run prepare-mainnet &&  graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/synthetix-rewards",
+    "deploy-optimism": "npm run clean && npm run prepare-optimism &&  graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/synthetix-rewards-optimism",
+    "create-local": "graph create --node http://localhost:8020/ staking-rewards",
+    "remove-local": "graph remove --node http://localhost:8020/ staking-rewards",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 staking-rewards"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.23.2",
+    "@graphprotocol/graph-ts": "0.23.1"
+  }
+}
