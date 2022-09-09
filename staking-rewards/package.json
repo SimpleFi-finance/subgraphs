@@ -14,7 +14,6 @@
     "clean": "rm -rf ./build && rm -rf ./generated",
     "prepare-mainnet": "cp templates/subgraph.mainnet.yaml subgraph.yaml && npm run codegen",
     "prepare-optimism": "cp templates/subgraph.optimism.yaml subgraph.yaml && npm run codegen",
-    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gvladika/synthetix-stakingrewards-eth",
     "deploy-mainnet": "npm run clean && npm run prepare-mainnet &&  graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/synthetix-rewards",
     "deploy-optimism": "npm run clean && npm run prepare-optimism &&  graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ simplefi-finance/synthetix-rewards-optimism",
     "create-local": "graph create --node http://localhost:8020/ staking-rewards",
