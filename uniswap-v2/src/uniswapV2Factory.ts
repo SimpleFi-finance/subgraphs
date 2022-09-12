@@ -1,9 +1,15 @@
-import { BigInt, DataSourceContext } from "@graphprotocol/graph-ts"
+import { BigInt } from "@graphprotocol/graph-ts"
 import { Pair as PairEntity } from "../generated/schema"
 import { UniswapV2Pair } from "../generated/templates"
-import { PairCreated } from "../generated/UniswapV2Factory/UniswapV2Factory"
-import { getOrCreateAccount, getOrCreateERC20Token, getOrCreateMarket } from "./common"
-import { FEE_30_BASE_POINTS, protocolToFee, ProtocolType } from "./constants"
+import {
+  PairCreated
+} from "../generated/UniswapV2Factory/UniswapV2Factory"
+import {
+  getOrCreateAccount,
+  getOrCreateERC20Token,
+  getOrCreateMarket
+} from "./common"
+import { ProtocolType } from "./constants"
 
 export function handlePairCreated(event: PairCreated, protocolName: string): void {
   // Create a tokens and market entity
@@ -37,23 +43,5 @@ export function handlePairCreated(event: PairCreated, protocolName: string): voi
   pair.save()
 
   // Start listening for market events
-  let context = new DataSourceContext()
-  context.setBigInt("protocolFee", getProtocolFee(event.address.toHexString()))
-  UniswapV2Pair.createWithContext(event.params.pair, context)
-}
-
-/**
- * Get protocol's swap fee by looking at static mapping in constants
- * @param address
- * @returns
- */
-function getProtocolFee(address: string): BigInt {
-  let fee = protocolToFee.get(address)
-
-  if (fee == null) {
-    // if not found, use Uniswap default of 0.3% swap fee (30 bps)
-    fee = BigInt.fromI32(FEE_30_BASE_POINTS)
-  }
-
-  return fee as BigInt
+  UniswapV2Pair.create(event.params.pair)
 }
