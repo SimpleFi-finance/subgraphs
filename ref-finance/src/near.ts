@@ -1,7 +1,7 @@
 import { BigInt, log, near } from "@graphprotocol/graph-ts";
 import { Deployment } from "../generated/schema";
 import { callbakPostWithdraw, withdraw } from "./exchange/accountDeposit";
-import { addLiquidity, addSimplePool, addStableLiquidity, addStableSwapPool, executeActions, initRefV2, removeLiquidity, removeLiquidityByTokens, swap } from "./exchange/exchange";
+import { addLiquidity, addSimplePool, addStableLiquidity, addStableSwapPool, executeActions, initRefV2, removeLiquidity, removeLiquidityByTokens, swap, updateTokenRateCallback } from "./exchange/exchange";
 import { mftResolveTransfer, mftTransfer, mftTransferCall } from "./exchange/mft";
 import { changeState, modifyAdminFee, removeExchangeFeeLiquidity, setOwner, stableSwapRampAmp, stableSwapStopRampAmp } from "./exchange/owner";
 import { ftOnTransfer } from "./exchange/tokenReceiver";
@@ -184,6 +184,9 @@ function handleFunctionCall(
   handlersMapping.set("remove_exchange_fee_liquidity", removeExchangeFeeLiquidity);
   handlersMapping.set("stable_swap_ramp_amp", stableSwapRampAmp);
   handlersMapping.set("stable_swap_stop_ramp_amp", stableSwapStopRampAmp);
+
+  handlersMapping.set("add_rated_swap_pool", addStableSwapPool);
+  handlersMapping.set("update_token_rate_callback", updateTokenRateCallback);
 
   handlersMapping.set("mft_transfer", mftTransfer);
   handlersMapping.set("mft_transfer_call", mftTransferCall);

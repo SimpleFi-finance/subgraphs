@@ -1,43 +1,17 @@
 import { BigInt, near } from "@graphprotocol/graph-ts";
-import { StableSwapPool } from "../../generated/schema";
+import { RatedSwapPool } from "../../generated/schema";
+import { Fees } from "./stableSwap";
 
 const ZERO = BigInt.fromI32(0);
 const ONE = BigInt.fromI32(1);
 const FEE_DEVISOR = BigInt.fromI32(10000);
+const ONE_E_24 = BigInt.fromString("1000000000000000000000000");
 
 // maximum iterations of newton's method approximation
 const MAX_ITERS = 256;
 
 function sumReducer(sum: BigInt, v: BigInt, i: i32, a: BigInt[]): BigInt {
   return sum.plus(v);
-}
-
-export class Fees {
-  tradeFee: BigInt
-  exchangeFee: BigInt
-  referralFee: BigInt
-  adminFee: BigInt
-
-  constructor(tradeFee: BigInt, exchangeFee: BigInt, referralFee: BigInt) {
-    this.tradeFee = tradeFee;
-    this.exchangeFee = exchangeFee;
-    this.referralFee = referralFee;
-    this.adminFee = exchangeFee.plus(referralFee);
-  }
-
-  computeTradeFee(amount: BigInt): BigInt {
-    return amount.times(this.tradeFee).div(FEE_DEVISOR);
-  }
-
-  computeAdminFee(amount: BigInt): BigInt {
-    return amount.times(this.adminFee).div(FEE_DEVISOR);
-  }
-
-  // Used to normalize fee applid on difference amount with ideal balance
-  normalizedTrafeFee(nCoins: BigInt, amount: BigInt): BigInt {
-    const adjustedTradeFee = this.tradeFee.times(nCoins).div(BigInt.fromI32(4).times(nCoins.minus(ONE)));
-    return amount.times(adjustedTradeFee).div(FEE_DEVISOR);
-  }
 }
 
 export class SwapResult {
@@ -52,7 +26,7 @@ export class SwapResult {
     newDestiantionAmount: BigInt,
     amountSwapped: BigInt,
     adminFee: BigInt,
-    fee: BigInt,
+    fee: BigInt
   ) {
     this.newSourceAmount = newSourceAmount;
     this.newDestiantionAmount = newDestiantionAmount;
@@ -62,19 +36,21 @@ export class SwapResult {
   }
 }
 
-export class StableSwap {
+export class RatedSwap {
   initAmpFactor: BigInt
   targetAmpFactor: BigInt
   currentTime: BigInt
   initAmpTime: BigInt
   stopAmpTime: BigInt
+  rates: BigInt[]
 
-  constructor(block: near.Block, stableSwapPool: StableSwapPool) {
-    this.initAmpFactor = stableSwapPool.initAmpFactor;
-    this.targetAmpFactor = stableSwapPool.targetAmpFactor;
+  constructor(block: near.Block, ratedSwapPool: RatedSwapPool, rates: BigInt[]) {
+    this.initAmpFactor = ratedSwapPool.initAmpFactor;
+    this.targetAmpFactor = ratedSwapPool.targetAmpFactor;
     this.currentTime = BigInt.fromU64(block.header.timestampNanosec);
-    this.initAmpTime = stableSwapPool.initAmpTime;
-    this.stopAmpTime = stableSwapPool.stopAmpTime;
+    this.initAmpTime = ratedSwapPool.initAmpTime;
+    this.stopAmpTime = ratedSwapPool.stopAmpTime;
+    this.rates = rates;
   }
 
   computeAmpFactor(): BigInt {
@@ -96,6 +72,47 @@ export class StableSwap {
       const ampDelta = ampRange.times(timeDelta).div(timeRange);
       return this.initAmpFactor.minus(ampDelta);
     }
+  }
+
+  /**
+   * fn mul_rate(&self, amount: Balance, rate: Balance) -> Balance {
+        (U384::from(amount) * U384::from(rate) / U384::from(PRECISION))
+            .as_u128()
+    }
+
+    /// *
+    fn div_rate(&self, amount: Balance, rate: Balance) -> Balance {
+        (U384::from(amount) * U384::from(PRECISION) / U384::from(rate))
+            .as_u128()
+    }
+
+    /// *
+    fn rate_balances(&self, amounts: &Vec<Balance>) -> Vec<Balance> {
+        amounts.iter().zip(self.rates.iter()).map(|(&amount, &rate)| {
+            self.mul_rate(amount, rate)
+        }).collect()
+    }
+   */
+
+  mulRate(amount: BigInt, rate: BigInt): BigInt {
+    return amount.times(rate).div(ONE_E_24);
+  }
+
+  divRate(amount: BigInt, rate: BigInt): BigInt {
+    return amount.times(ONE_E_24).div(rate);
+  }
+
+  rateBalance(amounts: BigInt[]): BigInt[] {
+    const rated: BigInt[] = [];
+    for (let i = 0; i < amounts.length; i++) {
+      rated.push(this.mulRate(amounts[i], this.rates[i]));
+    }
+    return rated;
+  }
+
+  computeDWithRates(cAmounts: BigInt[]): BigInt {
+    const ratedCAmounts = this.rateBalance(cAmounts);
+    return this.computeD(ratedCAmounts);
   }
 
   // Compute stable swap invariant (D)
@@ -180,14 +197,14 @@ export class StableSwap {
     let nCoins = oldCAmounts.length;
 
     // Initial Invariant
-    const d0 = this.computeD(oldCAmounts);
+    const d0 = this.computeDWithRates(oldCAmounts);
 
     const newCAmounts: BigInt[] = [];
     for (let i = 0; i < nCoins; i++) {
       newCAmounts.push(oldCAmounts[i].plus(depositCAmounts[i]));
     }
     // Invariant after change
-    const d1 = this.computeD(newCAmounts);
+    const d1 = this.computeDWithRates(newCAmounts);
     if (d1 <= d0) {
       return null;
     }
@@ -200,7 +217,7 @@ export class StableSwap {
       newCAmounts[i] = newCAmounts[i].minus(fee);
     }
 
-    const d2 = this.computeD(newCAmounts);
+    const d2 = this.computeDWithRates(newCAmounts);
 
     // d1 > d2 > d0, 
     // (d2-d0) => mint_shares (charged fee),
@@ -225,14 +242,14 @@ export class StableSwap {
     let nCoins = oldCAmounts.length;
 
     // Initial Invariant
-    const d0 = this.computeD(oldCAmounts);
+    const d0 = this.computeDWithRates(oldCAmounts);
 
     const newCAmounts: BigInt[] = [];
     for (let i = 0; i < nCoins; i++) {
       newCAmounts.push(oldCAmounts[i].minus(withdrawCAmounts[i]));
     }
     // Invariant after change
-    const d1 = this.computeD(newCAmounts);
+    const d1 = this.computeDWithRates(newCAmounts);
     if (d1 >= d0) {
       return null;
     }
@@ -245,7 +262,7 @@ export class StableSwap {
       newCAmounts[i] = newCAmounts[i].minus(fee);
     }
 
-    const d2 = this.computeD(newCAmounts);
+    const d2 = this.computeDWithRates(newCAmounts);
 
     // d0 > d1 > d2, 
     // (d0-d2) => burn_shares (plus fee),
@@ -267,26 +284,32 @@ export class StableSwap {
     currentCAmounts: BigInt[],
     fees: Fees
   ): SwapResult {
+    const rateIn = this.rates[tokenInIndex];
+    const rateOut = this.rates[tokenOutIndex];
+
+    const tokenInAmountRated = this.mulRate(tokenInAmount, rateIn);
+    const currentCAmountsRated = this.rateBalance(currentCAmounts);
+
     const y = this.computeY(
-      tokenInAmount.plus(currentCAmounts[tokenInIndex]),
-      currentCAmounts,
+      tokenInAmountRated.plus(currentCAmountsRated[tokenInIndex]),
+      currentCAmountsRated,
       tokenInIndex,
       tokenOutIndex
     );
 
-    const dy = currentCAmounts[tokenOutIndex].minus(y);
+    const dy = currentCAmountsRated[tokenOutIndex].minus(y);
     const tradeFee = fees.computeTradeFee(dy);
     const adminFee = fees.computeAdminFee(tradeFee);
     const amountSwapped = dy.minus(tradeFee);
-    const newDestinationAmount = currentCAmounts[tokenOutIndex].minus(amountSwapped).minus(adminFee);
-    const newSourceAmount = currentCAmounts[tokenInIndex].plus(tokenInAmount);
+    const newDestinationAmount = currentCAmountsRated[tokenOutIndex].minus(amountSwapped).minus(adminFee);
+    const newSourceAmount = currentCAmountsRated[tokenInIndex].plus(tokenInAmountRated);
 
     return new SwapResult(
-      newSourceAmount,
-      newDestinationAmount,
-      amountSwapped,
-      adminFee,
-      tradeFee
+      this.divRate(newSourceAmount, rateIn),
+      this.divRate(newDestinationAmount, rateOut),
+      this.divRate(amountSwapped, rateOut),
+      this.divRate(adminFee, rateOut),
+      this.divRate(tradeFee, rateOut)
     );
   }
 }

@@ -1,6 +1,7 @@
 import { BigInt, json, JSONValue, near } from "@graphprotocol/graph-ts";
 import { parseNullableJSONAtrribute } from "../common";
-import { executeSwapAction, SwapAction } from "./exchange";
+import { SwapAction } from "./commonExchange";
+import { executeSwapAction } from "./exchange";
 
 /**
 fn ft_on_transfer(

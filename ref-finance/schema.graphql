@@ -211,11 +211,30 @@ type StableSwapPool @entity {
   stopAmpTime: BigInt!
 }
 
+type RatedSwapPool @entity {
+  id: ID!
+  tokens: [String!]!
+  decimals: [BigInt!]!
+  cAmounts: [BigInt!]!
+  totalFee: BigInt!
+  totalSupply: BigInt!
+  initAmpFactor: BigInt!
+  targetAmpFactor: BigInt!
+  initAmpTime: BigInt!
+  stopAmpTime: BigInt!
+}
+
 type Share @entity {
   id: ID!
   accountId: String!
   poolId: String!
   amount: BigInt!
+}
+
+type TokenRate @entity {
+  id: ID! #{tokenId}
+  rate: BigInt!
+  lastUpdateTime: BigInt!
 }
 
 # END - Ref Finance protocol entities

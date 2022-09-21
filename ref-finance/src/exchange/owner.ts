@@ -1,7 +1,13 @@
 import { BigInt, json, JSONValue, near } from "@graphprotocol/graph-ts";
-import { Market, Pool, RefAccount, SimplePool, StableSwapPool } from "../../generated/schema";
-import { redeemSimplePoolShares, redeemStablePoolShares } from "./exchange";
-import { StableSwap } from "./stableSwap";
+import { Pool, RefAccount } from "../../generated/schema";
+import { ratedRampAmp, ratedStopRampAmp, removeRatedLiquidityByShares } from "./ratedExchange";
+import { removeSimpleLiquidity } from "./simpleExchange";
+import { removeStableLiquidityByShares, stableRampAmp, stableStopRampAmp } from "./stableExchange";
+
+
+const POOL_TYPE_SIMPLE = "SIMPLE_POOL";
+const POOL_TYPE_STABLE = "STABLE_SWAP";
+const POOL_TYPE_RATED = "RATED_POOL";
 
 /**
 pub fn set_owner(&mut self, owner_id: ValidAccountId)
@@ -63,51 +69,33 @@ export function removeExchangeFeeLiquidity(
 
   // Update pool and calculate LP token amount
   const pool = Pool.load(marketId) as Pool;
-  if (pool.poolType == "SIMPLE_POOL") {
-    const simplePool = SimplePool.load(marketId) as SimplePool;
-    const tokensLength = simplePool.tokens.length;
-    const oldPoolAmounts = simplePool.amounts;
-    const amounts: BigInt[] = [];
-
-    for (let i = 0; i < tokensLength; i++) {
-      const amount = oldPoolAmounts[i].times(shares).div(simplePool.totalSupply);
-      amounts.push(amount);
-    }
-
-    let market = Market.load(marketId) as Market;
-
-    redeemSimplePoolShares(
-      simplePool,
-      market,
-      receipt.receiverId,
-      shares,
-      amounts,
+  
+  if (pool.poolType == POOL_TYPE_SIMPLE) {
+    removeSimpleLiquidity(
+      functionCall,
       receipt,
       outcome,
-      block
+      block,
+      pool,
+      shares
     );
-  } else {
-    const stableSwapPool = StableSwapPool.load(marketId) as StableSwapPool;
-    const tokensLength = stableSwapPool.tokens.length;
-    const oldPoolCAmounts = stableSwapPool.cAmounts;
-    const cAmounts: BigInt[] = [];
-
-    for (let i = 0; i < tokensLength; i++) {
-      const amount = oldPoolCAmounts[i].times(shares).div(stableSwapPool.totalSupply);
-      cAmounts.push(amount);
-    }
-
-    let market = Market.load(marketId) as Market;
-
-    redeemStablePoolShares(
-      stableSwapPool,
-      market,
-      receipt.receiverId,
-      shares,
-      cAmounts,
+  } else if (pool.poolType == POOL_TYPE_STABLE) {
+    removeStableLiquidityByShares(
+      functionCall,
       receipt,
       outcome,
-      block
+      block,
+      pool,
+      shares
+    );
+  } else if (pool.poolType == POOL_TYPE_RATED) {
+    removeRatedLiquidityByShares(
+      functionCall,
+      receipt,
+      outcome,
+      block,
+      pool,
+      shares
     );
   }
 }
@@ -132,18 +120,16 @@ export function stableSwapRampAmp(
   const futureAmpTime = BigInt.fromString((args.get("future_amp_time") as JSONValue).toString());
 
   const marketId = receipt.receiverId.concat("-").concat(poolId.toString());
-  const pool = StableSwapPool.load(marketId);
+  const pool = Pool.load(marketId);
   if (pool == null) {
     return;
   }
 
-  const stableSwap = new StableSwap(block, pool);
-  const ampFactor = stableSwap.computeAmpFactor();
-  pool.initAmpFactor = ampFactor;
-  pool.initAmpTime = BigInt.fromU64(block.header.timestampNanosec);
-  pool.targetAmpFactor = futureAmpFactor;
-  pool.stopAmpTime = futureAmpTime;
-  pool.save();
+  if (pool.poolType == POOL_TYPE_STABLE) {
+    stableRampAmp(block, marketId, futureAmpFactor, futureAmpTime);
+  } else if (pool.poolType == POOL_TYPE_RATED) {
+    ratedRampAmp(block, marketId, futureAmpFactor, futureAmpTime);
+  }
 }
 
 /**
@@ -159,17 +145,14 @@ export function stableSwapStopRampAmp(
   const poolId = (args.get("pool_id") as JSONValue).toBigInt();
   
   const marketId = receipt.receiverId.concat("-").concat(poolId.toString());
-  const pool = StableSwapPool.load(marketId);
+  const pool = Pool.load(marketId);
   if (pool == null) {
     return;
   }
 
-  const stableSwap = new StableSwap(block, pool);
-  const ampFactor = stableSwap.computeAmpFactor();
-  const currentTime = BigInt.fromU64(block.header.timestampNanosec);
-  pool.initAmpFactor = ampFactor;
-  pool.initAmpTime = currentTime;
-  pool.targetAmpFactor = ampFactor;
-  pool.stopAmpTime = currentTime;
-  pool.save();
+  if (pool.poolType == POOL_TYPE_STABLE) {
+    stableStopRampAmp(block, marketId);
+  } else if (pool.poolType == POOL_TYPE_RATED) {
+    ratedStopRampAmp(block, marketId);
+  }
 }

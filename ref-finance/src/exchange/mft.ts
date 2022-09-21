@@ -1,6 +1,14 @@
 import { BigInt, json, JSONValue, near } from "@graphprotocol/graph-ts";
-import { Pool, SimplePool, StableSwapPool } from "../../generated/schema";
-import { getOrCreateShare, transferSimplePoolShares, transferStablePoolShares } from "./exchange";
+import { Pool, RatedSwapPool, SimplePool, StableSwapPool } from "../../generated/schema";
+import { getOrCreateShare } from "./commonExchange";
+import { transferRatedPoolShares } from "./ratedExchange";
+import { transferSimplePoolShares } from "./simpleExchange";
+import { transferStablePoolShares } from "./stableExchange";
+
+
+const POOL_TYPE_SIMPLE = "SIMPLE_POOL";
+const POOL_TYPE_STABLE = "STABLE_SWAP";
+const POOL_TYPE_RATED = "RATED_POOL";
 
 /**
 pub fn mft_transfer(
@@ -33,7 +41,7 @@ export function mftTransfer(
     pool = tryPool as Pool;
   }
 
-  if (pool.poolType == "SIMPLE_POOL") {
+  if (pool.poolType == POOL_TYPE_SIMPLE) {
     const simplePool = SimplePool.load(pool.id) as SimplePool;
     transferSimplePoolShares(
       simplePool,
@@ -44,10 +52,21 @@ export function mftTransfer(
       outcome,
       block
     );
-  } else {
+  } else if (pool.poolType == POOL_TYPE_STABLE) {
     const stableSwapPool = StableSwapPool.load(pool.id) as StableSwapPool;
     transferStablePoolShares(
       stableSwapPool,
+      senderId,
+      receiverId,
+      amount,
+      receipt,
+      outcome,
+      block
+    );
+  } else if (pool.poolType == POOL_TYPE_RATED) {
+    const ratedSwapPool = RatedSwapPool.load(pool.id) as RatedSwapPool;
+    transferRatedPoolShares(
+      ratedSwapPool,
       senderId,
       receiverId,
       amount,
@@ -90,7 +109,7 @@ export function mftTransferCall(
     pool = tryPool as Pool;
   }
 
-  if (pool.poolType == "SIMPLE_POOL") {
+  if (pool.poolType == POOL_TYPE_SIMPLE) {
     const simplePool = SimplePool.load(pool.id) as SimplePool;
     transferSimplePoolShares(
       simplePool,
@@ -101,10 +120,21 @@ export function mftTransferCall(
       outcome,
       block
     );
-  } else {
+  } else if (pool.poolType == POOL_TYPE_STABLE){
     const stableSwapPool = StableSwapPool.load(pool.id) as StableSwapPool;
     transferStablePoolShares(
       stableSwapPool,
+      senderId,
+      receiverId,
+      amount,
+      receipt,
+      outcome,
+      block
+    );
+  } else if (pool.poolType == POOL_TYPE_RATED) {
+    const ratedSwapPool = RatedSwapPool.load(pool.id) as RatedSwapPool;
+    transferRatedPoolShares(
+      ratedSwapPool,
       senderId,
       receiverId,
       amount,
@@ -165,7 +195,7 @@ export function mftResolveTransfer(
 
   const refundAmount = unusedAmount.gt(receiverBalance) ? receiverBalance : unusedAmount;
 
-  if (pool.poolType == "SIMPLE_POOL") {
+  if (pool.poolType == POOL_TYPE_SIMPLE) {
     const simplePool = SimplePool.load(pool.id) as SimplePool;
 
     transferSimplePoolShares(
@@ -177,10 +207,21 @@ export function mftResolveTransfer(
       outcome,
       block
     );
-  } else {
+  } else if (pool.poolType == POOL_TYPE_STABLE) {
     const stableSwapPool = StableSwapPool.load(pool.id) as StableSwapPool;
     transferStablePoolShares(
       stableSwapPool,
+      senderId,
+      receiverId,
+      refundAmount,
+      receipt,
+      outcome,
+      block
+    );
+  } else if (pool.poolType == POOL_TYPE_RATED) {
+    const ratedSwapPool = RatedSwapPool.load(pool.id) as RatedSwapPool;
+    transferRatedPoolShares(
+      ratedSwapPool,
       senderId,
       receiverId,
       refundAmount,
