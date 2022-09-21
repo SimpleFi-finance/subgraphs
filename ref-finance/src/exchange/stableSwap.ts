@@ -74,7 +74,7 @@ export class StableSwap {
     this.targetAmpFactor = stableSwapPool.targetAmpFactor;
     this.currentTime = BigInt.fromU64(block.header.timestampNanosec);
     this.initAmpTime = stableSwapPool.initAmpTime;
-    this.stopAmpTime = stableSwapPool.stopAmpTime;
+    this.stopAmpTime = stableSwapPool.stopAmpTime as BigInt;
   }
 
   computeAmpFactor(): BigInt {

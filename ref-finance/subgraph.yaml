@@ -1,7 +1,7 @@
 specVersion: 0.0.4
 graft:
-  base: QmS2RKSUm23u3sHMc9sLPtEtDeu2CnhW5LaNvLPtv3eJf3
-  block: 66102300
+  base: QmPqDoer4C7FY4JZ6FjDbLQKC5zhgLTWxEPJETDrLXQVVD
+  block: 55263101
 features:
   - grafting
 schema:

@@ -49,7 +49,7 @@ export class RatedSwap {
     this.targetAmpFactor = ratedSwapPool.targetAmpFactor;
     this.currentTime = BigInt.fromU64(block.header.timestampNanosec);
     this.initAmpTime = ratedSwapPool.initAmpTime;
-    this.stopAmpTime = ratedSwapPool.stopAmpTime;
+    this.stopAmpTime = ratedSwapPool.stopAmpTime as BigInt;
     this.rates = rates;
   }
 
