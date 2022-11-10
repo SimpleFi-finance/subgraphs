@@ -1,0 +1,23 @@
+specVersion: 0.0.4
+graft:
+  base: QmPqDoer4C7FY4JZ6FjDbLQKC5zhgLTWxEPJETDrLXQVVD
+  block: 55263101
+features:
+  - grafting
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: near
+    name: RefFinanceV2
+    network: near-mainnet
+    source:
+      account: "v2.ref-finance.near"
+      startBlock: 45753042
+    mapping:
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Account
+      receiptHandlers:
+        - handler: handleReceipt
+      file: ./src/near.ts
