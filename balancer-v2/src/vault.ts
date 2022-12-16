@@ -1,5 +1,6 @@
 import { 
   Address, 
+  BigDecimal, 
   BigInt, 
   ethereum, 
   log,
@@ -11,6 +12,10 @@ import {
   TokensRegistered,
   PoolBalanceChanged,
 } from "../generated/Vault/Vault"
+
+import {
+  WeightedPool,
+} from "../generated/templates/WeightedPool/WeightedPool"
 
 import {
   getOrCreateAccount,
@@ -84,6 +89,18 @@ export function handleTokensRegistered(event: TokensRegistered): void {
     lpToken,
     []
   )
+
+  let reserveWeights: BigDecimal[] = []
+  let reserveWeightsBigInt = WeightedPool.bind(poolAddress).getNormalizedWeights()
+
+  // Convert reserve weights to scalars
+  for (let i = 0; i < reserveWeightsBigInt.length; i++) {
+    reserveWeights[i] = reserveWeightsBigInt[i].div(BigInt.fromI32((10 ** 19) as i32)).toBigDecimal()
+  }
+
+  // Save weights into the market
+  market.reserveWeights = reserveWeights
+  market.save()
 
   lpToken.mintedByMarket = market.id
   lpToken.save()
